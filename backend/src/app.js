@@ -17,6 +17,8 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ success: true, message: 'EMINENCE API is running' });
 });
 
-// Routes will be added here
+// Routes
+const authRoutes = require('./routes/authRoutes');
+app.use('/api/auth', authRoutes);
 
 module.exports = app;

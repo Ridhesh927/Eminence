@@ -1,6 +1,23 @@
 const admin = require('../config/firebaseAdmin');
 const jwt = require('jsonwebtoken');
-// const { Customer } = require('../models'); // TODO: Uncomment when models are ready
+const { Customer, Otp } = require('../models');
+const { sendEmail } = require('../services/emailService');
+const { sendSMS } = require('../services/smsService');
+const crypto = require('crypto');
+
+// Helper to check if profile is complete
+const checkAndSetProfileComplete = async (customer) => {
+  if (customer.name && customer.email && customer.phone && customer.isEmailVerified && customer.isPhoneVerified) {
+    customer.isProfileComplete = true;
+    await customer.save();
+  }
+  return customer;
+};
+
+// Generate 6 digit OTP
+const generateOtp = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
 
 const googleLogin = async (req, res) => {
   const { idToken } = req.body;
@@ -10,27 +27,30 @@ const googleLogin = async (req, res) => {
   }
 
   try {
-    // 1. Verify the token using Firebase Admin
     const decodedToken = await admin.auth().verifyIdToken(idToken);
     const { uid, email, name, picture } = decodedToken;
 
-    // 2. Find or create the user in our PostgreSQL Database (Mocked for now)
-    /*
-    let user = await Customer.findOne({ where: { email } });
-    if (!user) {
-      user = await Customer.create({
+    let customer = await Customer.findOne({ where: { email } });
+    if (!customer) {
+      customer = await Customer.create({
         name: name || 'Google User',
         email,
         googleId: uid,
         profilePicture: picture,
+        // Assuming Google verified the email
+        isEmailVerified: true 
       });
     }
-    */
-    const user = { id: 'mock-id-123', name: name || 'Google User', email, role: 'customer' };
 
-    // 3. Issue our own EMINENCE JWT
+    // Double check if profile is complete
+    customer = await checkAndSetProfileComplete(customer);
+
     const token = jwt.sign(
-      { id: user.id, role: user.role }, 
+      { 
+        id: customer.id, 
+        role: 'customer', 
+        isProfileComplete: customer.isProfileComplete 
+      }, 
       process.env.JWT_SECRET || 'fallback_secret', 
       { expiresIn: process.env.JWT_EXPIRE || '7d' }
     );
@@ -38,7 +58,16 @@ const googleLogin = async (req, res) => {
     return res.status(200).json({
       success: true,
       token,
-      user
+      user: {
+        id: customer.id,
+        name: customer.name,
+        email: customer.email,
+        phone: customer.phone,
+        isEmailVerified: customer.isEmailVerified,
+        isPhoneVerified: customer.isPhoneVerified,
+        isProfileComplete: customer.isProfileComplete,
+        role: 'customer'
+      }
     });
 
   } catch (error) {
@@ -47,6 +76,110 @@ const googleLogin = async (req, res) => {
   }
 };
 
+const updateProfile = async (req, res) => {
+  try {
+    const { name, phone } = req.body;
+    // Assume req.user is set by auth middleware
+    const customerId = req.user.id; 
+
+    let customer = await Customer.findByPk(customerId);
+    if (!customer) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    if (name) customer.name = name;
+    if (phone && phone !== customer.phone) {
+      customer.phone = phone;
+      customer.isPhoneVerified = false; // Reset verification if phone changes
+      customer.isProfileComplete = false;
+    }
+
+    await customer.save();
+    customer = await checkAndSetProfileComplete(customer);
+
+    return res.status(200).json({ success: true, user: customer });
+  } catch (error) {
+    console.error('Update Profile Error:', error);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+const sendOtp = async (req, res) => {
+  try {
+    const { type } = req.body; // 'email' or 'phone'
+    const customerId = req.user.id;
+
+    const customer = await Customer.findByPk(customerId);
+    if (!customer) return res.status(404).json({ success: false, message: 'User not found' });
+
+    if (type === 'phone' && !customer.phone) {
+      return res.status(400).json({ success: false, message: 'Please update your phone number first' });
+    }
+
+    const code = generateOtp();
+    const expiresAt = new Date(Date.now() + 10 * 60000); // 10 minutes
+
+    // Delete existing OTP of same type for user
+    await Otp.destroy({ where: { customerId, type } });
+
+    await Otp.create({
+      customerId,
+      type,
+      code,
+      expiresAt
+    });
+
+    if (type === 'email') {
+      await sendEmail(customer.email, "Your Verification Code", `Your code is ${code}`, `<p>Your code is <b>${code}</b></p>`);
+    } else if (type === 'phone') {
+      await sendSMS(customer.phone, `Your EMINENCE verification code is ${code}`);
+    } else {
+      return res.status(400).json({ success: false, message: 'Invalid OTP type' });
+    }
+
+    return res.status(200).json({ success: true, message: `OTP sent to ${type}` });
+  } catch (error) {
+    console.error('Send OTP Error:', error);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+const verifyOtp = async (req, res) => {
+  try {
+    const { type, code } = req.body;
+    const customerId = req.user.id;
+
+    const otpRecord = await Otp.findOne({ where: { customerId, type, code } });
+
+    if (!otpRecord) {
+      return res.status(400).json({ success: false, message: 'Invalid OTP' });
+    }
+
+    if (new Date() > otpRecord.expiresAt) {
+      return res.status(400).json({ success: false, message: 'OTP has expired' });
+    }
+
+    // OTP is valid
+    let customer = await Customer.findByPk(customerId);
+    if (type === 'email') customer.isEmailVerified = true;
+    if (type === 'phone') customer.isPhoneVerified = true;
+
+    await customer.save();
+    customer = await checkAndSetProfileComplete(customer);
+
+    // Delete the used OTP
+    await otpRecord.destroy();
+
+    return res.status(200).json({ success: true, message: `${type} verified successfully`, user: customer });
+  } catch (error) {
+    console.error('Verify OTP Error:', error);
+    return res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 module.exports = {
-  googleLogin
+  googleLogin,
+  updateProfile,
+  sendOtp,
+  verifyOtp
 };
