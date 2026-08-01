@@ -3,6 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { updateProfileSuccess } from '../redux/slices/authSlice';
+import MapPicker from '../components/MapPicker';
 
 const CompleteProfile = () => {
   const { user } = useSelector((state) => state.auth);
@@ -11,6 +12,7 @@ const CompleteProfile = () => {
 
   const [name, setName] = useState(user?.name || '');
   const [phone, setPhone] = useState(user?.phone || '');
+  const [location, setLocation] = useState(user?.location || null);
   const [otpType, setOtpType] = useState(null); // 'email' or 'phone'
   const [otpCode, setOtpCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,7 +27,7 @@ const CompleteProfile = () => {
       const token = localStorage.getItem('token'); // Assuming token is stored here
       const res = await axios.post(
         `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/complete-profile`,
-        { name, phone },
+        { name, phone, location },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       dispatch(updateProfileSuccess(res.data.user));
@@ -116,6 +118,17 @@ const CompleteProfile = () => {
               required
             />
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Location</label>
+            <MapPicker onLocationSelect={setLocation} />
+            {location && (
+              <p className="text-xs text-green-600 mt-1">
+                Location selected: {location.lat.toFixed(4)}, {location.lng.toFixed(4)}
+              </p>
+            )}
+          </div>
+
           <button
             type="submit"
             disabled={loading}

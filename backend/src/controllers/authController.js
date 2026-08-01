@@ -132,7 +132,16 @@ const sendOtp = async (req, res) => {
     if (type === 'email') {
       await sendEmail(customer.email, "Your Verification Code", `Your code is ${code}`, `<p>Your code is <b>${code}</b></p>`);
     } else if (type === 'phone') {
-      await sendSMS(customer.phone, `Your EMINENCE verification code is ${code}`);
+      // 🚀 FREE DEPLOYMENT WORKAROUND 🚀
+      // Instead of calling Twilio API, we mock the SMS by logging the OTP to the console.
+      // Anyone can test this by entering their phone number, and you just check your server logs.
+      console.log(`\n\n================================`);
+      console.log(`MOCK SMS SENT TO: ${customer.phone}`);
+      console.log(`YOUR OTP IS: ${code}`);
+      console.log(`================================\n\n`);
+      
+      // Uncomment this when you upgrade Twilio for production:
+      // await sendSMS(customer.phone, `Your EMINENCE verification code is ${code}`);
     } else {
       return res.status(400).json({ success: false, message: 'Invalid OTP type' });
     }
