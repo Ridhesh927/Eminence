@@ -45,9 +45,11 @@ const Footer = () => {
           <div className="md:col-span-3 md:col-start-7">
             <h4 className="font-serif font-bold text-loft-50 mb-6 uppercase tracking-wider text-sm">Platform</h4>
             <ul className="space-y-3">
-              <li><Link to="/" className="text-loft-300 hover:text-copper-400 transition-colors flex items-center gap-2"><ArrowRight className="w-4 h-4 opacity-0 -ml-6 transition-all group-hover:opacity-100 group-hover:ml-0" />Home</Link></li>
-              <li><Link to="/booking" className="text-loft-300 hover:text-copper-400 transition-colors flex items-center gap-2">Book a Tempo</Link></li>
-              <li><Link to="/login" className="text-loft-300 hover:text-copper-400 transition-colors flex items-center gap-2">Sign In</Link></li>
+              <li><Link to="/" className="text-loft-300 hover:text-copper-400 transition-colors flex items-center gap-2">Home</Link></li>
+              <li><Link to="/services" className="text-loft-300 hover:text-copper-400 transition-colors flex items-center gap-2">Services</Link></li>
+              <li><Link to="/contracts" className="text-loft-300 hover:text-copper-400 transition-colors flex items-center gap-2">Business Contracts</Link></li>
+              <li><Link to="/pricing" className="text-loft-300 hover:text-copper-400 transition-colors flex items-center gap-2">Pricing</Link></li>
+              <li><Link to="/tracking" className="text-loft-300 hover:text-copper-400 transition-colors flex items-center gap-2">Track Booking</Link></li>
             </ul>
           </div>
           

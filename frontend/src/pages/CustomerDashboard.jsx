@@ -47,32 +47,19 @@ const CustomerDashboard = () => {
 
         {/* Tab Navigation */}
         <div className="flex space-x-2 border-b border-loft-800 mb-8 overflow-x-auto hide-scrollbar">
-          <button
-            onClick={() => setActiveTab('history')}
-            className={`px-6 py-3 font-medium text-sm rounded-t-lg transition-colors whitespace-nowrap ${
-              activeTab === 'history'
-                ? 'bg-copper-500/15 text-copper-300 border-b-2 border-copper-500'
-                : 'text-loft-400 hover:text-loft-200 hover:bg-loft-900/50'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4" />
-              Booking History
-            </div>
-          </button>
-          <button
-            onClick={() => setActiveTab('addresses')}
-            className={`px-6 py-3 font-medium text-sm rounded-t-lg transition-colors whitespace-nowrap ${
-              activeTab === 'addresses'
-                ? 'bg-copper-500/15 text-copper-300 border-b-2 border-copper-500'
-                : 'text-loft-400 hover:text-loft-200 hover:bg-loft-900/50'
-            }`}
-          >
-            <div className="flex items-center gap-2">
-              <MapPin className="w-4 h-4" />
-              Saved Addresses
-            </div>
-          </button>
+          {['history', 'tracking', 'invoices', 'addresses', 'payments', 'support', 'profile'].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-6 py-3 font-medium text-sm rounded-t-lg transition-colors whitespace-nowrap capitalize ${
+                activeTab === tab
+                  ? 'bg-copper-500/15 text-copper-300 border-b-2 border-copper-500'
+                  : 'text-loft-400 hover:text-loft-200 hover:bg-loft-900/50'
+              }`}
+            >
+              {tab === 'history' ? 'Bookings' : tab}
+            </button>
+          ))}
         </div>
 
         {/* Tab Content */}
@@ -120,6 +107,18 @@ const CustomerDashboard = () => {
                   </div>
                 </div>
               </div>
+            </motion.div>
+          )}
+
+          {/* Placeholders for new tabs */}
+          {['tracking', 'invoices', 'payments', 'support', 'profile'].includes(activeTab) && (
+             <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="card p-12 text-center flex flex-col items-center justify-center border-dashed border-loft-800/80"
+            >
+              <h3 className="text-xl font-bold text-loft-200 mb-2 capitalize">{activeTab}</h3>
+              <p className="text-loft-400 max-w-md">This section is currently under development.</p>
             </motion.div>
           )}
         </div>

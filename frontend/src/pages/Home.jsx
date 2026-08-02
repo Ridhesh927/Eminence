@@ -24,22 +24,25 @@ const Home = () => {
               SMART TRANSPORT BOOKING
             </div>
             
-            <h1 className="text-5xl md:text-7xl font-serif font-bold text-loft-50 leading-[1.1] mb-8 tracking-tight">
-              Move your goods with <br/>
-              <span className="glow-text">intelligent precision.</span>
+            <h1 className="text-5xl md:text-7xl font-serif font-bold text-loft-50 leading-[1.1] mb-6 tracking-tight">
+              Moving Goods <span className="glow-text">Made Easy</span>
             </h1>
             
+            <p className="text-2xl text-loft-200 font-medium mb-2">
+              Book a Tempo Online
+            </p>
+            <p className="text-lg text-copper-500 font-bold mb-2">OR</p>
             <p className="text-xl text-loft-300 mb-12 max-w-2xl mx-auto leading-relaxed">
-              Book a tempo instantly via our web app or simply dial our smart IVR helpline without needing a smartphone.
+              Call Our Helpline for Business Contracts
             </p>
             
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link to="/booking" className="w-full sm:w-auto btn-primary text-lg px-8 py-4 shadow-[0_0_30px_rgba(232,99,49,0.2)]">
-                Book a Tempo <ArrowRight className="ml-2 w-5 h-5" />
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+              <Link to="/booking" className="w-full sm:w-auto btn-primary text-lg px-10 py-4 shadow-[0_0_30px_rgba(232,99,49,0.2)]">
+                Book Now <ArrowRight className="ml-2 w-5 h-5" />
               </Link>
-              <div className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-4 bg-moss-500/10 border border-moss-500/20 rounded-xl text-moss-300 font-medium">
-                <Phone className="w-5 h-5" /> 1800-EMINENCE (IVR)
-              </div>
+              <Link to="/contracts" className="w-full sm:w-auto flex items-center justify-center gap-2 px-10 py-4 bg-moss-500/10 border border-moss-500/20 rounded-xl text-moss-300 font-medium hover:bg-moss-500/20 transition-colors">
+                <Phone className="w-5 h-5" /> Call Now
+              </Link>
             </div>
           </motion.div>
         </div>

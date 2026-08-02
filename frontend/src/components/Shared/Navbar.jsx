@@ -22,7 +22,13 @@ const Navbar = () => {
           
           <div className="hidden md:flex items-center space-x-8">
             <Link to="/" className="text-loft-300 hover:text-loft-50 font-medium transition-colors">Home</Link>
-            <Link to="/booking" className="text-loft-300 hover:text-loft-50 font-medium transition-colors">Book a Tempo</Link>
+            <Link to="/services" className="text-loft-300 hover:text-loft-50 font-medium transition-colors">Services</Link>
+            <Link to="/contracts" className="text-loft-300 hover:text-loft-50 font-medium transition-colors">Business Contracts</Link>
+            <Link to="/booking" className="text-loft-300 hover:text-loft-50 font-medium transition-colors">Book Tempo</Link>
+            <Link to="/tracking" className="text-loft-300 hover:text-loft-50 font-medium transition-colors">Track Booking</Link>
+            <Link to="/pricing" className="text-loft-300 hover:text-loft-50 font-medium transition-colors hidden lg:block">Pricing</Link>
+            <Link to="/about" className="text-loft-300 hover:text-loft-50 font-medium transition-colors hidden xl:block">About Us</Link>
+            <Link to="/contact" className="text-loft-300 hover:text-loft-50 font-medium transition-colors hidden xl:block">Contact</Link>
             
             <div className="flex items-center gap-2 px-4 py-2 bg-moss-500/10 border border-moss-500/20 rounded-full text-moss-300 hover:bg-moss-500/20 transition-all cursor-pointer">
               <div className="w-2 h-2 rounded-full bg-moss-400 animate-pulse"></div>
