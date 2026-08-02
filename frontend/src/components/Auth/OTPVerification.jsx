@@ -41,28 +41,43 @@ const OTPVerification = () => {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const otpValue = otp.join('');
     if (otpValue.length < 4) return;
     
     setIsLoading(true);
     
-    // Mock Verification & Login
-    setTimeout(() => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/phone-verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, code: otpValue })
+      });
+      
+      const data = await response.json();
       setIsLoading(false);
       
-      // Update Redux state
-      dispatch(loginSuccess({
-        id: '123',
-        phone: phone,
-        name: isNewUser ? 'New User' : 'Existing Customer',
-        role: 'customer',
-        token: 'mock_jwt_token'
-      }));
-      
-      navigate('/customer/dashboard'); // Or home, but let's go to root for now if no dashboard
-    }, 1500);
+      if (data.success) {
+        localStorage.setItem('token', data.token);
+        dispatch(loginSuccess({
+          id: data.user.id,
+          phone: data.user.phone,
+          name: data.user.name || (isNewUser ? 'New User' : 'Existing Customer'),
+          role: data.user.role || 'customer',
+          token: data.token,
+          isProfileComplete: data.user.isProfileComplete
+        }));
+        
+        navigate('/customer/dashboard');
+      } else {
+        alert(data.message || 'Invalid OTP');
+      }
+    } catch (error) {
+      console.error('OTP verify error:', error);
+      setIsLoading(false);
+      alert('Error verifying OTP');
+    }
   };
 
   return (

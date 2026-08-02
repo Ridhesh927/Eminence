@@ -135,7 +135,7 @@ const CompleteProfileModal = () => {
                       value={formData.phone}
                       onChange={handleChange}
                       placeholder="e.g. +1234567890"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
                     />
                   </div>
 
@@ -152,7 +152,7 @@ const CompleteProfileModal = () => {
                       value={formData.governmentId}
                       onChange={handleChange}
                       placeholder="Enter ID Number"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
                     />
                   </div>
                 </div>
@@ -171,7 +171,7 @@ const CompleteProfileModal = () => {
                       value={formData.city}
                       onChange={handleChange}
                       placeholder="e.g. New York"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
                     />
                   </div>
 
@@ -188,7 +188,7 @@ const CompleteProfileModal = () => {
                       value={formData.state}
                       onChange={handleChange}
                       placeholder="e.g. NY"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
                     />
                   </div>
                 </div>
@@ -206,7 +206,7 @@ const CompleteProfileModal = () => {
                     value={formData.address}
                     onChange={handleChange}
                     placeholder="Enter your complete street address"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none resize-none"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none resize-none"
                   ></textarea>
                 </div>
 
@@ -232,7 +232,7 @@ const CompleteProfileModal = () => {
                     value={otpCode}
                     onChange={(e) => setOtpCode(e.target.value)}
                     placeholder="Enter 6-digit OTP"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-center text-xl tracking-widest focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
+                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 bg-white text-center text-xl tracking-widest focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
                     maxLength="6"
                   />
                   

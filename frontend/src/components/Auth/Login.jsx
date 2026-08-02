@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import { ArrowRight, Phone } from 'lucide-react';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../../config/firebase';
+import { loginSuccess } from '../../redux/slices/authSlice';
 
 const GoogleIcon = () => (
   <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -18,28 +20,58 @@ const Login = () => {
   const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
-  const handlePhoneSubmit = (e) => {
+  const handlePhoneSubmit = async (e) => {
     e.preventDefault();
     if (phone.length < 10) return;
     
     setIsLoading(true);
-    setTimeout(() => {
+    try {
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/phone-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone })
+      });
       setIsLoading(false);
       navigate('/otp', { state: { phone } });
-    }, 1000);
+    } catch (error) {
+      console.error('Phone login error:', error);
+      setIsLoading(false);
+      alert('Error sending OTP. Please try again.');
+    }
   };
 
   const handleGoogleSignIn = async () => {
     try {
       setIsLoading(true);
       const result = await signInWithPopup(auth, googleProvider);
-      const token = await result.user.getIdToken();
+      const idToken = await result.user.getIdToken();
       
-      console.log("Firebase Google Token:", token);
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/google-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken })
+      });
       
+      const data = await response.json();
       setIsLoading(false);
-      navigate('/customer/dashboard');
+      
+      if (data.success) {
+        localStorage.setItem('token', data.token);
+        dispatch(loginSuccess({
+          id: data.user.id,
+          phone: data.user.phone,
+          name: data.user.name,
+          email: data.user.email,
+          role: data.user.role || 'customer',
+          token: data.token,
+          isProfileComplete: data.user.isProfileComplete
+        }));
+        navigate('/customer/dashboard');
+      } else {
+        alert(data.message || 'Google Login failed on server');
+      }
     } catch (error) {
       console.error("Google Sign-In Error", error);
       setIsLoading(false);

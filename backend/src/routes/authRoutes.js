@@ -5,6 +5,8 @@ const authMiddleware = require('../middleware/authMiddleware');
 
 // Public Route
 router.post('/google-login', authController.googleLogin);
+router.post('/phone-login', authController.phoneLogin);
+router.post('/phone-verify', authController.phoneVerify);
 
 // Protected Routes
 router.post('/complete-profile', authMiddleware, authController.updateProfile);
