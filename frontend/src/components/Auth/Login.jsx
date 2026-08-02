@@ -43,6 +43,12 @@ const Login = () => {
     } catch (error) {
       console.error("Google Sign-In Error", error);
       setIsLoading(false);
+      
+      if (error.code === 'auth/unauthorized-domain' || error.message.includes('auth/handler')) {
+        alert("Firebase Configuration Issue: 'localhost' is not added to your Firebase Authorized Domains.\n\nTo fix this: Go to Firebase Console -> Authentication -> Settings -> Authorized Domains and add 'localhost'.\n\nFor now, please use 'Continue with phone' to sign in!");
+      } else {
+        alert("Google Sign-In failed due to configuration. Please use 'Continue with phone' to log in for local development.");
+      }
     }
   };
 
