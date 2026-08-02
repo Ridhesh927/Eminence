@@ -2,7 +2,6 @@
 
 ### Smart Transport Booking & Helpline Management System
 
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js](https://img.shields.io/badge/Node.js-18%2B-green.svg)](https://nodejs.org/)
 [![React](https://img.shields.io/badge/React-18%2B-61dafb.svg)](https://react.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-NeonDB-336791.svg)](https://neon.tech/)
@@ -27,7 +26,6 @@
 - [Testing](#testing)
 - [Contributing](#contributing)
 - [Team](#team)
-- [License](#license)
 
 ---
 
@@ -622,13 +620,7 @@ git push origin feature/your-feature-name
 - Write meaningful commit messages
 - Add tests for new features
 
----
 
-## 📝 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
----
 
 ## 👥 Team
 
