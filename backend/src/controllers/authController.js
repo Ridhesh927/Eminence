@@ -7,7 +7,8 @@ const crypto = require('crypto');
 
 // Helper to check if profile is complete
 const checkAndSetProfileComplete = async (customer) => {
-  if (customer.name && customer.email && customer.phone && customer.isEmailVerified && customer.isPhoneVerified) {
+  if (customer.name && customer.email && customer.phone && customer.isEmailVerified && customer.isPhoneVerified &&
+      customer.city && customer.state && customer.address && customer.governmentId) {
     customer.isProfileComplete = true;
     await customer.save();
   }
@@ -63,6 +64,10 @@ const googleLogin = async (req, res) => {
         name: customer.name,
         email: customer.email,
         phone: customer.phone,
+        city: customer.city,
+        state: customer.state,
+        address: customer.address,
+        governmentId: customer.governmentId,
         isEmailVerified: customer.isEmailVerified,
         isPhoneVerified: customer.isPhoneVerified,
         isProfileComplete: customer.isProfileComplete,
@@ -78,7 +83,7 @@ const googleLogin = async (req, res) => {
 
 const updateProfile = async (req, res) => {
   try {
-    const { name, phone } = req.body;
+    const { name, phone, city, state, address, governmentId } = req.body;
     // Assume req.user is set by auth middleware
     const customerId = req.user.id; 
 
@@ -88,6 +93,11 @@ const updateProfile = async (req, res) => {
     }
 
     if (name) customer.name = name;
+    if (city) customer.city = city;
+    if (state) customer.state = state;
+    if (address) customer.address = address;
+    if (governmentId) customer.governmentId = governmentId;
+    
     if (phone && phone !== customer.phone) {
       customer.phone = phone;
       customer.isPhoneVerified = false; // Reset verification if phone changes

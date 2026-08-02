@@ -32,6 +32,22 @@ const Customer = sequelize.define('Customer', {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  city: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  state: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  address: {
+    type: DataTypes.TEXT,
+    allowNull: true,
+  },
+  governmentId: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   isEmailVerified: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,

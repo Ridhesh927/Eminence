@@ -66,25 +66,27 @@ const OTPVerification = () => {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(232,99,49,0.08),transparent_50%)] pointer-events-none"></div>
+
       <motion.div 
         initial={{ opacity: 0, x: 20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.3 }}
-        className="w-full max-w-md card p-8 md:p-10"
+        className="w-full max-w-md card p-8 md:p-10 relative z-10"
       >
         <button 
           onClick={() => navigate(-1)}
-          className="flex items-center text-secondary hover:text-accent text-sm mb-6 transition-colors"
+          className="flex items-center text-loft-400 hover:text-loft-50 text-sm mb-6 transition-colors"
         >
           <ArrowLeft className="w-4 h-4 mr-1" /> Back
         </button>
 
         <div className="mb-8">
-          <h2 className="text-3xl font-serif font-bold text-accent mb-2">Verify Number</h2>
-          <p className="text-secondary">
+          <h2 className="text-3xl font-serif font-bold text-loft-50 mb-2">Verify Number</h2>
+          <p className="text-loft-300">
             Enter the 4-digit code sent to <br/>
-            <span className="font-medium text-accent">{phone}</span>
+            <span className="font-medium text-loft-50">{phone}</span>
           </p>
         </div>
 
@@ -96,7 +98,7 @@ const OTPVerification = () => {
                 ref={(el) => (inputRefs.current[index] = el)}
                 type="text"
                 maxLength={1}
-                className="w-16 h-16 text-center text-2xl font-bold bg-surface border border-border rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all text-accent"
+                className="w-16 h-16 text-center text-2xl font-bold bg-loft-950/80 border border-loft-800/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-copper-500/50 focus:border-copper-500/50 transition-all text-loft-50 shadow-inner"
                 value={digit}
                 onChange={(e) => handleChange(index, e.target.value)}
                 onKeyDown={(e) => handleKeyDown(index, e)}
@@ -125,9 +127,9 @@ const OTPVerification = () => {
           </button>
         </form>
 
-        <div className="mt-8 text-center text-sm text-secondary">
+        <div className="mt-8 text-center text-sm text-loft-300">
           Didn't receive the code?{' '}
-          <button className="font-medium text-primary hover:text-primary/80 transition-colors">
+          <button className="font-medium text-copper-500 hover:text-copper-400 transition-colors">
             Resend SMS
           </button>
         </div>

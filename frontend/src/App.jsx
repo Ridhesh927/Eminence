@@ -6,20 +6,18 @@ import Login from './components/Auth/Login';
 import Register from './components/Auth/Register';
 import OTPVerification from './components/Auth/OTPVerification';
 import CompleteProfile from './pages/CompleteProfile';
+import CustomerDashboard from './pages/CustomerDashboard';
+import CompleteProfileModal from './components/Customer/CompleteProfileModal';
 
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const { isAuthenticated } = useSelector((state) => state.auth);
 
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
   }
 
-  // If authenticated but profile isn't complete, force them to complete-profile page
-  // unless they are already ON the complete-profile page
-  if (user && !user.isProfileComplete && window.location.pathname !== '/complete-profile') {
-    return <Navigate to="/complete-profile" />;
-  }
-
+  // We no longer forcefully redirect to /complete-profile route
+  // because CompleteProfileModal will handle the UI overlay.
   return children;
 };
 
@@ -27,6 +25,7 @@ function App() {
   return (
     <Router>
       <MainLayout>
+        <CompleteProfileModal />
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -37,9 +36,11 @@ function App() {
             </ProtectedRoute>
           } />
           
-          <Route path="/" element={
+          <Route path="/" element={<Home />} />
+          
+          <Route path="/customer/dashboard" element={
             <ProtectedRoute>
-              <Home />
+              <CustomerDashboard />
             </ProtectedRoute>
           } />
           {/* Add more protected routes here later */}

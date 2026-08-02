@@ -1,47 +1,96 @@
+@import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+
 @import "tailwindcss";
 
 @theme {
-  --color-primary: #a35e47;
-  --color-accent: #000000;
-  --color-secondary: #464646;
-  --color-background: #ffffff;
-  --color-surface: #f8f8f8;
-  --color-border: #c9c9c9;
-  --color-muted: #9c9a9a;
-  --color-success: #1b7f45;
-  --color-warning: #e6a700;
-  --color-danger: #d64545;
+  --color-loft-50: #f4f6f8;
+  --color-loft-100: #e4e9f0;
+  --color-loft-200: #c9d3df;
+  --color-loft-300: #a2b2c7;
+  --color-loft-400: #748bac;
+  --color-loft-500: #556c91;
+  --color-loft-600: #425576;
+  --color-loft-700: #36445f;
+  --color-loft-800: #2f3a4e;
+  --color-loft-900: #293243;
+  --color-loft-950: #0f141f;
 
-  --font-sans: "Inter", sans-serif;
-  --font-serif: "Neuton", serif;
+  --color-copper-50: #fef5f1;
+  --color-copper-100: #fce8df;
+  --color-copper-200: #fad1c0;
+  --color-copper-300: #f6b399;
+  --color-copper-400: #f08b65;
+  --color-copper-500: #e86331;
+  --color-copper-600: #db4b1e;
+  --color-copper-700: #b73915;
+  --color-copper-800: #912e17;
+  --color-copper-900: #752815;
+  --color-copper-950: #3f1107;
+
+  --color-moss-50: #f2f9f4;
+  --color-moss-100: #e1f2e5;
+  --color-moss-200: #c3e4cc;
+  --color-moss-300: #96cfb3;
+  --color-moss-400: #62b395;
+  --color-moss-500: #3e9779;
+  --color-moss-600: #2d7960;
+  --color-moss-700: #26604e;
+  --color-moss-800: #214d40;
+  --color-moss-900: #1c3f35;
+  --color-moss-950: #0e231e;
+
+  --color-primary: var(--color-copper-500);
+  --color-accent: var(--color-loft-50);
+  --color-secondary: var(--color-loft-300);
+  --color-background: var(--color-loft-950);
+  --color-surface: var(--color-loft-900);
+  --color-border: var(--color-loft-800);
+
+  --font-sans: "Space Grotesk", sans-serif;
+  --font-serif: "Oxanium", sans-serif;
 
   --radius-card: 16px;
   --radius-input: 8px;
-  --radius-button: 9999px; /* Fully rounded buttons */
-
-  --shadow-soft: 0 4px 20px rgba(0, 0, 0, 0.05);
+  --radius-button: 9999px;
 }
 
 @layer base {
   body {
-    @apply bg-background text-accent font-sans;
+    @apply bg-loft-950 text-loft-200 font-sans min-h-screen selection:bg-copper-500/30 selection:text-copper-100;
   }
+  
+  /* Grid pattern overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background-image: linear-gradient(to right, rgba(128, 128, 128, 0.07) 1px, transparent 1px),
+                      linear-gradient(to bottom, rgba(128, 128, 128, 0.07) 1px, transparent 1px);
+    background-size: 24px 24px;
+    z-index: -1;
+  }
+
   h1, h2, h3, h4, h5, h6 {
-    @apply font-serif font-bold text-accent tracking-tight;
+    @apply font-serif font-bold text-loft-50 tracking-tight;
   }
 }
 
 @layer components {
   .card {
-    @apply bg-white shadow-soft rounded-[var(--radius-card)] border border-border/20;
+    @apply bg-loft-900/40 backdrop-blur-md shadow-2xl rounded-[var(--radius-card)] border border-loft-800/60 transition-all duration-300 hover:border-copper-500/20 hover:bg-loft-900/60;
   }
   .input-field {
-    @apply w-full px-4 py-3 bg-surface border border-border rounded-[var(--radius-input)] focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200 text-accent;
+    @apply w-full px-4 py-3 bg-loft-950/80 border border-loft-800/80 rounded-[var(--radius-input)] focus:outline-none focus:ring-2 focus:ring-copper-500/50 focus:border-copper-500/50 transition-all duration-200 text-loft-50 placeholder-loft-400;
   }
   .btn-primary {
-    @apply px-6 py-3 bg-primary text-white font-medium rounded-[var(--radius-button)] hover:bg-primary/90 focus:ring-4 focus:ring-primary/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center;
+    @apply px-6 py-3 bg-copper-600 text-white font-medium rounded-xl hover:bg-copper-500 hover:shadow-[0_0_20px_rgba(232,99,49,0.3)] focus:ring-4 focus:ring-copper-500/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center;
   }
   .btn-secondary {
-    @apply px-6 py-3 bg-surface text-secondary font-medium rounded-[var(--radius-button)] border border-border hover:bg-gray-100 focus:ring-4 focus:ring-gray-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center;
+    @apply px-6 py-3 bg-transparent text-loft-50 font-medium rounded-xl border border-loft-700 hover:bg-loft-800 hover:border-loft-600 focus:ring-4 focus:ring-loft-700/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center;
+  }
+  
+  .glow-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-loft-50 to-loft-300;
   }
 }
