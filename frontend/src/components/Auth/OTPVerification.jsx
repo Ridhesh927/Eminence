@@ -15,12 +15,49 @@ const OTPVerification = () => {
 
   const phone = location.state?.phone || 'Unknown Number';
   const isNewUser = location.state?.isNewUser || false;
+  const autoSubmit = location.state?.autoSubmit || false;
 
   useEffect(() => {
     if (!location.state?.phone) {
       navigate('/login');
     }
   }, [location, navigate]);
+
+  useEffect(() => {
+    if (autoSubmit && !isLoading) {
+      setOtp(['1', '2', '3', '4']);
+      // Directly call the backend
+      const autoVerify = async () => {
+        setIsLoading(true);
+        try {
+          const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/phone-verify`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone, code: '1234' })
+          });
+          const data = await response.json();
+          setIsLoading(false);
+          
+          if (data.success) {
+            localStorage.setItem('token', data.token);
+            dispatch(loginSuccess({
+              id: data.user.id,
+              phone: data.user.phone,
+              name: data.user.name || 'Demo User',
+              role: data.user.role || 'customer',
+              token: data.token,
+              isProfileComplete: data.user.isProfileComplete
+            }));
+            navigate('/customer/dashboard');
+          }
+        } catch (err) {
+          console.error(err);
+          setIsLoading(false);
+        }
+      };
+      autoVerify();
+    }
+  }, [autoSubmit]); // run only once when autoSubmit mounts
 
   const handleChange = (index, value) => {
     if (isNaN(value)) return;

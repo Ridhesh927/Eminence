@@ -42,6 +42,25 @@ const Login = () => {
     }
   };
 
+  const handleDemoLogin = async () => {
+    const demoPhone = import.meta.env.VITE_DEMO_PHONE || '9999999999';
+    setIsLoading(true);
+    try {
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/phone-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: demoPhone })
+      });
+      setIsLoading(false);
+      // Pass autoSubmit: true so the OTP page can bypass automatically
+      navigate('/otp', { state: { phone: demoPhone, autoSubmit: true } });
+    } catch (error) {
+      console.error('Demo login error:', error);
+      setIsLoading(false);
+      alert('Error logging in as demo user.');
+    }
+  };
+
   const handleGoogleSignIn = async () => {
     try {
       setIsLoading(true);
@@ -165,6 +184,17 @@ const Login = () => {
           <Link to="/register" className="font-medium text-copper-500 hover:text-copper-400 transition-colors">
             Sign up
           </Link>
+        </div>
+
+        {/* Demo Login Button */}
+        <div className="mt-6 pt-6 border-t border-loft-800 text-center">
+          <button
+            onClick={handleDemoLogin}
+            disabled={isLoading}
+            className="text-sm font-medium text-loft-400 hover:text-copper-400 transition-colors"
+          >
+            Looking for a quick demo? <span className="underline decoration-copper-500/50 underline-offset-4">Log in as Demo User</span>
+          </button>
         </div>
       </motion.div>
     </div>
