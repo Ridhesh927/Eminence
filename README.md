@@ -285,9 +285,11 @@ cp .env.example .env.local
 npx sequelize-cli db:migrate --env development
 ```
 
-6. Seed sample data (drivers, vehicles):
+6. Seed sample data (users, drivers, vehicles):
 
 ```bash
+npx sequelize-cli db:seed:all
+# Or for a specific environment:
 npx sequelize-cli db:seed:all --env development
 ```
 
