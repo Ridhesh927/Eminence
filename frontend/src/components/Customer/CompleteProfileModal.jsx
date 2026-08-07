@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import { X } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
 import axios from 'axios';
 import { updateProfileSuccess } from '../../redux/slices/authSlice';
-import { MapPin, Phone, Building2, Map, FileText, CheckCircle2 } from 'lucide-react';
+import { MapPin, Phone, Building2, Map, FileText, CheckCircle2, User, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const CompleteProfileModal = () => {
@@ -10,6 +11,8 @@ const CompleteProfileModal = () => {
   const dispatch = useDispatch();
 
   const [formData, setFormData] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
     phone: user?.phone || '',
     address: user?.address || '',
     city: user?.city || '',
@@ -22,9 +25,10 @@ const CompleteProfileModal = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [isClosed, setIsClosed] = useState(false);
 
   // If user is not logged in or already complete, don't render the modal
-  if (!user || user.isProfileComplete) return null;
+  if (!user || user.isProfileComplete || isClosed) return null;
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -49,6 +53,8 @@ const CompleteProfileModal = () => {
       // If phone wasn't verified, ask for OTP now
       if (!updatedUser.isPhoneVerified && formData.phone) {
         await handleSendOtp('phone');
+      } else if (!updatedUser.isEmailVerified && formData.email) {
+        await handleSendOtp('email');
       } else if (updatedUser.isProfileComplete) {
         setMessage('Profile completed successfully!');
       }
@@ -106,9 +112,15 @@ const CompleteProfileModal = () => {
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col"
+          className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col relative"
         >
-          <div className="bg-primary p-6 text-white text-center flex-shrink-0">
+          <button 
+            onClick={() => setIsClosed(true)} 
+            className="absolute top-4 right-4 text-white/80 hover:text-white bg-white/20 hover:bg-white/40 rounded-full p-1 transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+          <div className="bg-primary p-6 text-white text-center flex-shrink-0 pt-10">
             <h2 className="text-3xl font-serif font-bold mb-2">Complete Your Profile</h2>
             <p className="text-primary-foreground/90">
               We need a few more details to set up your account completely.
@@ -121,6 +133,42 @@ const CompleteProfileModal = () => {
 
             {!otpType ? (
               <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Name */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <User className="w-4 h-4 text-primary" />
+                      Full Name
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      required
+                      value={formData.name}
+                      onChange={handleChange}
+                      placeholder="John Doe"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
+                    />
+                  </div>
+
+                  {/* Email */}
+                  <div className="space-y-2">
+                    <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-primary" />
+                      Email Address
+                    </label>
+                    <input
+                      type="email"
+                      name="email"
+                      required
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="john@example.com"
+                      className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
+                    />
+                  </div>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Phone */}
                   <div className="space-y-2">

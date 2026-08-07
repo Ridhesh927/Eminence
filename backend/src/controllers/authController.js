@@ -101,7 +101,7 @@ const googleLogin = async (req, res) => {
 
 const updateProfile = async (req, res) => {
   try {
-    const { name, phone, city, state, address, governmentId } = req.body;
+    const { name, email, phone, city, state, address, governmentId } = req.body;
     // Assume req.user is set by auth middleware
     const customerId = req.user.id; 
 
@@ -111,6 +111,11 @@ const updateProfile = async (req, res) => {
     }
 
     if (name) customer.name = name;
+    if (email && email !== customer.email) {
+      customer.email = email;
+      customer.isEmailVerified = false;
+      customer.isProfileComplete = false;
+    }
     if (city) customer.city = city;
     if (state) customer.state = state;
     if (address) customer.address = address;
@@ -128,7 +133,10 @@ const updateProfile = async (req, res) => {
     return res.status(200).json({ success: true, user: customer });
   } catch (error) {
     console.error('Update Profile Error:', error);
-    return res.status(500).json({ success: false, message: 'Server error' });
+    const message = error.name === 'SequelizeUniqueConstraintError' 
+      ? 'Email or Phone is already in use by another account.' 
+      : (error.message || 'Server error');
+    return res.status(500).json({ success: false, message });
   }
 };
 
@@ -159,6 +167,10 @@ const sendOtp = async (req, res) => {
 
     if (type === 'email') {
       await sendEmail(customer.email, "Your Verification Code", `Your code is ${code}`, `<p>Your code is <b>${code}</b></p>`);
+      console.log(`\n\n================================`);
+      console.log(`MOCK EMAIL SENT TO: ${customer.email}`);
+      console.log(`YOUR OTP IS: ${code}`);
+      console.log(`================================\n\n`);
     } else if (type === 'phone') {
       // 🚀 FREE DEPLOYMENT WORKAROUND 🚀
       // Instead of calling Twilio API, we mock the SMS by logging the OTP to the console.
