@@ -40,15 +40,16 @@ const OTPVerification = () => {
           
           if (data.success) {
             localStorage.setItem('token', data.token);
+            const userRole = location.state?.role || data.user.role || 'customer';
             dispatch(loginSuccess({
               id: data.user.id,
               phone: data.user.phone,
               name: data.user.name || 'Demo User',
-              role: data.user.role || 'customer',
+              role: userRole,
               token: data.token,
               isProfileComplete: data.user.isProfileComplete
             }));
-            navigate('/customer/dashboard');
+            navigate(`/${userRole}/dashboard`);
           }
         } catch (err) {
           console.error(err);
@@ -106,7 +107,8 @@ const OTPVerification = () => {
           isProfileComplete: data.user.isProfileComplete
         }));
         
-        navigate('/customer/dashboard');
+        const userRole = data.user.role || 'customer';
+        navigate(`/${userRole}/dashboard`);
       } else {
         alert(data.message || 'Invalid OTP');
       }

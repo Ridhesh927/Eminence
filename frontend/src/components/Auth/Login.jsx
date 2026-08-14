@@ -19,6 +19,7 @@ const GoogleIcon = () => (
 const Login = () => {
   const [phone, setPhone] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('customer'); // 'customer', 'driver', 'admin'
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -49,11 +50,11 @@ const Login = () => {
       await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/phone-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: demoPhone })
+        body: JSON.stringify({ phone: demoPhone, role: activeTab })
       });
       setIsLoading(false);
       // Pass autoSubmit: true so the OTP page can bypass automatically
-      navigate('/otp', { state: { phone: demoPhone, autoSubmit: true } });
+      navigate('/otp', { state: { phone: demoPhone, autoSubmit: true, role: activeTab } });
     } catch (error) {
       console.error('Demo login error:', error);
       setIsLoading(false);
@@ -87,7 +88,8 @@ const Login = () => {
           token: data.token,
           isProfileComplete: data.user.isProfileComplete
         }));
-        navigate('/customer/dashboard');
+        const userRole = data.user.role || 'customer';
+        navigate(`/${userRole}/dashboard`);
       } else {
         alert(data.message || 'Google Login failed on server');
       }
@@ -116,6 +118,23 @@ const Login = () => {
         <div className="mb-8 text-center">
           <h2 className="text-3xl font-serif font-bold text-loft-50 mb-2">Welcome back</h2>
           <p className="text-loft-300">Sign in to your Eminence account</p>
+        </div>
+
+        {/* Role Selection Tabs */}
+        <div className="flex bg-loft-950/50 p-1 rounded-xl mb-8">
+          {['customer', 'driver', 'admin'].map((role) => (
+            <button
+              key={role}
+              onClick={() => setActiveTab(role)}
+              className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all capitalize ${
+                activeTab === role 
+                  ? 'bg-copper-500/20 text-copper-500 shadow-sm border border-copper-500/30' 
+                  : 'text-loft-400 hover:text-loft-200 hover:bg-loft-800/50'
+              }`}
+            >
+              {role}
+            </button>
+          ))}
         </div>
 
         <button 

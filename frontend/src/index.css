@@ -57,6 +57,10 @@
 @layer base {
   body {
     @apply bg-loft-950 text-loft-200 font-sans min-h-screen selection:bg-copper-500/30 selection:text-copper-100;
+    /* Soft ambient background glow for entire app */
+    background: radial-gradient(circle at top right, rgba(232, 99, 49, 0.08), transparent 40%), 
+                radial-gradient(circle at bottom left, rgba(62, 151, 121, 0.05), transparent 40%),
+                #0f141f;
   }
   
   /* Grid pattern overlay */
@@ -78,19 +82,23 @@
 
 @layer components {
   .card {
-    @apply bg-loft-900/40 backdrop-blur-md shadow-2xl rounded-card border border-loft-800/60 transition-all duration-300 hover:border-copper-500/20 hover:bg-loft-900/60;
+    @apply bg-loft-900/30 backdrop-blur-xl shadow-2xl rounded-card border border-loft-700/50 border-t-white/10 transition-all duration-300 hover:border-copper-500/30 hover:bg-loft-900/50 hover:shadow-[0_8px_32px_rgba(232,99,49,0.1)];
   }
   .input-field {
-    @apply w-full px-4 py-3 bg-loft-950/80 border border-loft-800/80 rounded-input focus:outline-none focus:ring-2 focus:ring-copper-500/50 focus:border-copper-500/50 transition-all duration-200 text-loft-50 placeholder-loft-400;
+    @apply w-full px-4 py-3 bg-loft-950/60 backdrop-blur-sm border border-loft-700/70 rounded-input focus:outline-none focus:ring-2 focus:ring-copper-500/60 focus:border-copper-500/60 transition-all duration-200 text-loft-50 placeholder-loft-400 focus:shadow-[0_0_15px_rgba(232,99,49,0.15)];
   }
   .btn-primary {
-    @apply px-6 py-3 bg-copper-600 text-white font-medium rounded-button hover:bg-copper-500 hover:shadow-[0_0_20px_rgba(232,99,49,0.3)] focus:ring-4 focus:ring-copper-500/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center;
+    @apply px-6 py-3 bg-gradient-to-r from-copper-600 to-copper-500 text-white font-medium rounded-button hover:from-copper-500 hover:to-copper-400 hover:shadow-[0_0_25px_rgba(232,99,49,0.5)] focus:ring-4 focus:ring-copper-500/40 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center border border-copper-400/20;
   }
   .btn-secondary {
-    @apply px-6 py-3 bg-transparent text-loft-50 font-medium rounded-button border border-loft-700 hover:bg-loft-800 hover:border-loft-600 focus:ring-4 focus:ring-loft-700/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center;
+    @apply px-6 py-3 bg-transparent text-loft-50 font-medium rounded-button border border-loft-600 hover:bg-loft-800 hover:border-loft-500 hover:shadow-[0_0_15px_rgba(255,255,255,0.05)] focus:ring-4 focus:ring-loft-700/30 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center backdrop-blur-sm;
   }
   
   .glow-text {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-loft-50 to-loft-300;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-loft-50 to-loft-300 drop-shadow-[0_0_10px_rgba(255,255,255,0.2)];
+  }
+
+  .glow-bg {
+    @apply absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(232,99,49,0.15),transparent_60%)] pointer-events-none;
   }
 }
