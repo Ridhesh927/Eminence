@@ -4,30 +4,39 @@ import { Check } from 'lucide-react';
 const Pricing = () => {
   const plans = [
     {
-      name: "Small Tempo",
-      desc: "Piaggio Ape / Tata Ace",
-      weight: "Up to 750 kg",
+      name: "1 Ton",
+      desc: "Small Capacity",
+      weight: "Up to 1000 kg",
       price: "₹350",
-      perKm: "₹15/km",
+      perTon: "₹15/ton",
       features: ["Ideal for small moves", "Fast city navigation", "Verified Driver", "Live Tracking"],
       popular: false
     },
     {
-      name: "Medium Tempo",
-      desc: "Mahindra Bolero Pickup",
-      weight: "Up to 1500 kg",
+      name: "2 Ton",
+      desc: "Medium Capacity",
+      weight: "Up to 2000 kg",
       price: "₹550",
-      perKm: "₹20/km",
-      features: ["Perfect for 1 BHK shifting", "Commercial goods", "Verified Driver", "Live Tracking"],
+      perTon: "₹20/ton",
+      features: ["Perfect for medium loads", "Commercial goods", "Verified Driver", "Live Tracking"],
       popular: true
     },
     {
-      name: "Large Truck",
-      desc: "Eicher 14ft / 17ft",
+      name: "3 Ton",
+      desc: "Large Capacity",
       weight: "Up to 3000 kg",
-      price: "₹1200",
-      perKm: "₹30/km",
+      price: "₹850",
+      perTon: "₹25/ton",
       features: ["Industrial transport", "Heavy machinery", "Verified Driver", "Live Tracking"],
+      popular: false
+    },
+    {
+      name: "4 Ton",
+      desc: "Extra Large Capacity",
+      weight: "Up to 4000 kg",
+      price: "₹1200",
+      perTon: "₹30/ton",
+      features: ["Heavy industrial transport", "Large materials", "Verified Driver", "Live Tracking"],
       popular: false
     }
   ];
@@ -44,7 +53,7 @@ const Pricing = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
           {plans.map((plan, idx) => (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -55,7 +64,7 @@ const Pricing = () => {
               className={`card relative p-8 ${plan.popular ? 'border-copper-500 shadow-[0_0_30px_rgba(232,99,49,0.1)]' : ''}`}
             >
               {plan.popular && (
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-copper-500 text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-copper-500 text-white px-4 py-1 rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap">
                   Most Popular
                 </div>
               )}
@@ -67,13 +76,13 @@ const Pricing = () => {
                   <span className="text-4xl font-bold text-loft-50">{plan.price}</span>
                   <span className="text-loft-400">base fare</span>
                 </div>
-                <p className="text-copper-400 font-medium mt-1">+ {plan.perKm} after 2km</p>
+                <p className="text-copper-400 font-medium mt-1">+ {plan.perTon} extra</p>
               </div>
               
               <div className="space-y-4 mb-8">
                 {plan.features.map((feature, i) => (
                   <div key={i} className="flex items-center gap-3">
-                    <div className="w-5 h-5 rounded-full bg-moss-500/20 flex items-center justify-center text-moss-400">
+                    <div className="w-5 h-5 rounded-full bg-moss-500/20 flex items-center justify-center text-moss-400 shrink-0">
                       <Check className="w-3 h-3" />
                     </div>
                     <span className="text-loft-200 text-sm">{feature}</span>

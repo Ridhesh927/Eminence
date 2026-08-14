@@ -90,6 +90,19 @@ const BusinessContracts = () => {
         </div>
 
       </div>
+      {/* Floating Helpline */}
+      <div className="fixed bottom-8 right-8 z-50">
+        <a href="tel:18001234567" className="flex items-center gap-3 bg-copper-500 text-white px-6 py-4 rounded-full shadow-[0_10px_40px_rgba(232,99,49,0.5)] hover:bg-copper-600 transition-all hover:scale-105 group">
+          <div className="bg-white/20 p-2 rounded-full group-hover:rotate-12 transition-transform">
+            <PhoneCall className="w-6 h-6" />
+          </div>
+          <div className="flex flex-col items-start text-left">
+            <span className="text-[10px] font-bold text-copper-100 uppercase tracking-widest leading-none mb-1">Contract Helpline</span>
+            <span className="font-bold text-lg leading-none">1800-XXX-XXXX</span>
+          </div>
+        </a>
+      </div>
+
     </div>
   );
 };
