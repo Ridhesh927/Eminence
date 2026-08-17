@@ -1,16 +1,51 @@
-# React + Vite
+# Frontend Setup
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+This is the frontend for the Eminence project, built with React and Vite.
 
-Currently, two official plugins are available:
+## Prerequisites
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Node.js (v18 or higher recommended)
+- npm (or yarn/pnpm)
 
-## React Compiler
+## Installation
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1. Navigate to the frontend directory:
+   ```bash
+   cd frontend
+   ```
 
-## Expanding the Oxlint configuration
+2. Install the dependencies:
+   ```bash
+   npm install
+   ```
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+3. Environment Variables:
+   - Copy the example environment file:
+     ```bash
+     cp .env.example .env
+     ```
+   - Update `.env` with your actual configuration values.
+
+## Running the Application
+
+To start the development server with Hot Module Replacement (HMR):
+
+```bash
+npm run dev
+```
+
+The application will typically be available at `http://localhost:5173`.
+
+## Building for Production
+
+To create a production build:
+
+```bash
+npm run build
+```
+
+To preview the production build locally:
+
+```bash
+npm run preview
+```
