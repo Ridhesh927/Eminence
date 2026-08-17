@@ -2,42 +2,171 @@
 
 @import "tailwindcss";
 
+:root {
+  --loft-50: #f4f6f8;
+  --loft-100: #e4e9f0;
+  --loft-200: #c9d3df;
+  --loft-300: #a2b2c7;
+  --loft-400: #748bac;
+  --loft-500: #556c91;
+  --loft-600: #425576;
+  --loft-700: #36445f;
+  --loft-800: #2f3a4e;
+  --loft-900: #293243;
+  --loft-950: #0f141f;
+
+  --copper-50: #fef5f1;
+  --copper-100: #fce8df;
+  --copper-200: #fad1c0;
+  --copper-300: #f6b399;
+  --copper-400: #f08b65;
+  --copper-500: #e86331;
+  --copper-600: #db4b1e;
+  --copper-700: #b73915;
+  --copper-800: #912e17;
+  --copper-900: #752815;
+  --copper-950: #3f1107;
+
+  --moss-50: #f2f9f4;
+  --moss-100: #e1f2e5;
+  --moss-200: #c3e4cc;
+  --moss-300: #96cfb3;
+  --moss-400: #62b395;
+  --moss-500: #3e9779;
+  --moss-600: #2d7960;
+  --moss-700: #26604e;
+  --moss-800: #214d40;
+  --moss-900: #1c3f35;
+  --moss-950: #0e231e;
+
+  --glow-primary: rgba(232, 99, 49, 0.08);
+  --glow-secondary: rgba(62, 151, 121, 0.05);
+  --grid-color: rgba(128, 128, 128, 0.07);
+  --shadow-hover-color: rgba(232, 99, 49, 0.15);
+}
+
+html[data-theme="light"] {
+  --loft-50: #020617;
+  --loft-100: #0f172a;
+  --loft-200: #1e293b;
+  --loft-300: #334155;
+  --loft-400: #475569;
+  --loft-500: #64748b;
+  --loft-600: #94a3b8;
+  --loft-700: #cbd5e1;
+  --loft-800: #e2e8f0;
+  --loft-900: #f1f5f9;
+  --loft-950: #f8fafc;
+
+  --copper-50: #fff5f2;
+  --copper-100: #ffe4db;
+  --copper-200: #ffcdbd;
+  --copper-300: #ffa285;
+  --copper-400: #ff734d;
+  --copper-500: #e05320;
+  --copper-600: #c23c13;
+  --copper-700: #9e2a0b;
+  --copper-800: #7d2009;
+  --copper-900: #611807;
+  --copper-950: #330a03;
+
+  --moss-50: #f0fbf6;
+  --moss-100: #dcf7ea;
+  --moss-200: #b9edd2;
+  --moss-300: #86dcaf;
+  --moss-400: #4ec48b;
+  --moss-500: #229e64;
+  --moss-600: #177d4e;
+  --moss-700: #12623d;
+  --moss-800: #0e4f32;
+  --moss-900: #0a3d27;
+  --moss-950: #052014;
+
+  --glow-primary: rgba(232, 99, 49, 0.03);
+  --glow-secondary: rgba(34, 158, 100, 0.03);
+  --grid-color: rgba(0, 0, 0, 0.04);
+  --shadow-hover-color: rgba(232, 99, 49, 0.06);
+}
+
+html[data-theme="bright"] {
+  --loft-50: #ffffff;
+  --loft-100: #ede8ff;
+  --loft-200: #d5c7ff;
+  --loft-300: #b399ff;
+  --loft-400: #8e66e6;
+  --loft-500: #643bb5;
+  --loft-600: #422385;
+  --loft-700: #2d175b;
+  --loft-800: #1f0f40;
+  --loft-900: #120926;
+  --loft-950: #0a0516;
+
+  --copper-50: #fdf4ff;
+  --copper-100: #fae8ff;
+  --copper-200: #f5d0fe;
+  --copper-300: #f0abfc;
+  --copper-400: #e879f9;
+  --copper-500: #d946ef;
+  --copper-600: #c026d3;
+  --copper-700: #a21caf;
+  --copper-800: #86198f;
+  --copper-900: #701a75;
+  --copper-950: #4a044e;
+
+  --moss-50: #ecfeff;
+  --moss-100: #cffafe;
+  --moss-200: #a5f3fc;
+  --moss-300: #67e8f9;
+  --moss-400: #22d3ee;
+  --moss-500: #06b6d4;
+  --moss-600: #0891b2;
+  --moss-700: #0e7490;
+  --moss-800: #155e75;
+  --moss-900: #164e63;
+  --moss-950: #083344;
+
+  --glow-primary: rgba(217, 70, 239, 0.18);
+  --glow-secondary: rgba(6, 182, 212, 0.14);
+  --grid-color: rgba(217, 70, 239, 0.05);
+  --shadow-hover-color: rgba(217, 70, 239, 0.25);
+}
+
 @theme {
-  --color-loft-50: #f4f6f8;
-  --color-loft-100: #e4e9f0;
-  --color-loft-200: #c9d3df;
-  --color-loft-300: #a2b2c7;
-  --color-loft-400: #748bac;
-  --color-loft-500: #556c91;
-  --color-loft-600: #425576;
-  --color-loft-700: #36445f;
-  --color-loft-800: #2f3a4e;
-  --color-loft-900: #293243;
-  --color-loft-950: #0f141f;
+  --color-loft-50: var(--loft-50);
+  --color-loft-100: var(--loft-100);
+  --color-loft-200: var(--loft-200);
+  --color-loft-300: var(--loft-300);
+  --color-loft-400: var(--loft-400);
+  --color-loft-500: var(--loft-500);
+  --color-loft-600: var(--loft-600);
+  --color-loft-700: var(--loft-700);
+  --color-loft-800: var(--loft-800);
+  --color-loft-900: var(--loft-900);
+  --color-loft-950: var(--loft-950);
 
-  --color-copper-50: #fef5f1;
-  --color-copper-100: #fce8df;
-  --color-copper-200: #fad1c0;
-  --color-copper-300: #f6b399;
-  --color-copper-400: #f08b65;
-  --color-copper-500: #e86331;
-  --color-copper-600: #db4b1e;
-  --color-copper-700: #b73915;
-  --color-copper-800: #912e17;
-  --color-copper-900: #752815;
-  --color-copper-950: #3f1107;
+  --color-copper-50: var(--copper-50);
+  --color-copper-100: var(--copper-100);
+  --color-copper-200: var(--copper-200);
+  --color-copper-300: var(--copper-300);
+  --color-copper-400: var(--copper-400);
+  --color-copper-500: var(--copper-500);
+  --color-copper-600: var(--copper-600);
+  --color-copper-700: var(--copper-700);
+  --color-copper-800: var(--copper-800);
+  --color-copper-900: var(--copper-900);
+  --color-copper-950: var(--copper-950);
 
-  --color-moss-50: #f2f9f4;
-  --color-moss-100: #e1f2e5;
-  --color-moss-200: #c3e4cc;
-  --color-moss-300: #96cfb3;
-  --color-moss-400: #62b395;
-  --color-moss-500: #3e9779;
-  --color-moss-600: #2d7960;
-  --color-moss-700: #26604e;
-  --color-moss-800: #214d40;
-  --color-moss-900: #1c3f35;
-  --color-moss-950: #0e231e;
+  --color-moss-50: var(--moss-50);
+  --color-moss-100: var(--moss-100);
+  --color-moss-200: var(--moss-200);
+  --color-moss-300: var(--moss-300);
+  --color-moss-400: var(--moss-400);
+  --color-moss-500: var(--moss-500);
+  --color-moss-600: var(--moss-600);
+  --color-moss-700: var(--moss-700);
+  --color-moss-800: var(--moss-800);
+  --color-moss-900: var(--moss-900);
+  --color-moss-950: var(--moss-950);
 
   --color-primary: var(--color-copper-500);
   --color-accent: var(--color-loft-50);
@@ -54,13 +183,17 @@
   --radius-button: 9999px;
 }
 
+body, nav, footer, main, .card, button, input, a {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+}
+
 @layer base {
   body {
     @apply bg-loft-950 text-loft-200 font-sans min-h-screen selection:bg-copper-500/30 selection:text-copper-100;
     /* Soft ambient background glow for entire app */
-    background: radial-gradient(circle at top right, rgba(232, 99, 49, 0.08), transparent 40%), 
-                radial-gradient(circle at bottom left, rgba(62, 151, 121, 0.05), transparent 40%),
-                #0f141f;
+    background: radial-gradient(circle at top right, var(--glow-primary), transparent 45%), 
+                radial-gradient(circle at bottom left, var(--glow-secondary), transparent 45%),
+                var(--loft-950);
   }
   
   /* Grid pattern overlay */
@@ -69,8 +202,8 @@
     position: fixed;
     inset: 0;
     pointer-events: none;
-    background-image: linear-gradient(to right, rgba(128, 128, 128, 0.07) 1px, transparent 1px),
-                      linear-gradient(to bottom, rgba(128, 128, 128, 0.07) 1px, transparent 1px);
+    background-image: linear-gradient(to right, var(--grid-color) 1px, transparent 1px),
+                      linear-gradient(to bottom, var(--grid-color) 1px, transparent 1px);
     background-size: 24px 24px;
     z-index: -1;
   }
@@ -82,7 +215,7 @@
 
 @layer components {
   .card {
-    @apply bg-loft-900/30 backdrop-blur-xl shadow-2xl rounded-card border border-loft-700/50 border-t-white/10 transition-all duration-300 hover:border-copper-500/30 hover:bg-loft-900/50 hover:shadow-[0_8px_32px_rgba(232,99,49,0.1)];
+    @apply bg-loft-900/30 backdrop-blur-xl shadow-2xl rounded-card border border-loft-700/50 border-t-loft-50/10 transition-all duration-300 hover:border-copper-500/30 hover:bg-loft-900/50 hover:shadow-[0_8px_32px_var(--shadow-hover-color)];
   }
   .input-field {
     @apply w-full px-4 py-3 bg-loft-950/60 backdrop-blur-sm border border-loft-700/70 rounded-input focus:outline-none focus:ring-2 focus:ring-copper-500/60 focus:border-copper-500/60 transition-all duration-200 text-loft-50 placeholder-loft-400 focus:shadow-[0_0_15px_rgba(232,99,49,0.15)];

@@ -1,10 +1,19 @@
 const twilio = require('twilio');
 const dotenv = require('dotenv');
-dotenv.config();
+const path = require('path');
+
+// Load environment variables (.env.local first, overriding any parent process variables)
+dotenv.config({ path: path.resolve(__dirname, '../../.env.local'), override: true });
+dotenv.config({ path: path.resolve(__dirname, '../../.env'), override: true });
 
 let client;
-if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
-  client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+
+if (accountSid && accountSid.startsWith('AC') && authToken && authToken !== 'your_auth_token_here') {
+  client = twilio(accountSid, authToken);
+} else {
+  console.warn("Twilio credentials not configured or using placeholders. SMS sending will be mocked in console.");
 }
 
 /**

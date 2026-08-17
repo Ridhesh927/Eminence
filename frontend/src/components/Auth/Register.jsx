@@ -23,15 +23,28 @@ const Register = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handlePhoneSubmit = (e) => {
+  const handlePhoneSubmit = async (e) => {
     e.preventDefault();
     if (formData.phone.length < 10 || !formData.name) return;
     
     setIsLoading(true);
-    setTimeout(() => {
+    try {
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/phone-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: formData.phone })
+      });
+      
+      // Save pending name for profile completion
+      localStorage.setItem('pendingName', formData.name);
+      
       setIsLoading(false);
-      navigate('/otp', { state: { phone: formData.phone, isNewUser: true } });
-    }, 1000);
+      navigate('/otp', { state: { phone: formData.phone, isNewUser: true, name: formData.name } });
+    } catch (error) {
+      console.error('Registration phone submit error:', error);
+      setIsLoading(false);
+      alert('Error initiating registration. Please try again.');
+    }
   };
 
   const handleGoogleSignUp = async () => {
@@ -51,7 +64,7 @@ const Register = () => {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
+    <div className="min-h-[calc(100vh-5rem)] flex items-center justify-center pt-28 pb-16 px-4 sm:px-6 lg:px-8 relative">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(232,99,49,0.08),transparent_50%)] pointer-events-none"></div>
 
       <motion.div 
