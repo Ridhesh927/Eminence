@@ -1,5 +1,6 @@
 const app = require('./app');
 const { syncDatabase } = require('./models');
+const process = require('node:process');
 
 const PORT = process.env.PORT || 3000;
 

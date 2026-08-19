@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useSelector } from 'react-redux';
-import { Package, CheckCircle, Wallet, MapPin, Plus, Clock } from 'lucide-react';
+import { Package, CheckCircle, Wallet, MapPin, Plus } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const CustomerDashboard = () => {

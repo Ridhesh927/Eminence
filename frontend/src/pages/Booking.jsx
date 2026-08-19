@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Calendar, Clock, Truck, Box, IndianRupee, ShieldCheck } from 'lucide-react';
+import { MapPin, Calendar, Clock, Truck, Box, ShieldCheck } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Booking = () => {

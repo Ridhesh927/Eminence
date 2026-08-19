@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Navigation, Truck, Wallet, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { MapPin, Navigation, Wallet, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 
 const DriverDashboard = () => {
   const [activeTab, setActiveTab] = useState('today');

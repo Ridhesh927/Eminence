@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Building2, FileText, Truck, Users, CreditCard, HeadphonesIcon } from 'lucide-react';
+import { FileText, Truck, Users, CreditCard, HeadphonesIcon } from 'lucide-react';
 
 const BusinessDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');

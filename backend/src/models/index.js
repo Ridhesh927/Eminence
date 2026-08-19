@@ -1,4 +1,5 @@
 const sequelize = require('../config/database');
+const process = require('node:process');
 const Customer = require('./Customer');
 const Otp = require('./Otp');
 const Driver = require('./Driver');
