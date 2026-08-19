@@ -5,6 +5,8 @@ const path = require('path');
 // Load environment variables (.env.local first, overriding any parent process variables)
 dotenv.config({ path: path.resolve(__dirname, '../../.env.local'), override: true });
 dotenv.config({ path: path.resolve(__dirname, '../../.env'), override: true });
+const process = require('node:process');
+dotenv.config();
 
 let client;
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
