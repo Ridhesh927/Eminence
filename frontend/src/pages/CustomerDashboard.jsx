@@ -65,14 +65,86 @@ const CustomerDashboard = () => {
         {/* Tab Content */}
         <div className="min-h-[300px]">
           {activeTab === 'history' && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="card p-12 text-center flex flex-col items-center justify-center border-dashed border-loft-800/80"
-            >
-              <Package className="w-12 h-12 text-loft-600 mb-4" />
-              <h3 className="text-xl font-bold text-loft-200 mb-2">No recent bookings</h3>
-              <p className="text-loft-400 max-w-md">You haven't booked any tempos recently. When you do, your history will appear here.</p>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-loft-50">Recent Bookings</h3>
+                <button className="text-copper-500 text-sm font-medium hover:text-copper-400">View All</button>
+              </div>
+              <div className="space-y-4">
+                {[
+                  { id: 'BKG-7829', date: 'Aug 21, 2026', vehicle: 'Tata Ace (Chota Hathi)', from: 'Kalyani Nagar', to: 'Viman Nagar', status: 'Completed', amount: '₹450' },
+                  { id: 'BKG-7815', date: 'Aug 18, 2026', vehicle: 'Mahindra Bolero Pickup', from: 'Kothrud', to: 'Deccan Gymkhana', status: 'Completed', amount: '₹600' },
+                  { id: 'BKG-7790', date: 'Aug 12, 2026', vehicle: 'Tata Ace', from: 'Shivaji Nagar', to: 'Baner', status: 'Cancelled', amount: '₹0' }
+                ].map((booking, idx) => (
+                  <div key={idx} className="card p-5 bg-loft-900 flex flex-col md:flex-row md:items-center justify-between gap-4 border-l-4 border-l-transparent hover:border-l-copper-500 transition-all">
+                    <div>
+                      <div className="flex items-center gap-3 mb-2">
+                        <span className="font-bold text-loft-50">{booking.id}</span>
+                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                          booking.status === 'Completed' ? 'bg-moss-500/20 text-moss-500' : 'bg-red-500/20 text-red-500'
+                        }`}>
+                          {booking.status}
+                        </span>
+                        <span className="text-loft-400 text-sm">{booking.date}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-loft-300">
+                        <Package className="w-4 h-4 text-loft-500" />
+                        <span>{booking.vehicle}</span>
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-loft-300 mt-1">
+                        <MapPin className="w-4 h-4 text-copper-500" />
+                        <span>{booking.from} &rarr; {booking.to}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between md:flex-col md:items-end gap-2">
+                      <span className="text-xl font-bold text-loft-100">{booking.amount}</span>
+                      <button className="btn-secondary py-1.5 px-3 text-xs">View Details</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'invoices' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-loft-50">Invoices & Receipts</h3>
+                <button className="text-copper-500 text-sm font-medium hover:text-copper-400">Download All</button>
+              </div>
+              <div className="card bg-loft-900 border-loft-800 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm text-loft-300">
+                    <thead className="bg-loft-950/50 text-xs uppercase font-medium">
+                      <tr>
+                        <th className="px-6 py-4">Invoice No.</th>
+                        <th className="px-6 py-4">Date</th>
+                        <th className="px-6 py-4">Booking Ref</th>
+                        <th className="px-6 py-4">Amount</th>
+                        <th className="px-6 py-4">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-loft-800">
+                      {[
+                        { id: 'INV-2608-012', date: 'Aug 21, 2026', ref: 'BKG-7829', amount: '₹450' },
+                        { id: 'INV-2608-005', date: 'Aug 18, 2026', ref: 'BKG-7815', amount: '₹600' }
+                      ].map((invoice, idx) => (
+                        <tr key={idx} className="hover:bg-loft-800/50 transition-colors">
+                          <td className="px-6 py-4 font-medium text-loft-200">{invoice.id}</td>
+                          <td className="px-6 py-4">{invoice.date}</td>
+                          <td className="px-6 py-4">{invoice.ref}</td>
+                          <td className="px-6 py-4 font-bold text-loft-100">{invoice.amount}</td>
+                          <td className="px-6 py-4">
+                            <button className="text-copper-500 hover:text-copper-400 font-medium text-xs flex items-center gap-1">
+                              Download PDF
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </motion.div>
           )}
 
@@ -111,7 +183,7 @@ const CustomerDashboard = () => {
           )}
 
           {/* Placeholders for new tabs */}
-          {['tracking', 'invoices', 'payments', 'support', 'profile'].includes(activeTab) && (
+          {['tracking', 'payments', 'support', 'profile'].includes(activeTab) && (
              <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
