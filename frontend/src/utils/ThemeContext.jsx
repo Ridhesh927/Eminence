@@ -9,7 +9,7 @@ export const ThemeProvider = ({ children }) => {
       return saved;
     }
     // Check system preference or default to dark
-    const prefersLight = window.matchMedia('(prefers-color-scheme: light)').matches;
+    const prefersLight = globalThis.matchMedia('(prefers-color-scheme: light)').matches;
     return prefersLight ? 'light' : 'dark';
   });
 
