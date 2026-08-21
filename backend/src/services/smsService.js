@@ -4,8 +4,13 @@ const process = require('node:process');
 dotenv.config();
 
 let client;
-if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
-  client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+const twilioSid = process.env.TWILIO_ACCOUNT_SID;
+const twilioToken = process.env.TWILIO_AUTH_TOKEN;
+
+if (twilioSid && twilioSid.startsWith('AC') && twilioToken && twilioToken !== 'your_auth_token_here') {
+  client = twilio(twilioSid, twilioToken);
+} else {
+  console.warn('Twilio not initialized: TWILIO_ACCOUNT_SID or TWILIO_AUTH_TOKEN is missing or contains placeholder values.');
 }
 
 /**

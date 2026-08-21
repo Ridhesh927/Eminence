@@ -52,21 +52,26 @@ const CompleteProfileModal = () => {
       
       // If phone wasn't verified, ask for OTP now
       if (!updatedUser.isPhoneVerified && formData.phone) {
-        await handleSendOtp('phone');
+        await handleSendOtp('phone', true); // true = called internally, don't manage own loading
       } else if (!updatedUser.isEmailVerified && formData.email) {
-        await handleSendOtp('email');
+        await handleSendOtp('email', true);
       } else if (updatedUser.isProfileComplete) {
         setMessage('Profile completed successfully!');
+      } else {
+        // Profile saved but nothing to verify — shouldn't happen but surface it
+        setMessage('Profile saved. Please verify your phone or email to continue.');
       }
     } catch (err) {
-      setError(err.response?.data?.message || 'Error saving profile data');
+      console.error('Complete profile error:', err.response?.data || err.message);
+      setError(err.response?.data?.message || 'Error saving profile. Please try again.');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSendOtp = async (type) => {
-    setLoading(true);
+  // internal=true means the caller manages loading state
+  const handleSendOtp = async (type, internal = false) => {
+    if (!internal) setLoading(true);
     setError('');
     try {
       const token = localStorage.getItem('token');
@@ -76,11 +81,13 @@ const CompleteProfileModal = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setOtpType(type);
-      setMessage(`OTP sent to your ${type}`);
+      setMessage(`OTP sent to your ${type}. Check your backend console for the code.`);
     } catch (err) {
-      setError(err.response?.data?.message || `Error sending ${type} OTP`);
+      const msg = err.response?.data?.message || `Error sending ${type} OTP`;
+      if (internal) throw err; // bubble up to handleSubmit's catch
+      setError(msg);
     } finally {
-      setLoading(false);
+      if (!internal) setLoading(false);
     }
   };
 
