@@ -1,9 +1,6 @@
 const PDFDocument = require('pdfkit');
-const fs = require('fs');
-const path = require('path');
-const { Booking, Customer } = require('../models');
 
-const generateInvoice = async (req, res) => {
+const generateInvoice = (_req, res) => {
   try {
     const { bookingId } = req.params;
     

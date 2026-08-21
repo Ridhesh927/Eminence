@@ -67,7 +67,7 @@ const syncDatabase = async () => {
     const seedName = process.env.SEED_NAME || 'Demo User';
 
     if (seedPhone) {
-      const [user, created] = await Customer.findOrCreate({
+      const [_user, created] = await Customer.findOrCreate({
         where: { phone: seedPhone },
         defaults: {
           name: seedName,

@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 
 module.exports = {
-  up: async (queryInterface, Sequelize) => {
+  up: (queryInterface, _Sequelize) => {
     return queryInterface.bulkInsert('Customers', [{
       id: crypto.randomUUID(),
       name: 'Demo User',
@@ -15,7 +15,7 @@ module.exports = {
     }]);
   },
 
-  down: async (queryInterface, Sequelize) => {
+  down: (queryInterface, _Sequelize) => {
     return queryInterface.bulkDelete('Customers', null, {});
   }
 };

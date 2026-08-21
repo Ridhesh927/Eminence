@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { MapPin, Phone, MessageSquare, Truck, ShieldCheck, Navigation } from 'lucide-react';
+import { Phone, MessageSquare, ShieldCheck } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';

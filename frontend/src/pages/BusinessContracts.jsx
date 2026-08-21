@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { PhoneCall, Users, Truck, CheckCircle2 } from 'lucide-react';
+import { PhoneCall, Users, Truck } from 'lucide-react';
 
 const BusinessContracts = () => {
   const clients = [

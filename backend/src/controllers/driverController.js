@@ -1,7 +1,7 @@
 const { Driver } = require('../models');
 
 // Get all drivers
-const getAllDrivers = async (req, res) => {
+const getAllDrivers = async (_req, res) => {
   try {
     const drivers = await Driver.findAll();
     res.status(200).json({ success: true, drivers });

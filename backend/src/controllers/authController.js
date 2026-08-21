@@ -2,8 +2,6 @@ const admin = require('../config/firebaseAdmin');
 const jwt = require('jsonwebtoken');
 const { Customer, Otp } = require('../models');
 const { sendEmail } = require('../services/emailService');
-const { sendSMS } = require('../services/smsService');
-const crypto = require('crypto');
 
 // Helper to check if profile is complete
 const checkAndSetProfileComplete = async (customer) => {
@@ -37,7 +35,7 @@ const googleLogin = async (req, res) => {
       email = decodedToken.email;
       name = decodedToken.name;
       picture = decodedToken.picture;
-    } catch (adminError) {
+    } catch (_adminError) {
       console.warn('Firebase Admin verification failed, falling back to manual decode for local dev');
       // For local development without a service account key, just decode the token
       const decodedToken = jwt.decode(idToken);
