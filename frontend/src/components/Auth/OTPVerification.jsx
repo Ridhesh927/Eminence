@@ -98,13 +98,40 @@ const OTPVerification = () => {
       
       if (data.success) {
         localStorage.setItem('token', data.token);
+        
+        // Handle saving name on registration if pending
+        const pendingName = localStorage.getItem('pendingName') || location.state?.name;
+        let displayName = data.user.name || pendingName || (isNewUser ? 'New User' : 'Existing Customer');
+        let profileCompleteVal = data.user.isProfileComplete;
+
+        if (pendingName && !data.user.name) {
+          try {
+            const updateRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/complete-profile`, {
+              method: 'POST',
+              headers: { 
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${data.token}`
+              },
+              body: JSON.stringify({ name: pendingName })
+            });
+            const updateData = await updateRes.json();
+            if (updateData.success) {
+              displayName = updateData.user.name;
+              profileCompleteVal = updateData.user.isProfileComplete;
+            }
+            localStorage.removeItem('pendingName');
+          } catch (err) {
+            console.error('Failed to save name during registration:', err);
+          }
+        }
+
         dispatch(loginSuccess({
           id: data.user.id,
           phone: data.user.phone,
-          name: data.user.name || (isNewUser ? 'New User' : 'Existing Customer'),
+          name: displayName,
           role: data.user.role || 'customer',
           token: data.token,
-          isProfileComplete: data.user.isProfileComplete
+          isProfileComplete: profileCompleteVal
         }));
         
         const userRole = data.user.role || 'customer';
@@ -120,7 +147,7 @@ const OTPVerification = () => {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
+    <div className="min-h-[calc(100vh-5rem)] flex items-center justify-center pt-28 pb-16 px-4 sm:px-6 lg:px-8 relative">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(232,99,49,0.08),transparent_50%)] pointer-events-none"></div>
 
       <motion.div 

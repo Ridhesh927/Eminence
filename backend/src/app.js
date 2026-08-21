@@ -2,8 +2,11 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 
-// Load environment variables
-dotenv.config();
+// Load environment variables (.env.local first, overriding any parent process variables)
+const path = require('path');
+dotenv.config({ path: path.resolve(__dirname, '../.env.local'), override: true });
+dotenv.config({ path: path.resolve(__dirname, '../.env'), override: true });
+
 
 const app = express();
 
