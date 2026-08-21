@@ -62,8 +62,9 @@ const CompleteProfileModal = () => {
         setMessage('Profile saved. Please verify your phone or email to continue.');
       }
     } catch (err) {
-      console.error('Complete profile error:', err.response?.data || err.message);
-      setError(err.response?.data?.message || 'Error saving profile. Please try again.');
+      const msg = err.response?.data?.message || err.message || 'Error completing profile. Please try again.';
+      console.error('Complete profile error:', err.response?.data || err);
+      setError(msg);
     } finally {
       setLoading(false);
     }
