@@ -289,6 +289,8 @@ npx sequelize-cli db:migrate --env development
 
 ```bash
 npx sequelize-cli db:seed:all
+# To seed the admin user specifically:
+npx sequelize-cli db:seed --seed 20260824000000-demo-admin.js
 # Or for a specific environment:
 npx sequelize-cli db:seed:all --env development
 ```
