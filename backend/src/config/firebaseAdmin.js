@@ -1,4 +1,4 @@
-import process from "node:process";
+const process = require('node:process');
 const admin = require('firebase-admin');
 const dotenv = require('dotenv');
 dotenv.config();

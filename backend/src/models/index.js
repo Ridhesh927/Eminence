@@ -1,6 +1,7 @@
 const sequelize = require('../config/database');
 const process = require('node:process');
 const Customer = require('./Customer');
+const Admin = require('./Admin');
 const Otp = require('./Otp');
 const Driver = require('./Driver');
 const Vehicle = require('./Vehicle');
@@ -88,6 +89,7 @@ module.exports = {
   sequelize,
   syncDatabase,
   Customer,
+  Admin,
   Otp,
   Driver,
   Vehicle,
