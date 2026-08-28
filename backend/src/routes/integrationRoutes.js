@@ -50,4 +50,41 @@ router.post('/whatsapp-webhook', (req, res) => {
   }
 });
 
+const { sendEmail } = require('../services/emailService');
+
+router.post('/contact-message', async (req, res) => {
+  try {
+    const { name, email, message } = req.body;
+    
+    if (!name || !email || !message) {
+      return res.status(400).json({ error: 'All fields are required' });
+    }
+
+    const subject = `New Contact Form Submission from ${name}`;
+    const text = `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`;
+    const html = `
+      <h3>New Contact Message</h3>
+      <p><strong>Name:</strong> ${name}</p>
+      <p><strong>Email:</strong> ${email}</p>
+      <p><strong>Message:</strong><br/>${message.replace(/\n/g, '<br/>')}</p>
+    `;
+
+    // Send to support email
+    await sendEmail('eminence.support.helpline@gmail.com', subject, text, html);
+    
+    // Optionally send an auto-reply to the user
+    await sendEmail(
+      email, 
+      'We received your message!', 
+      'Thank you for reaching out. We will get back to you shortly.',
+      '<p>Thank you for reaching out. We will get back to you shortly.</p>'
+    );
+
+    res.status(200).json({ success: true, message: 'Message sent successfully' });
+  } catch (error) {
+    console.error('Error handling contact message:', error);
+    res.status(500).json({ error: 'Failed to send message' });
+  }
+});
+
 module.exports = router;

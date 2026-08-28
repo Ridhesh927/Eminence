@@ -62,7 +62,7 @@ const Footer = () => {
               </li>
               <li className="flex items-start gap-3 text-loft-300">
                 <Mail className="w-5 h-5 text-copper-500 flex-shrink-0 mt-0.5" />
-                <span>support@eminence.app</span>
+                <span>eminence.support.helpline@gmail.com</span>
               </li>
               <li className="flex items-start gap-3 text-loft-300">
                 <MapPin className="w-5 h-5 text-copper-500 flex-shrink-0 mt-0.5" />

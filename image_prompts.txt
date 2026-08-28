@@ -1,0 +1,15 @@
+# Image Prompts for Eminence Logistics Platform
+
+Use these prompts in Gemini, DALL-E, or Midjourney to generate consistent, premium assets for your platform.
+
+## 1. Small Tempo (e.g., Tata Ace / Chota Hathi)
+**Prompt:** Create a high-quality, studio-lit 3D render of a small commercial delivery mini-truck (similar to a Tata Ace) isolated on a solid dark charcoal background (#1A1A1A). The truck should be painted in a sleek metallic copper/burnt orange color with black matte accents. Modern, aerodynamic design, glowing LED headlights, premium loft aesthetic, photorealistic, 8k resolution.
+
+## 2. Medium Tempo (e.g., Mahindra Bolero Pickup / 407)
+**Prompt:** Create a high-quality, studio-lit 3D render of a medium-sized commercial delivery pickup truck with a covered cargo box in the back, isolated on a solid dark charcoal background (#1A1A1A). The truck should feature a sleek metallic copper/burnt orange cab with a matte black cargo box. Modern, rugged but premium design, glowing LED headlights, photorealistic, 8k resolution.
+
+## 3. Large Truck (e.g., Eicher / 17ft-19ft LCV)
+**Prompt:** Create a high-quality, studio-lit 3D render of a large commercial light commercial vehicle (LCV) delivery truck with a large container box, isolated on a solid dark charcoal background (#1A1A1A). The truck cab should be metallic copper/burnt orange with a massive matte black container. Heavy-duty, modern, premium logistics aesthetic, glowing LED headlights, photorealistic, 8k resolution.
+
+## 4. Top-Down Map Marker Truck
+**Prompt:** Create a top-down, bird's-eye view 2D vector graphic of a sleek delivery truck driving forward. The truck should be colored in metallic copper/burnt orange with dark accents. Clean, minimalist, flat design with no shadows, suitable to be used as a GPS tracking map marker on a dark mode map. Solid black background.
