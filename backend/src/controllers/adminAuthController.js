@@ -1,4 +1,4 @@
-import process from "node:process";
+
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { Admin } = require('../models');

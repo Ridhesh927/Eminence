@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Menu, Phone, Truck } from 'lucide-react';
 import { useSelector } from 'react-redux';
-import ThemeToggle from './ThemeToggle';
+
 
 const Navbar = () => {
   const { isAuthenticated } = useSelector((state) => state.auth);
@@ -40,11 +40,9 @@ const Navbar = () => {
           </div>
           
           {/* Right: Actions */}
-          <div className="hidden md:flex items-center space-x-4 lg:space-x-6">
-            <ThemeToggle />
 
+          <div className="hidden md:flex items-center space-x-4 lg:space-x-6">
             <div className="flex items-center gap-2 px-4 py-2 bg-moss-500/10 border border-moss-500/20 rounded-full text-moss-300 hover:bg-moss-500/20 transition-all cursor-pointer">
-              <div className="w-2 h-2 rounded-full bg-moss-400 animate-pulse"></div>
               <Phone className="w-4 h-4" />
               <span className="font-semibold text-sm tracking-wide hidden lg:inline">IVR HELPLINE</span>
               <span className="font-semibold text-sm tracking-wide lg:hidden">IVR</span>
@@ -67,7 +65,6 @@ const Navbar = () => {
           </div>
 
           <div className="md:hidden flex items-center gap-4">
-            <ThemeToggle />
             <button className="p-2 text-loft-300 hover:text-loft-50 focus:outline-none bg-loft-900 rounded-lg">
               <Menu className="w-6 h-6" />
             </button>
