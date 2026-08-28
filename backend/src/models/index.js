@@ -6,6 +6,7 @@ const Otp = require('./Otp');
 const Driver = require('./Driver');
 const Vehicle = require('./Vehicle');
 const Booking = require('./Booking');
+const Review = require('./Review');
 
 // Define Relationships
 Customer.hasMany(Otp, { foreignKey: 'customerId', as: 'otps' });
@@ -19,6 +20,15 @@ Booking.belongsTo(Driver, { foreignKey: 'driverId', as: 'driver' });
 
 Vehicle.hasMany(Booking, { foreignKey: 'vehicleId', as: 'bookings' });
 Booking.belongsTo(Vehicle, { foreignKey: 'vehicleId', as: 'vehicle' });
+
+Customer.hasMany(Review, { foreignKey: 'customerId', as: 'reviews' });
+Review.belongsTo(Customer, { foreignKey: 'customerId', as: 'customer' });
+
+Driver.hasMany(Review, { foreignKey: 'driverId', as: 'reviews' });
+Review.belongsTo(Driver, { foreignKey: 'driverId', as: 'driver' });
+
+Booking.hasOne(Review, { foreignKey: 'bookingId', as: 'review' });
+Review.belongsTo(Booking, { foreignKey: 'bookingId', as: 'booking' });
 
 const { Client } = require('pg');
 
@@ -93,5 +103,6 @@ module.exports = {
   Otp,
   Driver,
   Vehicle,
-  Booking
+  Booking,
+  Review
 };

@@ -24,8 +24,13 @@ app.get('/api/health', (_req, res) => {
 const authRoutes = require('./routes/authRoutes');
 const integrationRoutes = require('./routes/integrationRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const driverRoutes = require('./routes/driverRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
+
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/drivers', driverRoutes);
+app.use('/api/reviews', reviewRoutes);
 app.use('/api/integrations', integrationRoutes);
 
 module.exports = app;
