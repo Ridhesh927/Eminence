@@ -49,14 +49,20 @@ const googleLogin = async (req, res) => {
 
     let customer = await Customer.findOne({ where: { email } });
     if (!customer) {
+      // Generate referral code
+      const refCode = `EMINENCE-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
       customer = await Customer.create({
         name: name || 'Google User',
         email,
         googleId: uid,
         profilePicture: picture,
         // Assuming Google verified the email
-        isEmailVerified: true 
+        isEmailVerified: true,
+        referralCode: refCode
       });
+      // Create wallet
+      const { Wallet } = require('../models');
+      await Wallet.create({ customerId: customer.id, balance: 0.0 });
     }
 
     // Double check if profile is complete
@@ -231,10 +237,15 @@ const phoneLogin = async (req, res) => {
 
     let customer = await Customer.findOne({ where: { phone } });
     if (!customer) {
+      const refCode = `EMINENCE-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
       customer = await Customer.create({
         phone,
-        isPhoneVerified: false
+        isPhoneVerified: false,
+        referralCode: refCode
       });
+      // Create wallet
+      const { Wallet } = require('../models');
+      await Wallet.create({ customerId: customer.id, balance: 0.0 });
     }
 
     const code = generateOtp();
@@ -268,7 +279,10 @@ const phoneVerify = async (req, res) => {
     if (code === '1234') {
       let customer = await Customer.findOne({ where: { phone } });
       if (!customer) {
-        customer = await Customer.create({ phone, isPhoneVerified: true });
+        const refCode = `EMINENCE-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+        customer = await Customer.create({ phone, isPhoneVerified: true, referralCode: refCode });
+        const { Wallet } = require('../models');
+        await Wallet.create({ customerId: customer.id, balance: 0.0 });
       } else {
         customer.isPhoneVerified = true;
         await customer.save();

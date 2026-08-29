@@ -59,6 +59,15 @@ const Customer = sequelize.define('Customer', {
   isProfileComplete: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
+  },
+  referralCode: {
+    type: DataTypes.STRING,
+    allowNull: true,
+    unique: true,
+  },
+  referredBy: {
+    type: DataTypes.STRING,
+    allowNull: true,
   }
 }, {
   timestamps: true,

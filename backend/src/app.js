@@ -26,11 +26,13 @@ const integrationRoutes = require('./routes/integrationRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const driverRoutes = require('./routes/driverRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
+const walletRoutes = require('./routes/walletRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/drivers', driverRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/integrations', integrationRoutes);
+app.use('/api/wallet', walletRoutes);
 
 module.exports = app;

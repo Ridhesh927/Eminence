@@ -1,12 +1,18 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Calendar, Clock, Truck, Box, ShieldCheck } from 'lucide-react';
+import { MapPin, Calendar, Clock, Truck, Box, ShieldCheck, Tag } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import axios from 'axios';
 
 const Booking = () => {
   const navigate = useNavigate();
+  const { token } = useSelector((state) => state.auth);
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [promoCode, setPromoCode] = useState('');
+  const [discount, setDiscount] = useState(0);
+  const [promoMessage, setPromoMessage] = useState(null);
   
   const [formData, setFormData] = useState({
     pickup: '',
@@ -27,7 +33,23 @@ const Booking = () => {
   const calculateFare = () => {
     // Mock calculation
     const baseRates = { small: 350, medium: 550, large: 1200 };
-    return baseRates[formData.tempoType] || 0;
+    const total = baseRates[formData.tempoType] || 0;
+    return Math.max(0, total - discount);
+  };
+
+  const handleApplyPromo = async () => {
+    if (!promoCode) return;
+    try {
+      const res = await axios.post(
+        'http://localhost:3000/api/wallet/referral',
+        { referralCode: promoCode },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setDiscount(100); // 100 Rs discount applied immediately for UI purposes
+      setPromoMessage({ type: 'success', text: 'Referral applied! ₹100 discount added.' });
+    } catch (error) {
+      setPromoMessage({ type: 'error', text: error.response?.data?.message || 'Invalid code' });
+    }
   };
 
   const handleNext = () => setStep(step + 1);
@@ -166,14 +188,55 @@ const Booking = () => {
                 <h2 className="text-xl font-bold text-loft-50 mb-4 border-b border-loft-800 pb-2">Confirm & Pay</h2>
                 
                 <div className="bg-loft-950/80 rounded-xl p-6 border border-loft-800 mb-6">
-                  <div className="flex justify-between items-center mb-4">
-                    <span className="text-loft-300">Estimated Fare</span>
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-loft-300">Base Fare</span>
+                    <span className="font-medium text-loft-100">₹{calculateFare() + discount}</span>
+                  </div>
+                  {discount > 0 && (
+                    <div className="flex justify-between items-center mb-4 text-moss-500">
+                      <span>Discount Applied</span>
+                      <span className="font-bold">-₹{discount}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center mb-4 pt-4 border-t border-loft-800">
+                    <span className="text-loft-100 font-bold">Total Fare</span>
                     <span className="text-3xl font-bold text-copper-500">₹{calculateFare()}</span>
                   </div>
                   <div className="flex items-start gap-2 text-sm text-moss-400 mb-2">
                     <ShieldCheck className="w-4 h-4 flex-shrink-0 mt-0.5" />
                     <span>Price includes GST, tolls, and insurance. No hidden fees.</span>
                   </div>
+                </div>
+
+                {/* Promo Code Section */}
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-loft-200 mb-2">Have a Referral or Promo Code?</label>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <Tag className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-loft-400" />
+                      <input 
+                        type="text" 
+                        value={promoCode}
+                        onChange={(e) => setPromoCode(e.target.value.toUpperCase())}
+                        className="input-field pl-12 uppercase" 
+                        placeholder="e.g. EMINENCE-XYZ123" 
+                        disabled={discount > 0}
+                      />
+                    </div>
+                    <button 
+                      type="button" 
+                      onClick={handleApplyPromo}
+                      disabled={discount > 0 || !promoCode}
+                      className="btn-secondary whitespace-nowrap"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                  {promoMessage && (
+                    <p className={`mt-2 text-sm font-medium ${promoMessage.type === 'success' ? 'text-moss-500' : 'text-red-500'}`}>
+                      {promoMessage.text}
+                    </p>
+                  )}
                 </div>
 
                 <div>

@@ -7,6 +7,8 @@ const Driver = require('./Driver');
 const Vehicle = require('./Vehicle');
 const Booking = require('./Booking');
 const Review = require('./Review');
+const Wallet = require('./Wallet');
+const Transaction = require('./Transaction');
 
 // Define Relationships
 Customer.hasMany(Otp, { foreignKey: 'customerId', as: 'otps' });
@@ -29,6 +31,12 @@ Review.belongsTo(Driver, { foreignKey: 'driverId', as: 'driver' });
 
 Booking.hasOne(Review, { foreignKey: 'bookingId', as: 'review' });
 Review.belongsTo(Booking, { foreignKey: 'bookingId', as: 'booking' });
+
+Customer.hasOne(Wallet, { foreignKey: 'customerId', as: 'wallet' });
+Wallet.belongsTo(Customer, { foreignKey: 'customerId', as: 'customer' });
+
+Wallet.hasMany(Transaction, { foreignKey: 'walletId', as: 'transactions' });
+Transaction.belongsTo(Wallet, { foreignKey: 'walletId', as: 'wallet' });
 
 const { Client } = require('pg');
 
@@ -104,5 +112,7 @@ module.exports = {
   Driver,
   Vehicle,
   Booking,
-  Review
+  Review,
+  Wallet,
+  Transaction
 };
