@@ -316,12 +316,23 @@ const getOverviewStats = async (req, res) => {
   }
 };
 
-// Get Revenue Analytics
+// Get Revenue Analytics with date filtering
 const getRevenueAnalytics = async (req, res) => {
   try {
+    const { startDate, endDate } = req.query;
+    const where = { status: 'completed' };
+
+    if (startDate && endDate) {
+      where.date = { [Op.between]: [startDate, endDate] };
+    } else if (startDate) {
+      where.date = { [Op.gte]: startDate };
+    } else if (endDate) {
+      where.date = { [Op.lte]: endDate };
+    }
+
     const bookings = await Booking.findAll({
       attributes: ['date', [sequelize.fn('SUM', sequelize.col('estimatedFare')), 'dailyRevenue']],
-      where: { status: 'completed' },
+      where,
       group: ['date'],
       order: [['date', 'ASC']]
     });
@@ -332,7 +343,12 @@ const getRevenueAnalytics = async (req, res) => {
     }));
 
     if (revenueData.length === 0) {
-      // Fallback mock data
+      // In production, return empty array rather than mock data unless mock is explicitly enabled
+      if (process.env.NODE_ENV === 'production' && process.env.ENABLE_MOCK_ANALYTICS !== 'true') {
+        return res.status(200).json({ success: true, revenueData: [] });
+      }
+
+      // Fallback mock data for development demonstration
       const today = new Date();
       const mockData = Array.from({ length: 7 }, (_, i) => {
         const d = new Date();
@@ -353,18 +369,31 @@ const getRevenueAnalytics = async (req, res) => {
   }
 };
 
-// Get Route Analytics
+// Get Route Analytics with limit and date filtering
 const getRouteAnalytics = async (req, res) => {
   try {
+    const limit = Math.min(parseInt(req.query.limit, 10) || 5, 50);
+    const { startDate, endDate } = req.query;
+    const where = {};
+
+    if (startDate && endDate) {
+      where.createdAt = { [Op.between]: [new Date(startDate), new Date(endDate)] };
+    } else if (startDate) {
+      where.createdAt = { [Op.gte]: new Date(startDate) };
+    } else if (endDate) {
+      where.createdAt = { [Op.lte]: new Date(endDate) };
+    }
+
     const routes = await Booking.findAll({
       attributes: [
         'pickupAddress',
         'dropAddress',
         [sequelize.fn('COUNT', sequelize.col('id')), 'count']
       ],
+      where,
       group: ['pickupAddress', 'dropAddress'],
       order: [[sequelize.literal('count'), 'DESC']],
-      limit: 5
+      limit
     });
 
     const routeData = routes.map(r => ({
@@ -373,7 +402,12 @@ const getRouteAnalytics = async (req, res) => {
     }));
 
     if (routeData.length === 0) {
-      // Fallback mock data
+      // In production, return empty array rather than mock data unless mock is explicitly enabled
+      if (process.env.NODE_ENV === 'production' && process.env.ENABLE_MOCK_ANALYTICS !== 'true') {
+        return res.status(200).json({ success: true, routeData: [] });
+      }
+
+      // Fallback mock data for development demonstration
       const mockRoutes = [
         { route: 'Koregaon Park ➔ Kalyani Nagar', trips: 45 },
         { route: 'Viman Nagar ➔ Baner', trips: 32 },

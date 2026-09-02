@@ -72,6 +72,24 @@ describe('Admin & Analytics Integration Tests', () => {
       expect(res.status).toBe(403);
       expect(res.body.message).toMatch(/Access denied/i);
     });
+
+    it('should reject client-manipulated role during phone verification and enforce customer role', async () => {
+      const res = await request(app)
+        .post('/api/auth/phone-verify')
+        .send({
+          phone: '1234567890',
+          code: '1234',
+          role: 'admin' // Attacker attempting privilege escalation
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.user.role).toBe('customer');
+
+      const decoded = jwt.decode(res.body.token);
+      expect(decoded.role).toBe('customer');
+      expect(decoded.role).not.toBe('admin');
+    });
   });
 
   describe('Driver CRUD Endpoints', () => {
