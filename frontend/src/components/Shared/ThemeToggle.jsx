@@ -8,7 +8,6 @@ const ThemeToggle = () => {
   const themes = [
     { id: 'light', icon: Sun, label: 'Light Mode' },
     { id: 'dark', icon: Moon, label: 'Dark Mode' },
-    { id: 'bright', icon: Sparkles, label: 'Bright Mode' },
   ];
 
   return (

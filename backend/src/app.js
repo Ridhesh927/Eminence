@@ -23,7 +23,11 @@ app.get('/api/health', (_req, res) => {
 // Routes
 const authRoutes = require('./routes/authRoutes');
 const integrationRoutes = require('./routes/integrationRoutes');
+const adminRoutes = require('./routes/adminRoutes');
+const analyticsRoutes = require('./routes/analyticsRoutes');
 app.use('/api/auth', authRoutes);
 app.use('/api/integrations', integrationRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/analytics', analyticsRoutes);
 
 module.exports = app;

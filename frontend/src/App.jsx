@@ -29,6 +29,20 @@ const ProtectedRoute = ({ children }) => {
   return children;
 };
 
+const AdminRoute = ({ children }) => {
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" />;
+  }
+
+  if (user?.role !== 'admin') {
+    return <Navigate to="/" />;
+  }
+
+  return children;
+};
+
 function App() {
   return (
     <Router>
@@ -70,9 +84,9 @@ function App() {
             </ProtectedRoute>
           } />
           <Route path="/admin/dashboard" element={
-            <ProtectedRoute>
+            <AdminRoute>
               <AdminDashboard />
-            </ProtectedRoute>
+            </AdminRoute>
           } />
         </Routes>
       </MainLayout>

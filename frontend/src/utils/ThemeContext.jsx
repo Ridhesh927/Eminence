@@ -5,7 +5,7 @@ const ThemeContext = createContext();
 export const ThemeProvider = ({ children }) => {
   const [theme, setThemeState] = useState(() => {
     const saved = localStorage.getItem('theme');
-    if (saved && ['dark', 'light', 'bright'].includes(saved)) {
+    if (saved && ['dark', 'light'].includes(saved)) {
       return saved;
     }
     // Check system preference or default to dark
@@ -14,7 +14,7 @@ export const ThemeProvider = ({ children }) => {
   });
 
   const setTheme = (newTheme) => {
-    if (['dark', 'light', 'bright'].includes(newTheme)) {
+    if (['dark', 'light'].includes(newTheme)) {
       setThemeState(newTheme);
       localStorage.setItem('theme', newTheme);
     }
@@ -28,7 +28,7 @@ export const ThemeProvider = ({ children }) => {
 
   const toggleTheme = () => {
     setThemeState((prev) => {
-      const nextTheme = prev === 'dark' ? 'light' : prev === 'light' ? 'bright' : 'dark';
+      const nextTheme = prev === 'dark' ? 'light' : 'dark';
       localStorage.setItem('theme', nextTheme);
       return nextTheme;
     });
