@@ -11,6 +11,20 @@ const sanitizeString = (str) => {
     .replace(/[<>]/g, ''); // strip angle brackets
 };
 
+// Safe O(N) linear email validator that prevents polynomial ReDoS (CodeQL js/polynomial-redos)
+const isValidEmail = (email) => {
+  if (!email || typeof email !== 'string' || email.length > 254) return false;
+  const trimmed = email.trim();
+  const atIndex = trimmed.indexOf('@');
+  if (atIndex <= 0 || atIndex !== trimmed.lastIndexOf('@')) return false;
+
+  const local = trimmed.slice(0, atIndex);
+  const domain = trimmed.slice(atIndex + 1);
+  if (!domain.includes('.') || domain.startsWith('.') || domain.endsWith('.')) return false;
+
+  return /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+$/.test(local) && /^[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)+$/.test(domain);
+};
+
 // Driver Payload Validator
 const validateDriver = (req, res, next) => {
   const { name, phone, email, licenseNumber, status } = req.body;
@@ -28,11 +42,8 @@ const validateDriver = (req, res, next) => {
     return res.status(400).json({ success: false, message: 'Valid license number is required' });
   }
 
-  if (email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
-      return res.status(400).json({ success: false, message: 'Invalid email format' });
-    }
+  if (email && !isValidEmail(email)) {
+    return res.status(400).json({ success: false, message: 'Invalid email format' });
   }
 
   if (status && !['active', 'inactive', 'on_trip'].includes(status)) {
@@ -60,13 +71,10 @@ const validateCustomer = (req, res, next) => {
     req.body.name = sanitizeString(name);
   }
 
-  if (email) {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email.trim())) {
-      return res.status(400).json({ success: false, message: 'Invalid email format' });
-    }
-    req.body.email = sanitizeString(email);
+  if (email && !isValidEmail(email)) {
+    return res.status(400).json({ success: false, message: 'Invalid email format' });
   }
+  if (email) req.body.email = sanitizeString(email);
 
   if (req.body.city) req.body.city = sanitizeString(req.body.city);
   if (req.body.state) req.body.state = sanitizeString(req.body.state);
