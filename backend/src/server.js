@@ -34,9 +34,17 @@ io.use((socket, next) => {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
+    const jwtSecret =
+      process.env.JWT_SECRET || (['development', 'test'].includes(process.env.NODE_ENV) ? 'fallback_secret' : null);
+
+    if (!jwtSecret) {
+      return next(new Error('Server misconfigured: JWT_SECRET is required'));
+    }
+
+    const decoded = jwt.verify(token, jwtSecret);
     socket.user = decoded;
     next();
+  }
   } catch (err) {
     if (process.env.NODE_ENV === 'development') {
       socket.user = { id: 'dev-user', role: 'customer' };
