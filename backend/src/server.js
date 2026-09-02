@@ -44,7 +44,6 @@ io.use((socket, next) => {
     const decoded = jwt.verify(token, jwtSecret);
     socket.user = decoded;
     next();
-  }
   } catch (err) {
     if (process.env.NODE_ENV === 'development') {
       socket.user = { id: 'dev-user', role: 'customer' };
