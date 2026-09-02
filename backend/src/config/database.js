@@ -1,3 +1,4 @@
+const process = require('node:process');
 const { Sequelize } = require('sequelize');
 const dotenv = require('dotenv');
 const path = require('path');

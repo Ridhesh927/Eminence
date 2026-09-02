@@ -23,6 +23,10 @@ const Booking = sequelize.define('Booking', {
     type: DataTypes.TIME,
     allowNull: false,
   },
+  scheduledAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
   goodsType: {
     type: DataTypes.STRING,
     allowNull: false,

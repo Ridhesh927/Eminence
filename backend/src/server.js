@@ -5,6 +5,10 @@ const { Server } = require('socket.io');
 const process = require('node:process');
 const { handleSupportMessage } = require('./services/supportBotService');
 
+const http = require('http');
+const { initSocket } = require('./socket');
+const { initCronJobs } = require('./cronJobs');
+
 const PORT = process.env.PORT || 3000;
 
 const server = http.createServer(app);
@@ -105,6 +109,13 @@ io.on('connection', (socket) => {
 });
 
 syncDatabase().then(() => {
+<<<<<<< HEAD
+=======
+  const server = http.createServer(app);
+  initSocket(server);
+  initCronJobs();
+  
+>>>>>>> dd2921aa53649c5bee49cc42dece61627f6f1c0b
   server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode.`);
   });

@@ -2,6 +2,7 @@
 
 @import "tailwindcss";
 
+<<<<<<< HEAD
 :root {
   --loft-50: #f4f6f8;
   --loft-100: #e4e9f0;
@@ -90,42 +91,44 @@ html[data-theme="light"] {
 
 
 
+=======
+>>>>>>> dd2921aa53649c5bee49cc42dece61627f6f1c0b
 @theme {
-  --color-loft-50: var(--loft-50);
-  --color-loft-100: var(--loft-100);
-  --color-loft-200: var(--loft-200);
-  --color-loft-300: var(--loft-300);
-  --color-loft-400: var(--loft-400);
-  --color-loft-500: var(--loft-500);
-  --color-loft-600: var(--loft-600);
-  --color-loft-700: var(--loft-700);
-  --color-loft-800: var(--loft-800);
-  --color-loft-900: var(--loft-900);
-  --color-loft-950: var(--loft-950);
+  --color-loft-50: #f4f6f8;
+  --color-loft-100: #e4e9f0;
+  --color-loft-200: #c9d3df;
+  --color-loft-300: #a2b2c7;
+  --color-loft-400: #748bac;
+  --color-loft-500: #556c91;
+  --color-loft-600: #425576;
+  --color-loft-700: #36445f;
+  --color-loft-800: #2f3a4e;
+  --color-loft-900: #293243;
+  --color-loft-950: #0f141f;
 
-  --color-copper-50: var(--copper-50);
-  --color-copper-100: var(--copper-100);
-  --color-copper-200: var(--copper-200);
-  --color-copper-300: var(--copper-300);
-  --color-copper-400: var(--copper-400);
-  --color-copper-500: var(--copper-500);
-  --color-copper-600: var(--copper-600);
-  --color-copper-700: var(--copper-700);
-  --color-copper-800: var(--copper-800);
-  --color-copper-900: var(--copper-900);
-  --color-copper-950: var(--copper-950);
+  --color-copper-50: #fef5f1;
+  --color-copper-100: #fce8df;
+  --color-copper-200: #fad1c0;
+  --color-copper-300: #f6b399;
+  --color-copper-400: #f08b65;
+  --color-copper-500: #e86331;
+  --color-copper-600: #db4b1e;
+  --color-copper-700: #b73915;
+  --color-copper-800: #912e17;
+  --color-copper-900: #752815;
+  --color-copper-950: #3f1107;
 
-  --color-moss-50: var(--moss-50);
-  --color-moss-100: var(--moss-100);
-  --color-moss-200: var(--moss-200);
-  --color-moss-300: var(--moss-300);
-  --color-moss-400: var(--moss-400);
-  --color-moss-500: var(--moss-500);
-  --color-moss-600: var(--moss-600);
-  --color-moss-700: var(--moss-700);
-  --color-moss-800: var(--moss-800);
-  --color-moss-900: var(--moss-900);
-  --color-moss-950: var(--moss-950);
+  --color-moss-50: #f2f9f4;
+  --color-moss-100: #e1f2e5;
+  --color-moss-200: #c3e4cc;
+  --color-moss-300: #96cfb3;
+  --color-moss-400: #62b395;
+  --color-moss-500: #3e9779;
+  --color-moss-600: #2d7960;
+  --color-moss-700: #26604e;
+  --color-moss-800: #214d40;
+  --color-moss-900: #1c3f35;
+  --color-moss-950: #0e231e;
 
   --color-primary: var(--color-copper-500);
   --color-accent: var(--color-loft-50);
@@ -142,17 +145,13 @@ html[data-theme="light"] {
   --radius-button: 9999px;
 }
 
-body, nav, footer, main, .card, button, input, a {
-  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
-}
-
 @layer base {
   body {
     @apply bg-loft-950 text-loft-200 font-sans min-h-screen selection:bg-copper-500/30 selection:text-copper-100;
     /* Soft ambient background glow for entire app */
-    background: radial-gradient(circle at top right, var(--glow-primary), transparent 45%), 
-                radial-gradient(circle at bottom left, var(--glow-secondary), transparent 45%),
-                var(--loft-950);
+    background: radial-gradient(circle at top right, rgba(232, 99, 49, 0.08), transparent 40%), 
+                radial-gradient(circle at bottom left, rgba(62, 151, 121, 0.05), transparent 40%),
+                #0f141f;
   }
   
   /* Grid pattern overlay */
@@ -161,8 +160,8 @@ body, nav, footer, main, .card, button, input, a {
     position: fixed;
     inset: 0;
     pointer-events: none;
-    background-image: linear-gradient(to right, var(--grid-color) 1px, transparent 1px),
-                      linear-gradient(to bottom, var(--grid-color) 1px, transparent 1px);
+    background-image: linear-gradient(to right, rgba(128, 128, 128, 0.07) 1px, transparent 1px),
+                      linear-gradient(to bottom, rgba(128, 128, 128, 0.07) 1px, transparent 1px);
     background-size: 24px 24px;
     z-index: -1;
   }
@@ -174,7 +173,7 @@ body, nav, footer, main, .card, button, input, a {
 
 @layer components {
   .card {
-    @apply bg-loft-900/30 backdrop-blur-xl shadow-2xl rounded-card border border-loft-700/50 border-t-loft-50/10 transition-all duration-300 hover:border-copper-500/30 hover:bg-loft-900/50 hover:shadow-[0_8px_32px_var(--shadow-hover-color)];
+    @apply bg-loft-900/30 backdrop-blur-xl shadow-2xl rounded-card border border-loft-700/50 border-t-white/10 transition-all duration-300 hover:border-copper-500/30 hover:bg-loft-900/50 hover:shadow-[0_8px_32px_rgba(232,99,49,0.1)];
   }
   .input-field {
     @apply w-full px-4 py-3 bg-loft-950/60 backdrop-blur-sm border border-loft-700/70 rounded-input focus:outline-none focus:ring-2 focus:ring-copper-500/60 focus:border-copper-500/60 transition-all duration-200 text-loft-50 placeholder-loft-400 focus:shadow-[0_0_15px_rgba(232,99,49,0.15)];

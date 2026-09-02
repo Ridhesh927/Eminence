@@ -36,7 +36,7 @@ const createOrder = async (req, res) => {
   }
 };
 
-const verifyPayment = async (req, res) => {
+const verifyPayment = (req, res) => {
   try {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
@@ -61,7 +61,41 @@ const verifyPayment = async (req, res) => {
   }
 };
 
+const razorpayWebhook = async (req, res) => {
+  try {
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET || 'eminence_secret';
+    const signature = req.headers['x-razorpay-signature'];
+    const body = JSON.stringify(req.body);
+
+    const expectedSignature = crypto
+      .createHmac('sha256', secret)
+      .update(body)
+      .digest('hex');
+
+    if (expectedSignature === signature) {
+      const event = req.body.event;
+      // You would typically use req.body.payload.payment.entity.notes.booking_id here
+      
+      if (event === 'payment.captured') {
+        console.log('[Webhook] Payment captured successfully for Razorpay ID:', req.body.payload.payment.entity.id);
+        // Find booking and update paymentStatus = 'completed'
+      } else if (event === 'payment.failed') {
+        console.log('[Webhook] Payment failed for Razorpay ID:', req.body.payload.payment.entity.id);
+        // Find booking and update paymentStatus = 'failed'
+      }
+      
+      return res.status(200).send('OK');
+    } else {
+      return res.status(400).send('Invalid signature');
+    }
+  } catch (error) {
+    console.error('Error in Razorpay Webhook:', error);
+    return res.status(500).send('Server error');
+  }
+};
+
 module.exports = {
   createOrder,
-  verifyPayment
+  verifyPayment,
+  razorpayWebhook
 };

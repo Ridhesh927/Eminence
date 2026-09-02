@@ -17,6 +17,7 @@ import CustomerDashboard from './pages/CustomerDashboard';
 import DriverDashboard from './pages/DriverDashboard';
 import BusinessDashboard from './pages/BusinessDashboard';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminLogin from './pages/AdminLogin';
 import CompleteProfileModal from './components/Customer/CompleteProfileModal';
 
 const ProtectedRoute = ({ children }) => {
@@ -50,6 +51,7 @@ function App() {
         <CompleteProfileModal />
         <Routes>
           <Route path="/login" element={<Login />} />
+          <Route path="/admin-login" element={<AdminLogin />} />
           <Route path="/register" element={<Register />} />
           <Route path="/otp" element={<OTPVerification />} />
           <Route path="/services" element={<Services />} />

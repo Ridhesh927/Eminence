@@ -1,7 +1,7 @@
 const { Booking, Customer, Driver, Vehicle } = require('../models');
 
 // Get all bookings
-const getAllBookings = async (req, res) => {
+const getAllBookings = async (_req, res) => {
   try {
     const bookings = await Booking.findAll({
       include: [

@@ -527,6 +527,7 @@ const AdminDashboard = () => {
             </div>
           )}
 
+<<<<<<< HEAD
           {/* Dedicated Analytics View */}
           {activeTab === 'analytics' && (
             <div className="space-y-8">
@@ -891,9 +892,179 @@ const AdminDashboard = () => {
 
           {/* Placeholder for other tabs */}
           {['contracts', 'settings'].includes(activeTab) && (
+=======
+          {activeTab === 'users' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-loft-50 font-serif">Manage Users</h2>
+                <button className="btn-primary text-sm py-2">Add New User</button>
+              </div>
+              <div className="card bg-loft-900 border-loft-800 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm text-loft-300">
+                    <thead className="bg-loft-950/50 text-xs uppercase font-medium">
+                      <tr>
+                        <th className="px-6 py-4">Name</th>
+                        <th className="px-6 py-4">Phone</th>
+                        <th className="px-6 py-4">Total Bookings</th>
+                        <th className="px-6 py-4">Status</th>
+                        <th className="px-6 py-4">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-loft-800">
+                      {[
+                        { name: 'Rahul Deshmukh', phone: '+91 9876543210', bookings: 12, status: 'Active' },
+                        { name: 'Sneha Kulkarni', phone: '+91 9876543211', bookings: 5, status: 'Active' },
+                        { name: 'Amit Patil', phone: '+91 9876543212', bookings: 24, status: 'Inactive' }
+                      ].map((user, idx) => (
+                        <tr key={idx} className="hover:bg-loft-800/50 transition-colors">
+                          <td className="px-6 py-4 font-medium text-loft-200">{user.name}</td>
+                          <td className="px-6 py-4">{user.phone}</td>
+                          <td className="px-6 py-4">{user.bookings}</td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2 py-1 rounded text-xs font-bold ${
+                              user.status === 'Active' ? 'bg-moss-500/10 text-moss-500' : 'bg-red-500/10 text-red-500'
+                            }`}>
+                              {user.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <button className="text-copper-500 hover:text-copper-400 font-medium text-xs mr-3">Edit</button>
+                            <button className="text-red-500 hover:text-red-400 font-medium text-xs">Block</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'drivers' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-loft-50 font-serif">Manage Drivers</h2>
+                <button className="btn-primary text-sm py-2">Onboard Driver</button>
+              </div>
+              <div className="card bg-loft-900 border-loft-800 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm text-loft-300">
+                    <thead className="bg-loft-950/50 text-xs uppercase font-medium">
+                      <tr>
+                        <th className="px-6 py-4">Driver Name</th>
+                        <th className="px-6 py-4">Vehicle No.</th>
+                        <th className="px-6 py-4">Rating</th>
+                        <th className="px-6 py-4">Status</th>
+                        <th className="px-6 py-4">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-loft-800">
+                      {[
+                        { name: 'Suresh Kumar', vehicle: 'MH 12 AB 1234', rating: '4.8', status: 'On Trip' },
+                        { name: 'Ramesh Singh', vehicle: 'MH 14 XY 9876', rating: '4.5', status: 'Available' },
+                        { name: 'Vikram Jadhav', vehicle: 'MH 12 CD 5678', rating: '4.9', status: 'Offline' }
+                      ].map((driver, idx) => (
+                        <tr key={idx} className="hover:bg-loft-800/50 transition-colors">
+                          <td className="px-6 py-4 font-medium text-loft-200">{driver.name}</td>
+                          <td className="px-6 py-4">{driver.vehicle}</td>
+                          <td className="px-6 py-4">⭐ {driver.rating}</td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2 py-1 rounded text-xs font-bold ${
+                              driver.status === 'Available' ? 'bg-moss-500/10 text-moss-500' :
+                              driver.status === 'On Trip' ? 'bg-copper-500/10 text-copper-500' : 'bg-loft-500/10 text-loft-400'
+                            }`}>
+                              {driver.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <button className="text-copper-500 hover:text-copper-400 font-medium text-xs mr-3">View Profile</button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'contracts' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-loft-50 font-serif">Receipts & Contracts</h2>
+                <div className="flex gap-2">
+                  <button className="btn-secondary text-sm py-2">Export CSV</button>
+                  <button className="btn-primary text-sm py-2">Generate Receipt</button>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                 <div className="card p-4 bg-loft-900 border-l-4 border-l-moss-500">
+                   <p className="text-loft-400 text-xs font-medium uppercase mb-1">Total Collected</p>
+                   <p className="text-2xl font-bold text-loft-50">₹45,200</p>
+                 </div>
+                 <div className="card p-4 bg-loft-900 border-l-4 border-l-copper-500">
+                   <p className="text-loft-400 text-xs font-medium uppercase mb-1">Pending Payments</p>
+                   <p className="text-2xl font-bold text-loft-50">₹8,400</p>
+                 </div>
+                 <div className="card p-4 bg-loft-900 border-l-4 border-l-blue-500">
+                   <p className="text-loft-400 text-xs font-medium uppercase mb-1">Invoices Generated</p>
+                   <p className="text-2xl font-bold text-loft-50">142</p>
+                 </div>
+              </div>
+
+              <div className="card bg-loft-900 border-loft-800 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm text-loft-300">
+                    <thead className="bg-loft-950/50 text-xs uppercase font-medium">
+                      <tr>
+                        <th className="px-6 py-4">Receipt ID</th>
+                        <th className="px-6 py-4">Date</th>
+                        <th className="px-6 py-4">Customer/Business</th>
+                        <th className="px-6 py-4">Amount</th>
+                        <th className="px-6 py-4">Status</th>
+                        <th className="px-6 py-4">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-loft-800">
+                      {[
+                        { id: 'RCP-2026-0801', date: '21 Aug, 2026', name: 'DMart (Kalyani Nagar)', amount: '₹12,500', status: 'Paid' },
+                        { id: 'RCP-2026-0802', date: '21 Aug, 2026', name: 'Rahul Deshmukh', amount: '₹850', status: 'Paid' },
+                        { id: 'RCP-2026-0803', date: '20 Aug, 2026', name: 'Reliance Fresh', amount: '₹8,400', status: 'Pending' },
+                        { id: 'RCP-2026-0804', date: '19 Aug, 2026', name: 'Sneha Kulkarni', amount: '₹450', status: 'Paid' }
+                      ].map((receipt, idx) => (
+                        <tr key={idx} className="hover:bg-loft-800/50 transition-colors">
+                          <td className="px-6 py-4 font-medium text-loft-200">{receipt.id}</td>
+                          <td className="px-6 py-4">{receipt.date}</td>
+                          <td className="px-6 py-4">{receipt.name}</td>
+                          <td className="px-6 py-4 font-bold text-loft-100">{receipt.amount}</td>
+                          <td className="px-6 py-4">
+                            <span className={`px-2 py-1 rounded text-xs font-bold ${
+                              receipt.status === 'Paid' ? 'bg-moss-500/10 text-moss-500' : 'bg-copper-500/10 text-copper-500'
+                            }`}>
+                              {receipt.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">
+                            <button className="text-copper-500 hover:text-copper-400 font-medium text-xs flex items-center gap-1">
+                              <FileText className="w-3 h-3" /> View PDF
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </motion.div>
+          )}
+
+          {['vehicles', 'analytics', 'settings'].includes(activeTab) && (
+>>>>>>> dd2921aa53649c5bee49cc42dece61627f6f1c0b
              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card p-24 bg-loft-900 text-center flex flex-col items-center justify-center border-dashed border-loft-800/80">
               <h3 className="text-2xl font-bold text-loft-200 mb-2 capitalize">{activeTab} Management</h3>
-              <p className="text-loft-400 max-w-md">CRUD operations for {activeTab} will be implemented here connected to the Node.js backend.</p>
+              <p className="text-loft-400 max-w-md">This section is currently under development.</p>
             </motion.div>
           )}
         </div>

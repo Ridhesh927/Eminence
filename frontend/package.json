@@ -26,7 +26,10 @@
     "react-leaflet": "^5.0.0",
     "react-redux": "^9.3.0",
     "react-router-dom": "^7.18.2",
+<<<<<<< HEAD
     "recharts": "^3.10.1",
+=======
+>>>>>>> dd2921aa53649c5bee49cc42dece61627f6f1c0b
     "socket.io-client": "^4.8.3",
     "tailwindcss": "^4.3.3",
     "zod": "^4.4.3"

@@ -24,10 +24,24 @@ app.get('/api/health', (_req, res) => {
 const authRoutes = require('./routes/authRoutes');
 const integrationRoutes = require('./routes/integrationRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+<<<<<<< HEAD
 const analyticsRoutes = require('./routes/analyticsRoutes');
+=======
+const driverRoutes = require('./routes/driverRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
+const walletRoutes = require('./routes/walletRoutes');
+
+>>>>>>> dd2921aa53649c5bee49cc42dece61627f6f1c0b
 app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/drivers', driverRoutes);
+app.use('/api/reviews', reviewRoutes);
 app.use('/api/integrations', integrationRoutes);
+<<<<<<< HEAD
 app.use('/api/admin', adminRoutes);
 app.use('/api/analytics', analyticsRoutes);
+=======
+app.use('/api/wallet', walletRoutes);
+>>>>>>> dd2921aa53649c5bee49cc42dece61627f6f1c0b
 
 module.exports = app;

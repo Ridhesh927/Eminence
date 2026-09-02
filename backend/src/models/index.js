@@ -1,10 +1,14 @@
 const sequelize = require('../config/database');
 const process = require('node:process');
 const Customer = require('./Customer');
+const Admin = require('./Admin');
 const Otp = require('./Otp');
 const Driver = require('./Driver');
 const Vehicle = require('./Vehicle');
 const Booking = require('./Booking');
+const Review = require('./Review');
+const Wallet = require('./Wallet');
+const Transaction = require('./Transaction');
 
 // Define Relationships
 Customer.hasMany(Otp, { foreignKey: 'customerId', as: 'otps' });
@@ -18,6 +22,21 @@ Booking.belongsTo(Driver, { foreignKey: 'driverId', as: 'driver' });
 
 Vehicle.hasMany(Booking, { foreignKey: 'vehicleId', as: 'bookings' });
 Booking.belongsTo(Vehicle, { foreignKey: 'vehicleId', as: 'vehicle' });
+
+Customer.hasMany(Review, { foreignKey: 'customerId', as: 'reviews' });
+Review.belongsTo(Customer, { foreignKey: 'customerId', as: 'customer' });
+
+Driver.hasMany(Review, { foreignKey: 'driverId', as: 'reviews' });
+Review.belongsTo(Driver, { foreignKey: 'driverId', as: 'driver' });
+
+Booking.hasOne(Review, { foreignKey: 'bookingId', as: 'review' });
+Review.belongsTo(Booking, { foreignKey: 'bookingId', as: 'booking' });
+
+Customer.hasOne(Wallet, { foreignKey: 'customerId', as: 'wallet' });
+Wallet.belongsTo(Customer, { foreignKey: 'customerId', as: 'customer' });
+
+Wallet.hasMany(Transaction, { foreignKey: 'walletId', as: 'transactions' });
+Transaction.belongsTo(Wallet, { foreignKey: 'walletId', as: 'wallet' });
 
 const { Client } = require('pg');
 
@@ -39,7 +58,7 @@ const syncDatabase = async () => {
     const seedName = process.env.SEED_NAME || 'Demo User';
 
     if (seedPhone) {
-      const [user, created] = await Customer.findOrCreate({
+      const [_user, created] = await Customer.findOrCreate({
         where: { phone: seedPhone },
         defaults: {
           name: seedName,
@@ -130,8 +149,12 @@ module.exports = {
   sequelize,
   syncDatabase,
   Customer,
+  Admin,
   Otp,
   Driver,
   Vehicle,
-  Booking
+  Booking,
+  Review,
+  Wallet,
+  Transaction
 };

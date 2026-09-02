@@ -1,9 +1,30 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Navigation, Wallet, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { Navigation, Wallet, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import axios from 'axios';
 
 const DriverDashboard = () => {
   const [activeTab, setActiveTab] = useState('today');
+  const [isOnline, setIsOnline] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Hardcoded driver ID for now until full auth is wired up for drivers
+  const mockDriverId = 'd1234567-89ab-cdef-0123-456789abcdef';
+
+  const toggleAvailability = async () => {
+    setIsLoading(true);
+    try {
+      // In a real scenario, this would use the actual driver's ID
+      // await axios.put(`http://localhost:3000/api/drivers/${mockDriverId}/availability`);
+      setIsOnline(!isOnline);
+    } catch (error) {
+      console.error('Error toggling availability:', error);
+      // Fallback for UI if backend isn't ready
+      setIsOnline(!isOnline);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="w-full pt-12 pb-24 relative min-h-[80vh]">
@@ -14,9 +35,14 @@ const DriverDashboard = () => {
         {/* Header */}
         <div className="mb-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-moss-500/20 bg-moss-500/10 text-moss-400 mb-2 font-medium tracking-wide text-xs">
-              <span className="w-2 h-2 rounded-full bg-moss-500"></span> ONLINE
-            </div>
+            <button 
+              onClick={toggleAvailability}
+              disabled={isLoading}
+              className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full border mb-3 font-bold tracking-wide text-xs transition-colors shadow-lg cursor-pointer ${isOnline ? 'border-moss-500/30 bg-moss-500/15 text-moss-400 shadow-moss-500/20 hover:bg-moss-500/25' : 'border-loft-600/30 bg-loft-800/50 text-loft-400 shadow-none hover:bg-loft-700/50'}`}
+            >
+              <span className={`w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-moss-500 animate-pulse' : 'bg-loft-500'}`}></span> 
+              {isOnline ? 'ONLINE - RECEIVING TRIPS' : 'OFFLINE'}
+            </button>
             <h1 className="text-3xl md:text-4xl font-serif font-bold text-loft-50 mb-2">Driver Portal</h1>
             <p className="text-loft-300">Welcome, Ramesh Kumar (MH 12 AB 1234)</p>
           </div>
