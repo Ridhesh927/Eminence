@@ -14,22 +14,24 @@ router.use(apiLimiter);
 router.use(authMiddleware);
 router.use(adminMiddleware);
 
+const { validateDriver, validateCustomer, validateVehicle } = require('../middleware/requestValidator');
+
 // Driver routes
 router.get('/drivers', adminController.getDrivers);
-router.post('/drivers', adminController.createDriver);
-router.put('/drivers/:id', adminController.updateDriver);
+router.post('/drivers', validateDriver, adminController.createDriver);
+router.put('/drivers/:id', validateDriver, adminController.updateDriver);
 router.delete('/drivers/:id', adminController.deleteDriver);
 
 // Customer routes
 router.get('/customers', adminController.getCustomers);
-router.post('/customers', adminController.createCustomer);
-router.put('/customers/:id', adminController.updateCustomer);
+router.post('/customers', validateCustomer, adminController.createCustomer);
+router.put('/customers/:id', validateCustomer, adminController.updateCustomer);
 router.delete('/customers/:id', adminController.deleteCustomer);
 
 // Vehicle routes
 router.get('/vehicles', adminController.getVehicles);
-router.post('/vehicles', adminController.createVehicle);
-router.put('/vehicles/:id', adminController.updateVehicle);
+router.post('/vehicles', validateVehicle, adminController.createVehicle);
+router.put('/vehicles/:id', validateVehicle, adminController.updateVehicle);
 router.delete('/vehicles/:id', adminController.deleteVehicle);
 
 module.exports = router;

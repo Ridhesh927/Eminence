@@ -1,11 +1,11 @@
 # Backend Setup
 
-This is the Node.js and Express backend for the Eminence project, using Sequelize as the ORM.
+This is the Node.js and Express backend for the Eminence project, using Sequelize as the ORM and Socket.io for real-time customer support.
 
 ## Prerequisites
 
 - Node.js (v18 or higher recommended)
-- PostgreSQL (or your configured SQL database)
+- PostgreSQL (or local SQLite for development)
 - npm (or yarn/pnpm)
 
 ## Installation
@@ -21,45 +21,67 @@ This is the Node.js and Express backend for the Eminence project, using Sequeliz
    ```
 
 3. Environment Configuration:
-   - Copy the example `.env` file:
+   - Copy `.env.example` to `.env`:
      ```bash
      cp .env.example .env
      ```
-   - Fill in the required database credentials and other configuration values in the `.env` file.
+   - Review and set environment variables as needed.
 
-## Database Setup & Migration
+## Database Modes & Environments
 
-Ensure your database service is running and matches the credentials provided in your `.env` file. Then, run the following Sequelize commands to set up your database schema:
+The backend supports environment-driven database configuration:
 
-```bash
-npx sequelize-cli db:create
-npx sequelize-cli db:migrate
+### 1. Local SQLite Mode (Recommended for Local Dev)
+Set in `.env`:
+```env
+USE_SQLITE=true
+```
+- Automatically initializes a local SQLite file (`eminence.sqlite`).
+- Ignored by Git (`.gitignore`) to avoid committing binary files.
+- Automatically seeds default demo users, drivers, vehicles, and admin when `NODE_ENV=development`.
+
+### 2. PostgreSQL / NeonDB Mode (Production / Staging)
+Set in `.env`:
+```env
+DATABASE_URL=postgresql://user:password@host/eminence_db
+USE_SQLITE=false
+```
+- Connects to remote PostgreSQL via SSL.
+- Safe for production: automated demo seeding is disabled by default to protect live data.
+
+### Seeding Configuration Flag
+```env
+DEMO_SEED=true   # Explicitly enable demo data seeding on startup
 ```
 
-## Database Seeding
+### Seeded Development Credentials
+- **Admin:** `admin@eminence.com` (Password: `adminpassword123`)
+- **Customer Demo Phone:** `1234567890`
 
-To insert initial data into the database, run the seeders:
+## Security & Architecture Features
 
-```bash
-npx sequelize-cli db:seed:all
-```
-
-### Seeded User Details
-
-After running the seed command, a demo customer will be available in the database with the following details:
-
-- **Email:** `demo@example.com`
-- **Phone:** `1234567890`
+1. **Authentication & Authorization:**
+   - Client-controlled roles are prohibited. Roles are derived server-side from verified database records.
+   - Admin routes (`/api/admin/*`, `/api/analytics/*`) require valid JWT and `adminMiddleware` enforcement.
+2. **Socket.io Security:**
+   - Handshake JWT verification via `io.use()`.
+   - Role-based room access control: customers are restricted to their own conversation thread; only admins can join `admin_inbox`.
+   - Real-time rate limiting (max 5 messages per 3 seconds per socket) and HTML sanitization.
+3. **HTTP Rate Limiting:**
+   - Uses `express-rate-limit` across auth, admin, analytics, driver, review, and wallet routes.
+4. **Input Validation:**
+   - Validates and sanitizes payloads across all CRUD operations via `requestValidator.js`.
 
 ## Running the Application
 
-To start the server in development mode (using nodemon for automatic restarts):
-
+To start the server in development mode:
 ```bash
 npm run dev
 ```
 
-To run tests:
+## Running Automated Tests
+
+Run the full integration test suite (covers health check, admin authentication, CRUD pagination, analytics, and socket access control):
 
 ```bash
 npm test

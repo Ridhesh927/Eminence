@@ -12,10 +12,14 @@ const server = http.createServer(app);
 const io = initSocket(server);
 
 const jwt = require('jsonwebtoken');
+const { sanitizeChatMessage, sanitizeString } = require('./middleware/requestValidator');
 
 // Store active chat messages in memory
 // Structure: { customerId: { customerId, customerName, messages: [{ sender: 'customer'|'admin', text, time, name }] } }
 const activeChats = {};
+
+// Chat message rate limiting tracker per socket (prevents spam and DoS)
+const socketMessageTimestamps = new Map();
 
 // Socket.io JWT Authentication Middleware
 io.use((socket, next) => {
@@ -98,9 +102,19 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Handle sending a message with explicit room scoping
+  // Handle sending a message with explicit room scoping, rate limiting, and sanitization
   socket.on('send_message', ({ customerId, sender, text, name }) => {
     if (!customerId || !text) return;
+
+    // Rate limiting: max 5 messages per 3 seconds per socket to prevent spam/DoS
+    const now = Date.now();
+    const timestamps = socketMessageTimestamps.get(socket.id) || [];
+    const recentTimestamps = timestamps.filter(t => now - t < 3000);
+    if (recentTimestamps.length >= 5) {
+      return socket.emit('error', { message: 'Rate limit exceeded: Please wait a moment before sending more messages' });
+    }
+    recentTimestamps.push(now);
+    socketMessageTimestamps.set(socket.id, recentTimestamps);
 
     // Verify sender identity against authenticated socket user
     if (sender === 'admin' && socket.user?.role !== 'admin') {
@@ -110,19 +124,23 @@ io.on('connection', (socket) => {
       return socket.emit('error', { message: 'Unauthorized: Cannot send on behalf of another user' });
     }
 
+    // Sanitize message content to prevent stored XSS
+    const cleanText = sanitizeChatMessage(text);
+    if (!cleanText) return;
+
     const message = {
       id: `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       customerId,
       sender,
-      text,
-      name: name || (sender === 'admin' ? 'Admin' : 'Customer'),
+      text: cleanText,
+      name: sanitizeString(name) || (sender === 'admin' ? 'Admin' : 'Customer'),
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
     
     if (!activeChats[customerId]) {
       activeChats[customerId] = {
         customerId,
-        customerName: sender === 'customer' ? (name || 'Customer') : 'Customer',
+        customerName: sender === 'customer' ? (sanitizeString(name) || 'Customer') : 'Customer',
         messages: []
       };
     }
@@ -139,7 +157,7 @@ io.on('connection', (socket) => {
     if (sender === 'customer') {
       setTimeout(async () => {
         try {
-          const botResponseText = await handleSupportMessage(customerId, text);
+          const botResponseText = await handleSupportMessage(customerId, cleanText);
           const botMessage = {
             id: `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
             customerId,
@@ -169,6 +187,7 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log('Socket disconnected:', socket.id);
+    socketMessageTimestamps.delete(socket.id);
   });
 });
 

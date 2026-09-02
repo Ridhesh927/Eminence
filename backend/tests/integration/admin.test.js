@@ -114,6 +114,22 @@ describe('Admin & Analytics Integration Tests', () => {
       expect(deleteRes.status).toBe(200);
       expect(deleteRes.body.success).toBe(true);
     });
+
+    it('should reject creating driver with invalid/missing fields (400)', async () => {
+      const invalidDriver = {
+        name: 'A', // too short
+        phone: '123', // invalid phone
+        licenseNumber: ''
+      };
+
+      const res = await request(app)
+        .post('/api/admin/drivers')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send(invalidDriver);
+
+      expect(res.status).toBe(400);
+      expect(res.body.success).toBe(false);
+    });
   });
 
   describe('Analytics Endpoints', () => {
