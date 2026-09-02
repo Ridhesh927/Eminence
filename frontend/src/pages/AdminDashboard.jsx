@@ -111,6 +111,12 @@ const AdminDashboard = () => {
     }
   }, [activeTab]);
 
+  // Selected chat ref to prevent stale closures in socket callbacks
+  const selectedChatRef = useRef(selectedChat);
+  useEffect(() => {
+    selectedChatRef.current = selectedChat;
+  }, [selectedChat]);
+
   // Admin Socket.io connection for Support Inbox
   useEffect(() => {
     if (activeTab !== 'chat') {
@@ -126,50 +132,53 @@ const AdminDashboard = () => {
     const socket = io(API_BASE_URL);
     socketRef.current = socket;
 
-    // Get initial list of active chats
-    socket.emit('get_chat_list');
-
-    // If there is a selected chat, join its room immediately on connection
-    if (selectedChat) {
-      socket.emit('join_room', {
-        customerId: selectedChat.customerId,
-        name: 'Admin',
-        role: 'admin'
-      });
-    }
+    // Join admin inbox channel
+    socket.emit('join_admin');
 
     socket.on('chat_list', (list) => {
-      setActiveChats(list);
+      setActiveChats(list || []);
     });
 
+    // Update active chats list in sidebar only — never overwrite active thread view
     socket.on('chat_list_update', (list) => {
-      setActiveChats(list);
-      // Update selected chat references
-      if (selectedChat) {
-        const updated = list.find(c => c.customerId === selectedChat.customerId);
-        if (updated) {
-          setChatMessages(updated.messages);
-        }
+      setActiveChats(list || []);
+    });
+
+    socket.on('chat_history', (data) => {
+      const history = Array.isArray(data) ? data : (data?.messages || []);
+      const targetId = data?.customerId;
+      if (!targetId || targetId === selectedChatRef.current?.customerId) {
+        setChatMessages(history);
       }
     });
 
-    socket.on('chat_history', (history) => {
-      setChatMessages(history);
-    });
-
     socket.on('receive_message', (msg) => {
-      setChatMessages((prev) => [...prev, msg]);
+      if (msg.customerId === selectedChatRef.current?.customerId) {
+        setChatMessages((prev) => {
+          // Avoid duplicate messages
+          if (msg.id && prev.some(m => m.id === msg.id)) return prev;
+          return [...prev, msg];
+        });
+      }
     });
 
     return () => {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [activeTab, selectedChat?.customerId]);
+  }, [activeTab]);
 
   const selectChatRoom = (chat) => {
+    const prevId = selectedChat?.customerId;
     setSelectedChat(chat);
     setChatMessages(chat.messages || []);
+
+    if (socketRef.current) {
+      socketRef.current.emit('admin_select_chat', {
+        customerId: chat.customerId,
+        previousCustomerId: prevId
+      });
+    }
   };
 
   const handleSendReply = (e) => {

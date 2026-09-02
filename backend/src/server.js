@@ -18,12 +18,34 @@ const activeChats = {};
 io.on('connection', (socket) => {
   console.log('Socket connected:', socket.id);
 
-  // Join a room for a specific customer chat
+  // Admin joins the global admin inbox channel
+  socket.on('join_admin', () => {
+    socket.join('admin_inbox');
+    socket.emit('chat_list', Object.values(activeChats));
+  });
+
+  // Admin selects a customer conversation thread
+  socket.on('admin_select_chat', ({ customerId, previousCustomerId }) => {
+    if (previousCustomerId) {
+      socket.leave(`chat_${previousCustomerId}`);
+    }
+    if (customerId) {
+      socket.join(`chat_${customerId}`);
+      const history = activeChats[customerId]?.messages || [];
+      socket.emit('chat_history', { customerId, messages: history });
+    }
+  });
+
+  // Join a room for a customer chat (supports customer or direct admin entry)
   socket.on('join_room', ({ customerId, name, role }) => {
-    socket.join(customerId);
-    console.log(`User ${name} (${role}) joined room: ${customerId}`);
-    
-    if (role === 'customer') {
+    if (role === 'admin') {
+      socket.join('admin_inbox');
+      if (customerId) {
+        socket.join(`chat_${customerId}`);
+        socket.emit('chat_history', { customerId, messages: activeChats[customerId]?.messages || [] });
+      }
+    } else {
+      socket.join(`chat_${customerId}`);
       if (!activeChats[customerId]) {
         activeChats[customerId] = {
           customerId,
@@ -31,17 +53,20 @@ io.on('connection', (socket) => {
           messages: []
         };
       }
-      // Broadcast updated chat list to all admins
-      io.emit('chat_list_update', Object.values(activeChats));
-    } else if (role === 'admin') {
-      // Send existing messages to admin when joining
-      socket.emit('chat_history', activeChats[customerId]?.messages || []);
+      // Send chat history to customer
+      socket.emit('chat_history', { customerId, messages: activeChats[customerId]?.messages || [] });
+      // Notify admins of updated active chats list
+      io.to('admin_inbox').emit('chat_list_update', Object.values(activeChats));
     }
   });
 
-  // Handle sending message
+  // Handle sending a message with explicit room scoping
   socket.on('send_message', ({ customerId, sender, text, name }) => {
+    if (!customerId || !text) return;
+
     const message = {
+      id: `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+      customerId,
       sender,
       text,
       name: name || (sender === 'admin' ? 'Admin' : 'Customer'),
@@ -58,18 +83,20 @@ io.on('connection', (socket) => {
     
     activeChats[customerId].messages.push(message);
     
-    // Broadcast message to the specific room
-    io.to(customerId).emit('receive_message', message);
+    // Broadcast message ONLY to the specific conversation room
+    io.to(`chat_${customerId}`).emit('receive_message', message);
     
-    // Broadcast updated chat list to all admins
-    io.emit('chat_list_update', Object.values(activeChats));
+    // Broadcast updated chat list ONLY to admin inbox channel
+    io.to('admin_inbox').emit('chat_list_update', Object.values(activeChats));
 
-    // Send bot response after a brief delay if message is from the customer
+    // Automated bot reply only if message originated from customer
     if (sender === 'customer') {
       setTimeout(async () => {
         try {
           const botResponseText = await handleSupportMessage(customerId, text);
           const botMessage = {
+            id: `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
+            customerId,
             sender: 'support_bot',
             text: botResponseText,
             name: 'Support Bot',
@@ -80,8 +107,8 @@ io.on('connection', (socket) => {
             activeChats[customerId].messages.push(botMessage);
           }
           
-          io.to(customerId).emit('receive_message', botMessage);
-          io.emit('chat_list_update', Object.values(activeChats));
+          io.to(`chat_${customerId}`).emit('receive_message', botMessage);
+          io.to('admin_inbox').emit('chat_list_update', Object.values(activeChats));
         } catch (error) {
           console.error('Error in support bot response:', error);
         }

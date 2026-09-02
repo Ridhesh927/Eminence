@@ -41,9 +41,18 @@ const ChatWidget = () => {
       role: 'customer'
     });
 
+    // Listen for existing chat history
+    socket.on('chat_history', (data) => {
+      const history = Array.isArray(data) ? data : (data?.messages || []);
+      setMessages(history);
+    });
+
     // Listen for incoming messages
     socket.on('receive_message', (msg) => {
-      setMessages((prev) => [...prev, msg]);
+      setMessages((prev) => {
+        if (msg.id && prev.some(m => m.id === msg.id)) return prev;
+        return [...prev, msg];
+      });
     });
 
     return () => {

@@ -53,6 +53,16 @@ const syncDatabase = async () => {
     await sequelize.sync();
     console.log('Database synced successfully');
 
+    // Only run seed data if in development with SQLite or explicitly enabled via DEMO_SEED=true
+    const isSqlite = sequelize.getDialect() === 'sqlite';
+    const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+    const shouldSeed = process.env.DEMO_SEED === 'true' || (isDev && isSqlite);
+
+    if (!shouldSeed) {
+      console.log('Skipping demo seed data (non-demo / live environment)');
+      return;
+    }
+
     // Seed default/demo user on startup
     const seedPhone = process.env.SEED_PHONE || '1234567890';
     const seedName = process.env.SEED_NAME || 'Demo User';
