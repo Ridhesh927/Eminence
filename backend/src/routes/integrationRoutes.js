@@ -21,13 +21,17 @@ router.get('/whatsapp-webhook', (req, res) => {
 
   if (mode && token) {
     if (mode === 'subscribe' && token === verifyToken) {
+      if (typeof challenge !== 'string' || !/^[A-Za-z0-9_-]+$/.test(challenge)) {
+        return res.status(400).send('Invalid challenge');
+      }
+
       console.log('WhatsApp Webhook Verified!');
-      res.status(200).send(challenge);
+      return res.type('text/plain').status(200).send(challenge);
     } else {
-      res.sendStatus(403);
+      return res.sendStatus(403);
     }
   } else {
-    res.status(400).send('Bad Request');
+    return res.status(400).send('Bad Request');
   }
 });
 
