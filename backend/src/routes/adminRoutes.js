@@ -1,11 +1,16 @@
 const express = require('express');
 const router = express.Router();
-<<<<<<< HEAD
 const adminController = require('../controllers/adminController');
+const adminAuthController = require('../controllers/adminAuthController');
 const authMiddleware = require('../middleware/authMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
+const { apiLimiter, authLimiter } = require('../middleware/rateLimiter');
 
-// Apply auth and admin middleware to all routes in this router
+// Public route for admin login
+router.post('/login', authLimiter, adminAuthController.adminLogin);
+
+// Apply rate limiting, auth and admin middleware to all protected routes
+router.use(apiLimiter);
 router.use(authMiddleware);
 router.use(adminMiddleware);
 
@@ -26,11 +31,5 @@ router.get('/vehicles', adminController.getVehicles);
 router.post('/vehicles', adminController.createVehicle);
 router.put('/vehicles/:id', adminController.updateVehicle);
 router.delete('/vehicles/:id', adminController.deleteVehicle);
-=======
-const adminAuthController = require('../controllers/adminAuthController');
-
-// Public route for admin login
-router.post('/login', adminAuthController.adminLogin);
->>>>>>> dd2921aa53649c5bee49cc42dece61627f6f1c0b
 
 module.exports = router;

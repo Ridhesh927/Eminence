@@ -16,7 +16,6 @@ const OTPVerification = () => {
   const phone = location.state?.phone || 'Unknown Number';
   const isNewUser = location.state?.isNewUser || false;
   const autoSubmit = location.state?.autoSubmit || false;
-  const role = location.state?.role || 'customer';
 
   useEffect(() => {
     if (!location.state?.phone) {
@@ -34,14 +33,14 @@ const OTPVerification = () => {
           const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/phone-verify`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phone, code: '1234', role })
+            body: JSON.stringify({ phone, code: '1234' })
           });
           const data = await response.json();
           setIsLoading(false);
           
           if (data.success) {
             localStorage.setItem('token', data.token);
-            const userRole = location.state?.role || data.user.role || 'customer';
+            const userRole = data.user.role || 'customer';
             dispatch(loginSuccess({
               id: data.user.id,
               phone: data.user.phone,
@@ -91,7 +90,7 @@ const OTPVerification = () => {
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/phone-verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, code: otpValue, role })
+        body: JSON.stringify({ phone, code: otpValue })
       });
       
       const data = await response.json();

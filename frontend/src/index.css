@@ -1,8 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
 
 @import "tailwindcss";
-
-<<<<<<< HEAD
 :root {
   --loft-50: #f4f6f8;
   --loft-100: #e4e9f0;
@@ -89,10 +87,6 @@ html[data-theme="light"] {
   --shadow-hover-color: rgba(232, 99, 49, 0.06);
 }
 
-
-
-=======
->>>>>>> dd2921aa53649c5bee49cc42dece61627f6f1c0b
 @theme {
   --color-loft-50: #f4f6f8;
   --color-loft-100: #e4e9f0;

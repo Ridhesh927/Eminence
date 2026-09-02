@@ -130,3 +130,9 @@ dist
 *.njsproj
 *.sln
 *.sw?
+
+# SQLite local databases
+*.sqlite
+*.sqlite3
+backend/*.sqlite
+backend/*.sqlite3

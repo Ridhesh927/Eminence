@@ -40,12 +40,6 @@ const Navbar = () => {
           </div>
           
           {/* Right: Actions */}
-<<<<<<< HEAD
-          <div className="hidden md:flex items-center gap-4 lg:gap-6">
-            <ThemeToggle />
-=======
->>>>>>> dd2921aa53649c5bee49cc42dece61627f6f1c0b
-
           <div className="hidden md:flex items-center space-x-4 lg:space-x-6">
             <a href="tel:18001234567" className="flex items-center gap-2 px-4 py-2 bg-moss-500/10 border border-moss-500/20 rounded-full text-moss-300 hover:bg-moss-500/20 transition-all cursor-pointer">
               <Phone className="w-4 h-4" />

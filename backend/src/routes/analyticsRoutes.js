@@ -3,8 +3,10 @@ const router = express.Router();
 const adminController = require('../controllers/adminController');
 const authMiddleware = require('../middleware/authMiddleware');
 const adminMiddleware = require('../middleware/adminMiddleware');
+const { apiLimiter } = require('../middleware/rateLimiter');
 
-// Apply auth and admin middleware to all routes in this router
+// Apply rate limiting and auth/admin middleware to all routes in this router
+router.use(apiLimiter);
 router.use(authMiddleware);
 router.use(adminMiddleware);
 

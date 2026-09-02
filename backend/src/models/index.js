@@ -58,7 +58,7 @@ const syncDatabase = async () => {
     const seedName = process.env.SEED_NAME || 'Demo User';
 
     if (seedPhone) {
-      const [_user, created] = await Customer.findOrCreate({
+      const [user, created] = await Customer.findOrCreate({
         where: { phone: seedPhone },
         defaults: {
           name: seedName,
@@ -138,6 +138,21 @@ const syncDatabase = async () => {
           paymentStatus: 'completed'
         });
         console.log('Seeded default bookings for demo user');
+      }
+
+      // Seed default admin in development
+      if (process.env.NODE_ENV === 'development' || process.env.DEMO_SEED === 'true') {
+        const adminCount = await Admin.count();
+        if (adminCount === 0) {
+          const bcrypt = require('bcrypt');
+          const hashedPassword = await bcrypt.hash('adminpassword123', 10);
+          await Admin.create({
+            name: 'System Admin',
+            email: 'admin@eminence.com',
+            password: hashedPassword
+          });
+          console.log('Seeded default admin: admin@eminence.com');
+        }
       }
     }
   } catch (error) {

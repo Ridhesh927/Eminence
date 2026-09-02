@@ -217,9 +217,13 @@ const getOverviewStats = async (req, res) => {
       success: true,
       stats: {
         revenue: `₹${parseFloat(totalRevenue).toLocaleString()}`,
+        rawRevenue: parseFloat(totalRevenue) || 0,
         activeDrivers: activeDrivers.toString(),
         totalVehicles: totalVehicles.toString(),
-        totalCustomers: totalCustomers.toString()
+        totalCustomers: totalCustomers.toString(),
+        rawActiveDrivers: activeDrivers,
+        rawTotalVehicles: totalVehicles,
+        rawTotalCustomers: totalCustomers
       }
     });
   } catch (error) {

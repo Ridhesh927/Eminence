@@ -273,11 +273,12 @@ const phoneLogin = async (req, res) => {
 
 const phoneVerify = async (req, res) => {
   try {
-    const { phone, code, role } = req.body;
-    const userRole = role || 'customer';
+    const { phone, code } = req.body;
+    const userRole = 'customer'; // Role is strictly determined server-side
     
-    // For demo purposes, we can hardcode '1234' as a bypass
-    if (code === '1234') {
+    // For local development only, allow bypass for the designated seed phone number
+    const isDevDemo = process.env.NODE_ENV === 'development' && code === '1234' && phone === (process.env.SEED_PHONE || '1234567890');
+    if (isDevDemo) {
       let customer = await Customer.findOne({ where: { phone } });
       if (!customer) {
         const refCode = `EMINENCE-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;

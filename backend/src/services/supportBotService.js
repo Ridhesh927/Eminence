@@ -51,17 +51,18 @@ Would you like to book a tempo? Go to the "Book Tempo" page or type **"fare [pic
       
       let response = `Here are your recent bookings (showing up to 5): \n\n`;
       bookings.forEach((b, index) => {
-        const shortId = b.id.substring(0, 8).toUpperCase();
+        const shortId = b?.id ? String(b.id).substring(0, 8).toUpperCase() : 'N/A';
         response += `**${index + 1}. Booking ID: ${shortId}**
-• **From:** ${b.pickupAddress}
-• **To:** ${b.dropAddress}
-• **Date/Time:** ${b.date} at ${b.time}
-• **Goods:** ${b.goodsType} (${b.weight} kg)
-• **Fare:** ₹${b.estimatedFare}
-• **Status:** 🔴 ${b.status.toUpperCase().replace(/_/g, ' ')}
+• **From:** ${b.pickupAddress || 'N/A'}
+• **To:** ${b.dropAddress || 'N/A'}
+• **Date/Time:** ${b.date || 'N/A'} at ${b.time || 'N/A'}
+• **Goods:** ${b.goodsType || 'N/A'} (${b.weight || 0} kg)
+• **Fare:** ₹${b.estimatedFare || 0}
+• **Status:** 🔴 ${(b.status || 'unknown').toUpperCase().replace(/_/g, ' ')}
 `;
         if (b.driver) {
-          response += `• **Driver:** ${b.driver.name} (${b.driver.phone})
+          const maskedPhone = b.driver.phone ? String(b.driver.phone).replace(/(\d{3})\d{4}(\d{3})/, '$1****$2') : 'N/A';
+          response += `• **Driver:** ${b.driver.name} (${maskedPhone})
 `;
         }
         if (b.vehicle) {
@@ -90,27 +91,33 @@ Would you like to book a tempo? Go to the "Book Tempo" page or type **"fare [pic
     try {
       // Find bookings for this customer
       const bookings = await Booking.findAll({ where: { customerId } });
-      const booking = bookings.find(b => b.id.toUpperCase().startsWith(searchId) || b.id.substring(0, 8).toUpperCase() === searchId);
+      const booking = bookings.find(b => {
+        if (!b?.id) return false;
+        const bId = String(b.id).toUpperCase();
+        return bId.startsWith(searchId) || bId.substring(0, 8) === searchId;
+      });
       
       if (!booking) {
         return `Could not find a booking with ID starting with "${searchId}". Please type **"bookings"** to view your bookings and copy the ID.`;
       }
       
+      const bShortId = String(booking.id).substring(0, 8).toUpperCase();
+      
       if (booking.status === 'completed') {
-        return `Booking **${booking.id.substring(0, 8).toUpperCase()}** is already completed and cannot be cancelled.`;
+        return `Booking **${bShortId}** is already completed and cannot be cancelled.`;
       }
       if (booking.status === 'cancelled') {
-        return `Booking **${booking.id.substring(0, 8).toUpperCase()}** is already cancelled.`;
+        return `Booking **${bShortId}** is already cancelled.`;
       }
       if (booking.status === 'in_transit') {
-        return `Booking **${booking.id.substring(0, 8).toUpperCase()}** is currently in transit and cannot be cancelled.`;
+        return `Booking **${bShortId}** is currently in transit and cannot be cancelled.`;
       }
       
       // Update status to cancelled
       booking.status = 'cancelled';
       await booking.save();
       
-      return `✅ Booking **${booking.id.substring(0, 8).toUpperCase()}** has been successfully cancelled.`;
+      return `✅ Booking **${bShortId}** has been successfully cancelled.`;
     } catch (err) {
       console.error('Error cancelling booking in support bot:', err);
       return "An error occurred while trying to cancel your booking. Please try again.";
