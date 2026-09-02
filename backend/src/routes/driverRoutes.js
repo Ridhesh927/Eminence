@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const driverController = require('../controllers/driverController');
+const { apiLimiter } = require('../middleware/rateLimiter');
 
-// In a real app, you'd have middleware to authenticate the driver first
-// router.use(authMiddleware);
+router.use(apiLimiter);
 
 router.get('/', driverController.getAllDrivers);
 router.post('/', driverController.createDriver);
