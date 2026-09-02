@@ -11,21 +11,54 @@ const PORT = process.env.PORT || 3000;
 const server = http.createServer(app);
 const io = initSocket(server);
 
+const jwt = require('jsonwebtoken');
+
 // Store active chat messages in memory
 // Structure: { customerId: { customerId, customerName, messages: [{ sender: 'customer'|'admin', text, time, name }] } }
 const activeChats = {};
 
+// Socket.io JWT Authentication Middleware
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(' ')[1];
+  
+  if (!token) {
+    if (process.env.NODE_ENV === 'development') {
+      socket.user = { id: 'dev-user', role: 'customer' };
+      return next();
+    }
+    return next(new Error('Authentication error: Token required'));
+  }
+
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
+    socket.user = decoded;
+    next();
+  } catch (err) {
+    if (process.env.NODE_ENV === 'development') {
+      socket.user = { id: 'dev-user', role: 'customer' };
+      return next();
+    }
+    return next(new Error('Authentication error: Invalid or expired token'));
+  }
+});
+
 io.on('connection', (socket) => {
-  console.log('Socket connected:', socket.id);
+  console.log('Socket connected:', socket.id, 'User:', socket.user?.id, 'Role:', socket.user?.role);
 
   // Admin joins the global admin inbox channel
   socket.on('join_admin', () => {
+    if (socket.user?.role !== 'admin') {
+      return socket.emit('error', { message: 'Unauthorized: Admin role required' });
+    }
     socket.join('admin_inbox');
     socket.emit('chat_list', Object.values(activeChats));
   });
 
   // Admin selects a customer conversation thread
   socket.on('admin_select_chat', ({ customerId, previousCustomerId }) => {
+    if (socket.user?.role !== 'admin') {
+      return socket.emit('error', { message: 'Unauthorized: Admin role required' });
+    }
     if (previousCustomerId) {
       socket.leave(`chat_${previousCustomerId}`);
     }
@@ -36,15 +69,20 @@ io.on('connection', (socket) => {
     }
   });
 
-  // Join a room for a customer chat (supports customer or direct admin entry)
+  // Join a room for a customer chat (enforce room ownership or admin role)
   socket.on('join_room', ({ customerId, name, role }) => {
-    if (role === 'admin') {
+    if (role === 'admin' || socket.user?.role === 'admin') {
       socket.join('admin_inbox');
       if (customerId) {
         socket.join(`chat_${customerId}`);
         socket.emit('chat_history', { customerId, messages: activeChats[customerId]?.messages || [] });
       }
     } else {
+      // Restrict customers to only their own chat room
+      if (socket.user?.id && socket.user.id !== 'dev-user' && socket.user.id !== customerId) {
+        return socket.emit('error', { message: 'Unauthorized: Cannot join another user\'s chat room' });
+      }
+
       socket.join(`chat_${customerId}`);
       if (!activeChats[customerId]) {
         activeChats[customerId] = {
@@ -63,6 +101,14 @@ io.on('connection', (socket) => {
   // Handle sending a message with explicit room scoping
   socket.on('send_message', ({ customerId, sender, text, name }) => {
     if (!customerId || !text) return;
+
+    // Verify sender identity against authenticated socket user
+    if (sender === 'admin' && socket.user?.role !== 'admin') {
+      return socket.emit('error', { message: 'Unauthorized: Cannot send as admin' });
+    }
+    if (sender === 'customer' && socket.user?.role !== 'admin' && socket.user?.id && socket.user.id !== 'dev-user' && socket.user.id !== customerId) {
+      return socket.emit('error', { message: 'Unauthorized: Cannot send on behalf of another user' });
+    }
 
     const message = {
       id: `${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,

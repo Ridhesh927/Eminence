@@ -129,7 +129,9 @@ const AdminDashboard = () => {
       return;
     }
 
-    const socket = io(API_BASE_URL);
+    const socket = io(API_BASE_URL, {
+      auth: { token }
+    });
     socketRef.current = socket;
 
     // Join admin inbox channel

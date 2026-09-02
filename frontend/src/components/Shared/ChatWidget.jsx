@@ -6,7 +6,7 @@ import { MessageCircle, X, Send } from 'lucide-react';
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const ChatWidget = () => {
-  const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const { isAuthenticated, user, token } = useSelector((state) => state.auth);
   const [isOpen, setIsOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
@@ -31,8 +31,10 @@ const ChatWidget = () => {
       return;
     }
 
-    // Connect to Socket.io server
-    const socket = io(API_BASE_URL);
+    // Connect to Socket.io server with auth token
+    const socket = io(API_BASE_URL, {
+      auth: { token: token || localStorage.getItem('token') }
+    });
     socketRef.current = socket;
 
     socket.emit('join_room', {

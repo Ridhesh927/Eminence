@@ -1,12 +1,41 @@
 const { Driver, Customer, Vehicle, Booking, sequelize } = require('../models');
+const { Op } = require('sequelize');
 
 // --- DRIVER CRUD ---
 
-// Get all drivers
+// Get all drivers with pagination and search
 const getDrivers = async (req, res) => {
   try {
-    const drivers = await Driver.findAll({ order: [['createdAt', 'DESC']] });
-    res.status(200).json({ success: true, drivers });
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 100);
+    const offset = (page - 1) * limit;
+    const { search, status } = req.query;
+
+    const where = {};
+    if (status) where.status = status;
+    if (search) {
+      where[Op.or] = [
+        { name: { [Op.like]: `%${search}%` } },
+        { phone: { [Op.like]: `%${search}%` } },
+        { licenseNumber: { [Op.like]: `%${search}%` } }
+      ];
+    }
+
+    const { count, rows: drivers } = await Driver.findAndCountAll({
+      where,
+      order: [['createdAt', 'DESC']],
+      limit,
+      offset
+    });
+
+    res.status(200).json({
+      success: true,
+      drivers,
+      total: count,
+      page,
+      limit,
+      totalPages: Math.ceil(count / limit)
+    });
   } catch (error) {
     console.error('Error fetching drivers:', error);
     res.status(500).json({ success: false, message: 'Server error' });
@@ -63,11 +92,38 @@ const deleteDriver = async (req, res) => {
 
 // --- CUSTOMER CRUD ---
 
-// Get all customers
+// Get all customers with pagination and search
 const getCustomers = async (req, res) => {
   try {
-    const customers = await Customer.findAll({ order: [['createdAt', 'DESC']] });
-    res.status(200).json({ success: true, customers });
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 100);
+    const offset = (page - 1) * limit;
+    const { search } = req.query;
+
+    const where = {};
+    if (search) {
+      where[Op.or] = [
+        { name: { [Op.like]: `%${search}%` } },
+        { email: { [Op.like]: `%${search}%` } },
+        { phone: { [Op.like]: `%${search}%` } }
+      ];
+    }
+
+    const { count, rows: customers } = await Customer.findAndCountAll({
+      where,
+      order: [['createdAt', 'DESC']],
+      limit,
+      offset
+    });
+
+    res.status(200).json({
+      success: true,
+      customers,
+      total: count,
+      page,
+      limit,
+      totalPages: Math.ceil(count / limit)
+    });
   } catch (error) {
     console.error('Error fetching customers:', error);
     res.status(500).json({ success: false, message: 'Server error' });
@@ -143,11 +199,39 @@ const deleteCustomer = async (req, res) => {
 
 // --- VEHICLE CRUD ---
 
-// Get all vehicles
+// Get all vehicles with pagination and search
 const getVehicles = async (req, res) => {
   try {
-    const vehicles = await Vehicle.findAll({ order: [['createdAt', 'DESC']] });
-    res.status(200).json({ success: true, vehicles });
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 100);
+    const offset = (page - 1) * limit;
+    const { search, status, type } = req.query;
+
+    const where = {};
+    if (status) where.status = status;
+    if (type) where.type = type;
+    if (search) {
+      where[Op.or] = [
+        { registrationNumber: { [Op.like]: `%${search}%` } },
+        { model: { [Op.like]: `%${search}%` } }
+      ];
+    }
+
+    const { count, rows: vehicles } = await Vehicle.findAndCountAll({
+      where,
+      order: [['createdAt', 'DESC']],
+      limit,
+      offset
+    });
+
+    res.status(200).json({
+      success: true,
+      vehicles,
+      total: count,
+      page,
+      limit,
+      totalPages: Math.ceil(count / limit)
+    });
   } catch (error) {
     console.error('Error fetching vehicles:', error);
     res.status(500).json({ success: false, message: 'Server error' });
