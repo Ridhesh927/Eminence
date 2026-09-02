@@ -56,6 +56,13 @@ router.post('/whatsapp-webhook', (req, res) => {
 
 const { sendEmail } = require('../services/emailService');
 
+const escapeHtml = (value) => String(value)
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;');
+
 router.post('/contact-message', async (req, res) => {
   try {
     const { name, email, message } = req.body;
@@ -66,11 +73,14 @@ router.post('/contact-message', async (req, res) => {
 
     const subject = `New Contact Form Submission from ${name}`;
     const text = `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`;
+    const safeName = escapeHtml(name);
+    const safeEmail = escapeHtml(email);
+    const safeMessage = escapeHtml(message).replace(/\n/g, '<br/>');
     const html = `
       <h3>New Contact Message</h3>
-      <p><strong>Name:</strong> ${name}</p>
-      <p><strong>Email:</strong> ${email}</p>
-      <p><strong>Message:</strong><br/>${message.replace(/\n/g, '<br/>')}</p>
+      <p><strong>Name:</strong> ${safeName}</p>
+      <p><strong>Email:</strong> ${safeEmail}</p>
+      <p><strong>Message:</strong><br/>${safeMessage}</p>
     `;
 
     // Send to support email
