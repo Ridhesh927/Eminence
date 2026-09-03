@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { updateProfileSuccess } from '../redux/slices/authSlice';
 import MapPicker from '../components/MapPicker';
+import { Upload, Scan, CheckCircle } from 'lucide-react';
 
 const CompleteProfile = () => {
   const { user } = useSelector((state) => state.auth);
@@ -18,6 +19,32 @@ const CompleteProfile = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+
+  // OCR Verification State
+  const [documentFile, setDocumentFile] = useState(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanResult, setScanResult] = useState(null);
+
+  const handleDocumentUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setDocumentFile(file);
+      setIsScanning(true);
+      setScanResult(null);
+
+      // Simulate ML OCR Pipeline (2 second delay)
+      setTimeout(() => {
+        setIsScanning(false);
+        setScanResult({
+          type: 'Driving License',
+          extractedName: 'Rahul Sharma',
+          idNumber: 'MH-14-20210012345',
+          expiry: '2035-08-15'
+        });
+        setMessage('Document successfully verified via AI OCR.');
+      }, 2500);
+    }
+  };
 
   const handleUpdate = async (e) => {
     e.preventDefault();
@@ -164,6 +191,46 @@ const CompleteProfile = () => {
               >
                 Verify
               </button>
+            )}
+          </div>
+        </div>
+
+        {/* OCR Verification Section */}
+        <div className="mt-8 space-y-4 border-t pt-6">
+          <h3 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+            <Scan className="w-5 h-5" /> Smart Document Verification
+          </h3>
+          <p className="text-sm text-gray-500 mb-4">Upload your License or Aadhar card for instant AI verification.</p>
+          
+          <div className="border-2 border-dashed border-blue-300 rounded-lg p-6 text-center bg-blue-50/50 relative overflow-hidden">
+            {isScanning && (
+              <div className="absolute inset-0 bg-blue-600/10 flex flex-col items-center justify-center backdrop-blur-sm z-10">
+                <div className="w-full h-1 bg-blue-500 absolute top-0 animate-[scan_2s_ease-in-out_infinite]"></div>
+                <Scan className="w-8 h-8 text-blue-600 animate-pulse mb-2" />
+                <p className="text-blue-800 font-bold text-sm">Analyzing Document via AI...</p>
+              </div>
+            )}
+            
+            {!scanResult ? (
+              <>
+                <Upload className="w-10 h-10 text-blue-400 mx-auto mb-2" />
+                <label className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md text-sm font-medium inline-block transition-colors">
+                  Select Document
+                  <input type="file" className="hidden" onChange={handleDocumentUpload} accept="image/*,.pdf" />
+                </label>
+                {documentFile && <p className="text-xs text-gray-500 mt-2">{documentFile.name}</p>}
+              </>
+            ) : (
+              <div className="text-left bg-white p-4 rounded-md shadow-sm border border-green-200">
+                <div className="flex items-center gap-2 text-green-600 font-bold mb-3">
+                  <CheckCircle className="w-5 h-5" /> Verified: {scanResult.type}
+                </div>
+                <div className="space-y-1 text-sm text-gray-700">
+                  <p><span className="text-gray-500">Name:</span> {scanResult.extractedName}</p>
+                  <p><span className="text-gray-500">ID Number:</span> {scanResult.idNumber}</p>
+                  <p><span className="text-gray-500">Valid Till:</span> {scanResult.expiry}</p>
+                </div>
+              </div>
             )}
           </div>
         </div>

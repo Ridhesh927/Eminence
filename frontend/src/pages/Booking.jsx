@@ -14,6 +14,9 @@ const Booking = () => {
   const [discount, setDiscount] = useState(0);
   const [promoMessage, setPromoMessage] = useState(null);
   
+  // Smart Pricing Engine (Simulated Surge)
+  const [surgeMultiplier] = useState(1.4); // e.g. 1.4x due to Rush Hour
+  
   const [formData, setFormData] = useState({
     pickup: '',
     drops: [''], // Array of drop-off addresses
@@ -54,6 +57,9 @@ const Booking = () => {
     const baseRates = { small: 350, medium: 550, large: 1200 };
     let base = baseRates[formData.tempoType] || 0;
     
+    // Apply Smart Pricing Surge
+    base *= surgeMultiplier;
+
     // Add ₹150 for each stop after the first one
     const extraStopsCost = Math.max(0, (formData.drops.length - 1) * 150);
     base += extraStopsCost;
@@ -315,6 +321,20 @@ const Booking = () => {
                       }
                     </span>
                   </div>
+                  {surgeMultiplier > 1 && (
+                    <div className="flex justify-between items-center mb-2 text-yellow-500">
+                      <span className="flex items-center gap-2"><span className="text-lg">⚡</span> Smart Pricing Surge ({surgeMultiplier}x)</span>
+                      <span className="font-medium">+₹{
+                        Math.round((
+                          (() => {
+                            let base = { small: 350, medium: 550, large: 1200 }[formData.tempoType] || 0;
+                            if (formData.isRoundTrip) base *= 1.8;
+                            return base;
+                          })()
+                        ) * (surgeMultiplier - 1))
+                      }</span>
+                    </div>
+                  )}
                   {formData.bookingMode === 'shared' && (
                     <div className="flex justify-between items-center mb-2 text-copper-400">
                       <span className="text-loft-300">Shared Load Discount</span>
