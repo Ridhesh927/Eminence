@@ -90,6 +90,9 @@ const AdminDashboard = () => {
   const [vehicleForm, setVehicleForm] = useState({
     registrationNumber: '', type: 'small', model: '', capacityWeight: 1000, status: 'available'
   });
+  const [adminForm, setAdminForm] = useState({
+    name: '', email: '', role: 'Support Admin'
+  });
 
   // Fetch API headers
   const getHeaders = () => ({
@@ -307,6 +310,8 @@ const AdminDashboard = () => {
       setDriverForm({ name: '', phone: '', email: '', licenseNumber: '', status: 'active' });
     } else if (type === 'vehicle') {
       setVehicleForm({ registrationNumber: '', type: 'small', model: '', capacityWeight: 1000, status: 'available' });
+    } else if (type === 'admin') {
+      setAdminForm({ name: '', email: '', role: 'Support Admin' });
     }
     setIsModalOpen(true);
   };
@@ -341,6 +346,12 @@ const AdminDashboard = () => {
         model: item.model || '',
         capacityWeight: item.capacityWeight || 1000,
         status: item.status || 'available'
+      });
+    } else if (type === 'admin') {
+      setAdminForm({
+        name: item.name || '',
+        email: item.email || '',
+        role: item.role || 'Support Admin'
       });
     }
     setIsModalOpen(true);
@@ -379,6 +390,9 @@ const AdminDashboard = () => {
       } else if (modalType === 'vehicle') {
         endpoint = `${API_BASE_URL}/api/admin/vehicles`;
         payload = vehicleForm;
+      } else if (modalType === 'admin') {
+        endpoint = `${API_BASE_URL}/api/admin/admins`;
+        payload = adminForm;
       }
 
       if (editMode && currentItem) {
@@ -1042,12 +1056,97 @@ const AdminDashboard = () => {
             </div>
           )}
 
-          {/* Placeholder for other tabs */}
-          {['contracts', 'settings'].includes(activeTab) && (
+          {/* Contracts Tab (Placeholder) */}
+          {activeTab === 'contracts' && (
              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card p-24 bg-loft-900 text-center flex flex-col items-center justify-center border-dashed border-loft-800/80">
-              <h3 className="text-2xl font-bold text-loft-200 mb-2 capitalize">{activeTab} Management</h3>
-              <p className="text-loft-400 max-w-md">CRUD operations for {activeTab} will be implemented here connected to the Node.js backend.</p>
+              <h3 className="text-2xl font-bold text-loft-200 mb-2 capitalize">Contracts Management</h3>
+              <p className="text-loft-400 max-w-md">CRUD operations for contracts will be implemented here connected to the Node.js backend.</p>
             </motion.div>
+          )}
+
+          {/* Settings Tab - Roles and Permissions */}
+          {activeTab === 'settings' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h1 className="text-3xl font-bold text-loft-50 font-serif">Roles & Permissions</h1>
+                <button 
+                  onClick={() => handleOpenCreateModal('admin')}
+                  className="btn-primary flex items-center gap-2 py-2 px-4 text-sm font-semibold rounded-xl cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" /> Add Admin
+                </button>
+              </div>
+
+              <div className="card bg-loft-900 border-loft-800 overflow-hidden">
+                <div className="p-6 border-b border-loft-800">
+                  <h3 className="text-lg font-bold text-loft-50">Admin Users</h3>
+                  <p className="text-sm text-loft-400">Manage dashboard access and role-based permissions.</p>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm text-loft-300">
+                    <thead className="bg-loft-950/50 text-xs uppercase font-medium">
+                      <tr>
+                        <th className="px-6 py-4">Name</th>
+                        <th className="px-6 py-4">Email</th>
+                        <th className="px-6 py-4">Role</th>
+                        <th className="px-6 py-4">Last Login</th>
+                        <th className="px-6 py-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-loft-800">
+                      {[
+                        { name: 'Super Admin', email: 'admin@eminence.com', role: 'Superadmin', login: 'Just now' },
+                        { name: 'Priya Sharma', email: 'priya.s@eminence.com', role: 'Finance Admin', login: '2 hrs ago' },
+                        { name: 'Rohan Gupta', email: 'rohan.g@eminence.com', role: 'Support Admin', login: '1 day ago' },
+                      ].map((admin, idx) => (
+                        <tr key={idx} className="hover:bg-loft-800/50 transition-colors">
+                          <td className="px-6 py-4 font-medium text-loft-100 flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-copper-500/20 text-copper-500 flex items-center justify-center font-bold">
+                              {admin.name.charAt(0)}
+                            </div>
+                            {admin.name}
+                          </td>
+                          <td className="px-6 py-4">{admin.email}</td>
+                          <td className="px-6 py-4">
+                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                              admin.role === 'Superadmin' ? 'bg-moss-500/20 text-moss-500 border border-moss-500/30' :
+                              admin.role === 'Finance Admin' ? 'bg-blue-500/20 text-blue-500 border border-blue-500/30' :
+                              'bg-copper-500/20 text-copper-500 border border-copper-500/30'
+                            }`}>
+                              {admin.role}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4">{admin.login}</td>
+                          <td className="px-6 py-4 text-right flex justify-end gap-2">
+                            <button className="p-2 text-loft-400 hover:text-copper-500 rounded-lg hover:bg-loft-800 transition-colors">
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button className="p-2 text-loft-400 hover:text-red-500 rounded-lg hover:bg-loft-800 transition-colors" disabled={admin.role === 'Superadmin'}>
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                <div className="card p-6 bg-loft-900 border-loft-800">
+                  <h4 className="text-moss-500 font-bold mb-2 flex items-center gap-2"><ShieldAlert className="w-5 h-5"/> Superadmin</h4>
+                  <p className="text-loft-400 text-sm">Full access to all modules, settings, user management, and financials.</p>
+                </div>
+                <div className="card p-6 bg-loft-900 border-loft-800">
+                  <h4 className="text-blue-500 font-bold mb-2 flex items-center gap-2"><DollarSign className="w-5 h-5"/> Finance Admin</h4>
+                  <p className="text-loft-400 text-sm">Access to invoices, business contracts, and overall revenue analytics.</p>
+                </div>
+                <div className="card p-6 bg-loft-900 border-loft-800">
+                  <h4 className="text-copper-500 font-bold mb-2 flex items-center gap-2"><MessageSquare className="w-5 h-5"/> Support Admin</h4>
+                  <p className="text-loft-400 text-sm">Limited to the Support Inbox, tracking active trips, and driver management.</p>
+                </div>
+              </div>
+            </div>
           )}
         </div>
       </div>
@@ -1239,6 +1338,44 @@ const AdminDashboard = () => {
                       <option value="available">Available</option>
                       <option value="maintenance">Maintenance</option>
                       <option value="on_trip">On Trip</option>
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {/* Admin Form Fields */}
+              {modalType === 'admin' && (
+                <>
+                  <div>
+                    <label className="block text-xs font-semibold text-loft-300 uppercase tracking-wider mb-2">Name</label>
+                    <input 
+                      type="text" 
+                      required
+                      className="input-field" 
+                      value={adminForm.name}
+                      onChange={(e) => setAdminForm({ ...adminForm, name: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-loft-300 uppercase tracking-wider mb-2">Email</label>
+                    <input 
+                      type="email" 
+                      required
+                      className="input-field" 
+                      value={adminForm.email}
+                      onChange={(e) => setAdminForm({ ...adminForm, email: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-loft-300 uppercase tracking-wider mb-2">Role</label>
+                    <select 
+                      className="input-field py-3 bg-loft-950" 
+                      value={adminForm.role}
+                      onChange={(e) => setAdminForm({ ...adminForm, role: e.target.value })}
+                    >
+                      <option value="Superadmin">Superadmin</option>
+                      <option value="Finance Admin">Finance Admin</option>
+                      <option value="Support Admin">Support Admin</option>
                     </select>
                   </div>
                 </>
