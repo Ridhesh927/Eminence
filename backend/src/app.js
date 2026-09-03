@@ -7,7 +7,6 @@ const path = require('path');
 dotenv.config({ path: path.resolve(__dirname, '../.env.local'), override: true });
 dotenv.config({ path: path.resolve(__dirname, '../.env'), override: true });
 
-
 const app = express();
 
 // Middleware
@@ -27,6 +26,7 @@ const adminRoutes = require('./routes/adminRoutes');
 const driverRoutes = require('./routes/driverRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const walletRoutes = require('./routes/walletRoutes');
+const b2bRoutes = require('./routes/b2bRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
@@ -34,5 +34,6 @@ app.use('/api/drivers', driverRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/integrations', integrationRoutes);
 app.use('/api/wallet', walletRoutes);
+app.use('/api/b2b', b2bRoutes);
 
 module.exports = app;
