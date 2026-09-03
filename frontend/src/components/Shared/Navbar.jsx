@@ -2,11 +2,13 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Menu, Phone, Truck, LogOut } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../../redux/slices/authSlice';
+import { useState } from 'react';
 
 const Navbar = () => {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const [ivrCopied, setIvrCopied] = useState(false);
 
   const handleLogout = () => {
     dispatch(logout());
@@ -53,11 +55,23 @@ const Navbar = () => {
           
           {/* Right: Actions */}
           <div className="hidden md:flex items-center space-x-4 lg:space-x-6">
-            <a href="tel:18001234567" className="flex items-center gap-2 px-4 py-2 bg-moss-500/10 border border-moss-500/20 rounded-full text-moss-300 hover:bg-moss-500/20 transition-all cursor-pointer">
+            <button 
+              onClick={(e) => {
+                e.preventDefault();
+                navigator.clipboard.writeText('18001234567');
+                setIvrCopied(true);
+                setTimeout(() => setIvrCopied(false), 2000);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-moss-500/10 border border-moss-500/20 rounded-full text-moss-300 hover:bg-moss-500/20 transition-all cursor-pointer"
+            >
               <Phone className="w-4 h-4" />
-              <span className="font-semibold text-sm tracking-wide hidden lg:inline">IVR HELPLINE</span>
-              <span className="font-semibold text-sm tracking-wide lg:hidden">IVR</span>
-            </a>
+              <span className="font-semibold text-sm tracking-wide hidden lg:inline">
+                {ivrCopied ? 'COPIED!' : 'IVR HELPLINE'}
+              </span>
+              <span className="font-semibold text-sm tracking-wide lg:hidden">
+                {ivrCopied ? 'COPIED' : 'IVR'}
+              </span>
+            </button>
 
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
