@@ -79,6 +79,7 @@ const AdminDashboard = () => {
   const [modalType, setModalType] = useState(''); // 'customer', 'driver', 'vehicle'
   const [editMode, setEditMode] = useState(false); // true for update, false for create
   const [currentItem, setCurrentItem] = useState(null); // item being edited
+  const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, type: '', id: null });
 
   // Form Fields
   const [customerForm, setCustomerForm] = useState({
@@ -91,7 +92,7 @@ const AdminDashboard = () => {
     registrationNumber: '', type: 'small', model: '', capacityWeight: 1000, status: 'available'
   });
   const [adminForm, setAdminForm] = useState({
-    name: '', email: '', role: 'Support Admin'
+    name: '', email: '', role: 'Support Admin', password: ''
   });
 
   // Fetch API headers
@@ -311,7 +312,7 @@ const AdminDashboard = () => {
     } else if (type === 'vehicle') {
       setVehicleForm({ registrationNumber: '', type: 'small', model: '', capacityWeight: 1000, status: 'available' });
     } else if (type === 'admin') {
-      setAdminForm({ name: '', email: '', role: 'Support Admin' });
+      setAdminForm({ name: '', email: '', role: 'Support Admin', password: '' });
     }
     setIsModalOpen(true);
   };
@@ -351,19 +352,26 @@ const AdminDashboard = () => {
       setAdminForm({
         name: item.name || '',
         email: item.email || '',
-        role: item.role || 'Support Admin'
+        role: item.role || 'Support Admin',
+        password: ''
       });
     }
     setIsModalOpen(true);
   };
 
-  const handleDeleteItem = async (type, id) => {
-    if (!window.confirm(`Are you sure you want to delete this ${type}?`)) return;
+  const handleDeleteItem = (type, id) => {
+    setDeleteConfirm({ isOpen: true, type, id });
+  };
+
+  const executeDelete = async () => {
+    const { type, id } = deleteConfirm;
+    if (!type || !id) return;
+    
     try {
       const endpoint = `${API_BASE_URL}/api/admin/${type === 'customer' ? 'customers' : type + 's'}/${id}`;
       const res = await axios.delete(endpoint, getHeaders());
       if (res.data.success) {
-        alert(`${type} deleted successfully`);
+        setDeleteConfirm({ isOpen: false, type: '', id: null });
         if (type === 'customer') fetchCustomers();
         else if (type === 'driver') fetchDrivers();
         else if (type === 'vehicle') fetchVehicles();
@@ -371,6 +379,7 @@ const AdminDashboard = () => {
     } catch (err) {
       console.error(`Error deleting ${type}:`, err);
       alert(err.response?.data?.message || 'Delete operation failed');
+      setDeleteConfirm({ isOpen: false, type: '', id: null });
     }
   };
 
@@ -1367,6 +1376,19 @@ const AdminDashboard = () => {
                     />
                   </div>
                   <div>
+                    <label className="block text-xs font-semibold text-loft-300 uppercase tracking-wider mb-2">
+                      {editMode ? 'Reset Password (optional)' : 'Password'}
+                    </label>
+                    <input 
+                      type="password" 
+                      required={!editMode}
+                      className="input-field" 
+                      value={adminForm.password}
+                      onChange={(e) => setAdminForm({ ...adminForm, password: e.target.value })}
+                      placeholder={editMode ? 'Leave blank to keep current' : 'Enter temporary password'}
+                    />
+                  </div>
+                  <div>
                     <label className="block text-xs font-semibold text-loft-300 uppercase tracking-wider mb-2">Role</label>
                     <select 
                       className="input-field py-3 bg-loft-950" 
@@ -1399,6 +1421,37 @@ const AdminDashboard = () => {
               </div>
 
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm.isOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-loft-900 border border-loft-800 rounded-2xl max-w-sm w-full p-6 relative z-50 shadow-2xl text-center">
+            <div className="w-16 h-16 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Trash2 className="w-8 h-8" />
+            </div>
+            <h2 className="text-xl font-bold text-loft-50 mb-2 font-serif capitalize">
+              Delete {deleteConfirm.type}
+            </h2>
+            <p className="text-loft-400 text-sm mb-6">
+              Are you sure you want to delete this {deleteConfirm.type}? This action cannot be undone.
+            </p>
+            <div className="flex justify-center gap-3">
+              <button 
+                onClick={() => setDeleteConfirm({ isOpen: false, type: '', id: null })}
+                className="px-5 py-2.5 bg-transparent border border-loft-700 hover:bg-loft-800 text-loft-300 rounded-xl text-sm font-semibold transition-all cursor-pointer flex-1"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={executeDelete}
+                className="px-5 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-semibold transition-all cursor-pointer flex-1"
+              >
+                Delete
+              </button>
+            </div>
           </div>
         </div>
       )}
