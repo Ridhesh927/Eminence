@@ -25,7 +25,10 @@ if (accountSid && accountSid.startsWith('AC') && authToken && authToken !== 'you
  */
 const sendSMS = async (to, body) => {
   if (!client) {
-    console.warn("Twilio client is not initialized. Check your TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN.");
+    console.log(`\n================================`);
+    console.log(`MOCK SMS SENT TO: ${to}`);
+    console.log(`MESSAGE: ${body}`);
+    console.log(`================================\n`);
     return null;
   }
   

@@ -24,6 +24,17 @@ const B2BContract = sequelize.define('B2BContract', {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: true,
   },
+  volumeCommitment: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    defaultValue: 0,
+    comment: 'Minimum rides or volume committed per month'
+  },
+  discountPercentage: {
+    type: DataTypes.DECIMAL(5, 2),
+    allowNull: true,
+    defaultValue: 0.00,
+  },
   startDate: {
     type: DataTypes.DATEONLY,
     allowNull: false,
@@ -33,7 +44,7 @@ const B2BContract = sequelize.define('B2BContract', {
     allowNull: false,
   },
   status: {
-    type: DataTypes.ENUM('pending', 'active', 'expired', 'cancelled'),
+    type: DataTypes.ENUM('pending', 'active', 'expired', 'cancelled', 'rejected'),
     defaultValue: 'pending',
   }
 }, {

@@ -2,6 +2,7 @@ const admin = require('../config/firebaseAdmin');
 const jwt = require('jsonwebtoken');
 const { Customer, Otp } = require('../models');
 const { sendEmail } = require('../services/emailService');
+const smsService = require('../services/smsService');
 
 // Helper to check if profile is complete
 const checkAndSetProfileComplete = async (customer) => {
@@ -171,21 +172,8 @@ const sendOtp = async (req, res) => {
 
     if (type === 'email') {
       await sendEmail(customer.email, "Your Verification Code", `Your code is ${code}`, `<p>Your code is <b>${code}</b></p>`);
-      console.log(`\n\n================================`);
-      console.log(`MOCK EMAIL SENT TO: ${customer.email}`);
-      console.log(`YOUR OTP IS: ${code}`);
-      console.log(`================================\n\n`);
     } else if (type === 'phone') {
-      // 🚀 FREE DEPLOYMENT WORKAROUND 🚀
-      // Instead of calling Twilio API, we mock the SMS by logging the OTP to the console.
-      // Anyone can test this by entering their phone number, and you just check your server logs.
-      console.log(`\n\n================================`);
-      console.log(`MOCK SMS SENT TO: ${customer.phone}`);
-      console.log(`YOUR OTP IS: ${code}`);
-      console.log(`================================\n\n`);
-      
-      // Uncomment this when you upgrade Twilio for production:
-      // await sendSMS(customer.phone, `Your EMINENCE verification code is ${code}`);
+      await smsService.sendSMS(customer.phone, `Your EMINENCE verification code is ${code}`);
     } else {
       return res.status(400).json({ success: false, message: 'Invalid OTP type' });
     }
@@ -259,10 +247,7 @@ const phoneLogin = async (req, res) => {
       expiresAt
     });
 
-    console.log(`\n================================`);
-    console.log(`MOCK SMS LOGIN SENT TO: ${phone}`);
-    console.log(`YOUR OTP IS: ${code}`);
-    console.log(`================================\n`);
+    await smsService.sendSMS(phone, `Your Eminence Login OTP is: ${code}. Valid for 10 minutes.`);
 
     return res.status(200).json({ success: true, message: 'OTP sent successfully' });
   } catch (error) {

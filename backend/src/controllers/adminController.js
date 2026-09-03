@@ -1,4 +1,4 @@
-const { Driver, Customer, Vehicle, Booking, AuditLog, PlatformConfig, sequelize } = require('../models');
+const { Driver, Customer, Vehicle, Booking, AuditLog, PlatformConfig, B2BContract, sequelize } = require('../models');
 const { Op } = require('sequelize');
 const cache = require('../services/cacheService');
 const startTime = Date.now();
@@ -604,6 +604,61 @@ const getSurgePricing = async (req, res) => {
   }
 };
 
+// --- CONTRACTS CRUD ---
+
+const getContracts = async (req, res) => {
+  try {
+    const contracts = await B2BContract.findAll({
+      include: [{ model: Customer, as: 'customer', attributes: ['name', 'phone', 'email'] }],
+      order: [['createdAt', 'DESC']]
+    });
+    res.json(contracts);
+  } catch (error) {
+    console.error('Error fetching contracts:', error);
+    res.status(500).json({ message: 'Error fetching contracts' });
+  }
+};
+
+const updateContractStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, discountPercentage, volumeCommitment, dailyRate } = req.body;
+    
+    const contract = await B2BContract.findByPk(id);
+    if (!contract) return res.status(404).json({ message: 'Contract not found' });
+
+    // Ensure status is valid
+    const validStatuses = ['pending', 'active', 'expired', 'cancelled', 'rejected'];
+    if (status && !validStatuses.includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+
+    const updates = {};
+    if (status) updates.status = status;
+    if (discountPercentage !== undefined) updates.discountPercentage = discountPercentage;
+    if (volumeCommitment !== undefined) updates.volumeCommitment = volumeCommitment;
+    if (dailyRate !== undefined) updates.dailyRate = dailyRate;
+
+    await contract.update(updates);
+
+    if (req.user) {
+      await AuditLog.create({
+        adminId: req.user.id,
+        action: `UPDATED_CONTRACT`,
+        resourceId: contract.id,
+        resourceType: 'B2BContract',
+        details: { previousStatus: contract.status, newStatus: status },
+        ipAddress: req.ip
+      });
+    }
+
+    res.json(contract);
+  } catch (error) {
+    console.error('Error updating contract:', error);
+    res.status(500).json({ message: 'Error updating contract' });
+  }
+};
+
 module.exports = {
   getDrivers,
   createDriver,
@@ -626,5 +681,7 @@ module.exports = {
   getPlatformConfig,
   updatePlatformConfig,
   exportBookings,
-  getSurgePricing
+  getSurgePricing,
+  getContracts,
+  updateContractStatus
 };

@@ -64,6 +64,7 @@ const AdminDashboard = () => {
   const [customers, setCustomers] = useState([]);
   const [drivers, setDrivers] = useState([]);
   const [vehicles, setVehicles] = useState([]);
+  const [contracts, setContracts] = useState([]);
   const [loading, setLoading] = useState(false);
 
   // Chat Inbox states
@@ -89,10 +90,13 @@ const AdminDashboard = () => {
     name: '', phone: '', email: '', licenseNumber: '', status: 'active'
   });
   const [vehicleForm, setVehicleForm] = useState({
-    registrationNumber: '', type: 'small', model: '', capacityWeight: 1000, status: 'available'
+    registrationNumber: '', type: 'small', capacityWeight: '', status: 'available'
   });
   const [adminForm, setAdminForm] = useState({
-    name: '', email: '', role: 'Support Admin', password: ''
+    name: '', email: '', password: '', role: 'Superadmin'
+  });
+  const [contractForm, setContractForm] = useState({
+    status: 'pending', volumeCommitment: 0, discountPercentage: 0, dailyRate: 0
   });
 
   // Fetch API headers
@@ -115,6 +119,8 @@ const AdminDashboard = () => {
       fetchDrivers();
     } else if (activeTab === 'vehicles') {
       fetchVehicles();
+    } else if (activeTab === 'contracts') {
+      fetchContracts();
     }
   }, [activeTab]);
 
@@ -310,7 +316,7 @@ const AdminDashboard = () => {
     } else if (type === 'driver') {
       setDriverForm({ name: '', phone: '', email: '', licenseNumber: '', status: 'active' });
     } else if (type === 'vehicle') {
-      setVehicleForm({ registrationNumber: '', type: 'small', model: '', capacityWeight: 1000, status: 'available' });
+      setVehicleForm({ registrationNumber: '', type: 'small', capacityWeight: '', status: 'available' });
     } else if (type === 'admin') {
       setAdminForm({ name: '', email: '', role: 'Support Admin', password: '' });
     }
@@ -349,11 +355,17 @@ const AdminDashboard = () => {
         status: item.status || 'available'
       });
     } else if (type === 'admin') {
-      setAdminForm({
-        name: item.name || '',
-        email: item.email || '',
-        role: item.role || 'Support Admin',
-        password: ''
+      if (editMode) {
+        setAdminForm({ name: item.name, email: item.email, password: '', role: item.role });
+      } else {
+        setAdminForm({ name: '', email: '', password: '', role: 'Superadmin' });
+      }
+    } else if (type === 'contract') {
+      setContractForm({ 
+        status: item.status || 'pending', 
+        volumeCommitment: item.volumeCommitment || 0, 
+        discountPercentage: item.discountPercentage || 0, 
+        dailyRate: item.dailyRate || 0 
       });
     }
     setIsModalOpen(true);
@@ -402,6 +414,9 @@ const AdminDashboard = () => {
       } else if (modalType === 'admin') {
         endpoint = `${API_BASE_URL}/api/admin/admins`;
         payload = adminForm;
+      } else if (modalType === 'contract') {
+        endpoint = `${API_BASE_URL}/api/admin/contracts`;
+        payload = contractForm;
       }
 
       if (editMode && currentItem) {
@@ -410,13 +425,13 @@ const AdminDashboard = () => {
       }
 
       const res = await axios[method](endpoint, payload, getHeaders());
-      if (res.data.success) {
-        alert(`${modalType} ${editMode ? 'updated' : 'created'} successfully`);
-        setIsModalOpen(false);
-        if (modalType === 'customer') fetchCustomers();
-        else if (modalType === 'driver') fetchDrivers();
-        else if (modalType === 'vehicle') fetchVehicles();
-      }
+      
+      setIsModalOpen(false);
+      if (modalType === 'customer') fetchCustomers();
+      else if (modalType === 'driver') fetchDrivers();
+      else if (modalType === 'vehicle') fetchVehicles();
+      else if (modalType === 'contract') fetchContracts();
+      
     } catch (err) {
       console.error('Form submit error:', err);
       alert(err.response?.data?.message || 'Save operation failed');
@@ -1065,12 +1080,68 @@ const AdminDashboard = () => {
             </div>
           )}
 
-          {/* Contracts Tab (Placeholder) */}
+          {/* Contracts Tab */}
           {activeTab === 'contracts' && (
-             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card p-24 bg-loft-900 text-center flex flex-col items-center justify-center border-dashed border-loft-800/80">
-              <h3 className="text-2xl font-bold text-loft-200 mb-2 capitalize">Contracts Management</h3>
-              <p className="text-loft-400 max-w-md">CRUD operations for contracts will be implemented here connected to the Node.js backend.</p>
-            </motion.div>
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h1 className="text-3xl font-bold text-loft-50 font-serif">B2B Contracts</h1>
+              </div>
+
+              <div className="card bg-loft-900 border-loft-800 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm text-loft-300">
+                    <thead className="bg-loft-950/50 text-xs uppercase font-medium">
+                      <tr>
+                        <th className="px-6 py-4">Business Name</th>
+                        <th className="px-6 py-4">Start Date</th>
+                        <th className="px-6 py-4">End Date</th>
+                        <th className="px-6 py-4">Commitment</th>
+                        <th className="px-6 py-4">Discount</th>
+                        <th className="px-6 py-4">Status</th>
+                        <th className="px-6 py-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-loft-800/50">
+                      {contracts.map(contract => (
+                        <tr key={contract.id} className="hover:bg-loft-800/20 transition-colors">
+                          <td className="px-6 py-4 font-medium text-loft-100">{contract.customer?.name || 'Unknown'}</td>
+                          <td className="px-6 py-4">{contract.startDate}</td>
+                          <td className="px-6 py-4">{contract.endDate}</td>
+                          <td className="px-6 py-4">{contract.volumeCommitment} rides</td>
+                          <td className="px-6 py-4">{contract.discountPercentage}%</td>
+                          <td className="px-6 py-4">
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
+                              contract.status === 'active' ? 'bg-moss-500/10 text-moss-400 border-moss-500/20' : 
+                              contract.status === 'pending' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' : 
+                              contract.status === 'rejected' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                              'bg-loft-800 text-loft-400 border-loft-700'
+                            }`}>
+                              {contract.status}
+                            </span>
+                          </td>
+                          <td className="px-6 py-4 text-right space-x-3">
+                            <button 
+                              onClick={() => handleOpenEditModal('contract', contract)}
+                              className="text-loft-400 hover:text-copper-400 transition-colors"
+                              title="Edit Contract"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {contracts.length === 0 && (
+                        <tr>
+                          <td colSpan="7" className="px-6 py-8 text-center text-loft-500">
+                            No B2B contracts found.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Settings Tab - Roles and Permissions */}
@@ -1399,6 +1470,55 @@ const AdminDashboard = () => {
                       <option value="Finance Admin">Finance Admin</option>
                       <option value="Support Admin">Support Admin</option>
                     </select>
+                  </div>
+                </>
+              )}
+
+              {/* Contract Form Fields */}
+              {modalType === 'contract' && (
+                <>
+                  <div>
+                    <label className="block text-xs font-semibold text-loft-300 uppercase tracking-wider mb-2">Status</label>
+                    <select 
+                      className="input-field py-3 bg-loft-950" 
+                      value={contractForm.status}
+                      onChange={(e) => setContractForm({ ...contractForm, status: e.target.value })}
+                    >
+                      <option value="pending">Pending</option>
+                      <option value="active">Active</option>
+                      <option value="expired">Expired</option>
+                      <option value="rejected">Rejected</option>
+                      <option value="cancelled">Cancelled</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-loft-300 uppercase tracking-wider mb-2">Volume Commitment (Rides)</label>
+                    <input 
+                      type="number" 
+                      className="input-field" 
+                      value={contractForm.volumeCommitment}
+                      onChange={(e) => setContractForm({ ...contractForm, volumeCommitment: parseInt(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-loft-300 uppercase tracking-wider mb-2">Discount Percentage (%)</label>
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      className="input-field" 
+                      value={contractForm.discountPercentage}
+                      onChange={(e) => setContractForm({ ...contractForm, discountPercentage: parseFloat(e.target.value) || 0 })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-loft-300 uppercase tracking-wider mb-2">Daily Rate Override (₹)</label>
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      className="input-field" 
+                      value={contractForm.dailyRate}
+                      onChange={(e) => setContractForm({ ...contractForm, dailyRate: parseFloat(e.target.value) || 0 })}
+                    />
                   </div>
                 </>
               )}

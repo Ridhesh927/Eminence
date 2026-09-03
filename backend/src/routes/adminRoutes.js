@@ -39,4 +39,8 @@ router.get('/stats/overview', adminController.getOverviewStats);
 router.get('/stats/revenue', adminController.getRevenueAnalytics);
 router.get('/stats/routes', adminController.getRouteAnalytics);
 
+// Contracts routes
+router.get('/contracts', adminController.getContracts);
+router.put('/contracts/:id', adminController.updateContractStatus);
+
 module.exports = router;

@@ -1,9 +1,45 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { FileText, Truck, Users, CreditCard, HeadphonesIcon } from 'lucide-react';
+import { FileText, Truck, Users, CreditCard, HeadphonesIcon, Upload, CheckCircle } from 'lucide-react';
+import axios from 'axios';
+import { useSelector } from 'react-redux';
 
 const BusinessDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
+  const [file, setFile] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
+  const { token } = useSelector((state) => state.auth);
+
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+      setUploadSuccess(false);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!file) return;
+    setUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      await axios.post('http://localhost:3000/api/b2b/batch-bookings', formData, {
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      setUploadSuccess(true);
+      setFile(null);
+    } catch (err) {
+      console.error('Batch upload error:', err);
+      alert('Failed to upload batch bookings.');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   return (
     <div className="w-full pt-12 pb-24 relative min-h-[80vh]">
@@ -54,7 +90,7 @@ const BusinessDashboard = () => {
 
         {/* Tab Navigation */}
         <div className="flex space-x-2 border-b border-loft-800 mb-8 overflow-x-auto hide-scrollbar">
-          {['overview', 'contracts', 'trips', 'invoices', 'fleet', 'support'].map((tab) => (
+          {['overview', 'contracts', 'bulk-load', 'trips', 'invoices', 'fleet', 'support'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -129,7 +165,69 @@ const BusinessDashboard = () => {
             </div>
           )}
 
-          {activeTab !== 'overview' && (
+          {activeTab === 'bulk-load' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card p-8 bg-loft-900 border-loft-800">
+              <div className="flex justify-between items-center mb-6 border-b border-loft-800 pb-4">
+                <div>
+                  <h3 className="text-xl font-bold text-loft-50">Bulk Load Management</h3>
+                  <p className="text-sm text-loft-400 mt-1">Upload a CSV file containing multiple booking requests to schedule them at once.</p>
+                </div>
+                <button className="text-copper-500 hover:text-copper-400 text-sm font-medium border border-copper-500/30 px-4 py-2 rounded-lg transition-colors">
+                  Download Template
+                </button>
+              </div>
+
+              <div className="mt-8 border-2 border-dashed border-loft-700 hover:border-copper-500 bg-loft-950/50 rounded-xl p-12 text-center transition-colors">
+                {!uploadSuccess ? (
+                  <>
+                    <Upload className="w-12 h-12 text-loft-500 mx-auto mb-4" />
+                    <h4 className="text-lg font-bold text-loft-200 mb-2">Drag and drop your CSV here</h4>
+                    <p className="text-loft-400 text-sm mb-6">or click to browse from your computer</p>
+                    <input 
+                      type="file" 
+                      accept=".csv"
+                      onChange={handleFileChange}
+                      className="hidden" 
+                      id="csv-upload" 
+                    />
+                    <label 
+                      htmlFor="csv-upload" 
+                      className="btn-secondary py-2.5 px-6 inline-block cursor-pointer"
+                    >
+                      Browse Files
+                    </label>
+                    {file && (
+                      <div className="mt-6 flex items-center justify-center gap-4 bg-loft-900 border border-loft-800 p-3 rounded-lg max-w-sm mx-auto">
+                        <FileText className="w-5 h-5 text-copper-500" />
+                        <span className="text-sm text-loft-200 flex-1 truncate text-left">{file.name}</span>
+                        <button 
+                          onClick={handleUpload}
+                          disabled={uploading}
+                          className="bg-copper-500 hover:bg-copper-600 text-white px-4 py-1.5 rounded-md text-sm font-bold transition-colors disabled:opacity-50"
+                        >
+                          {uploading ? 'Uploading...' : 'Upload'}
+                        </button>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="py-8">
+                    <CheckCircle className="w-16 h-16 text-moss-500 mx-auto mb-4" />
+                    <h4 className="text-xl font-bold text-moss-400 mb-2">Batch Bookings Scheduled!</h4>
+                    <p className="text-loft-300 text-sm mb-6">Your CSV file has been processed successfully and the rides have been dispatched.</p>
+                    <button 
+                      onClick={() => setUploadSuccess(false)}
+                      className="btn-secondary py-2 px-6"
+                    >
+                      Upload Another File
+                    </button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab !== 'overview' && activeTab !== 'bulk-load' && (
              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card p-12 text-center flex flex-col items-center justify-center border-dashed border-loft-800/80">
               <h3 className="text-xl font-bold text-loft-200 mb-2 capitalize">{activeTab}</h3>
               <p className="text-loft-400 max-w-md">This section is currently under development.</p>

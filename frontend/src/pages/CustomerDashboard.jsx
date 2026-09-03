@@ -17,6 +17,18 @@ const CustomerDashboard = () => {
   const [addresses, setAddresses] = useState([]);
   const [newAddress, setNewAddress] = useState({ label: '', street: '', city: '', postalCode: '' });
 
+  // Profile State
+  const [profileForm, setProfileForm] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    city: user?.city || '',
+    state: user?.state || '',
+  });
+
+  // Trip History State
+  const [selectedTrip, setSelectedTrip] = useState(null);
+
   useEffect(() => {
     if (activeTab === 'rewards' && token) {
       fetchWallet();
@@ -47,6 +59,20 @@ const CustomerDashboard = () => {
       setNewAddress({ label: '', street: '', city: '', postalCode: '' });
     } catch (error) {
       console.error('Error saving address:', error);
+    }
+  };
+
+  const handleProfileUpdate = async (e) => {
+    e.preventDefault();
+    try {
+      const res = await axios.post('http://localhost:3000/api/auth/complete-profile', profileForm, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      alert('Profile updated successfully!');
+      // In a real app we'd dispatch(loginSuccess(res.data)) to update Redux state
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      alert(error.response?.data?.message || 'Error updating profile');
     }
   };
 
@@ -234,7 +260,12 @@ const CustomerDashboard = () => {
                     </div>
                     <div className="flex items-center justify-between md:flex-col md:items-end gap-2">
                       <span className="text-xl font-bold text-loft-100">{booking.amount}</span>
-                      <button className="btn-secondary py-1.5 px-3 text-xs">View Details</button>
+                      <button 
+                        onClick={() => setSelectedTrip(booking)}
+                        className="btn-secondary py-1.5 px-3 text-xs"
+                      >
+                        View Details
+                      </button>
                     </div>
                   </div>
                 ))}
@@ -395,7 +426,7 @@ const CustomerDashboard = () => {
             </motion.div>
           )}
 
-          {['tracking', 'payments', 'support', 'profile'].includes(activeTab) && (
+          {['tracking', 'payments', 'support'].includes(activeTab) && (
              <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -403,6 +434,61 @@ const CustomerDashboard = () => {
             >
               <h3 className="text-xl font-bold text-loft-200 mb-2 capitalize">{activeTab}</h3>
               <p className="text-loft-400 max-w-md">This section is currently under development.</p>
+            </motion.div>
+          )}
+
+          {activeTab === 'profile' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <div className="card p-6 md:p-8 bg-loft-900 border-loft-800">
+                <h3 className="text-2xl font-bold text-loft-50 mb-6 border-b border-loft-800 pb-4">Profile Settings</h3>
+                <form onSubmit={handleProfileUpdate} className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                      <label className="block text-sm font-medium text-loft-300 mb-2">Full Name</label>
+                      <input 
+                        type="text" 
+                        required
+                        className="input-field" 
+                        value={profileForm.name} 
+                        onChange={(e) => setProfileForm({...profileForm, name: e.target.value})} 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-loft-300 mb-2">Phone Number</label>
+                      <input 
+                        type="tel" 
+                        required
+                        className="input-field" 
+                        value={profileForm.phone} 
+                        onChange={(e) => setProfileForm({...profileForm, phone: e.target.value})} 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-loft-300 mb-2">Email Address</label>
+                      <input 
+                        type="email" 
+                        className="input-field" 
+                        value={profileForm.email} 
+                        onChange={(e) => setProfileForm({...profileForm, email: e.target.value})} 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-loft-300 mb-2">City</label>
+                      <input 
+                        type="text" 
+                        className="input-field" 
+                        value={profileForm.city} 
+                        onChange={(e) => setProfileForm({...profileForm, city: e.target.value})} 
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end pt-4">
+                    <button type="submit" className="btn-primary py-3 px-8 text-sm">
+                      Save Changes
+                    </button>
+                  </div>
+                </form>
+              </div>
             </motion.div>
           )}
         </div>
@@ -461,6 +547,79 @@ const CustomerDashboard = () => {
           </div>
         )}
       </AnimatePresence>
+      {/* Trip Details Modal */}
+      <AnimatePresence>
+        {selectedTrip && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-loft-950/80 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="card w-full max-w-lg p-0 overflow-hidden"
+            >
+              {/* Mock Map Area */}
+              <div className="h-48 bg-loft-800 relative w-full overflow-hidden flex items-center justify-center">
+                <div className="absolute inset-0 opacity-30 bg-[url('https://www.transparenttextures.com/patterns/cartographer.png')]"></div>
+                <div className="text-center z-10">
+                  <MapPin className="w-8 h-8 text-copper-500 mx-auto mb-2 drop-shadow-lg" />
+                  <span className="text-copper-400 font-bold bg-loft-950/80 px-3 py-1 rounded-full border border-copper-500/30">Route Map Unavailable</span>
+                </div>
+              </div>
+              
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <div>
+                    <h3 className="text-xl font-bold text-loft-50">{selectedTrip.id}</h3>
+                    <p className="text-sm text-loft-400">{selectedTrip.date}</p>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase ${
+                    selectedTrip.status === 'Completed' ? 'bg-moss-500/20 text-moss-500' : 'bg-red-500/20 text-red-500'
+                  }`}>
+                    {selectedTrip.status}
+                  </span>
+                </div>
+
+                <div className="space-y-4 mb-6">
+                  <div className="flex items-start gap-3">
+                    <div className="mt-1 w-2 h-2 rounded-full bg-copper-500"></div>
+                    <div>
+                      <p className="text-xs text-loft-400 uppercase tracking-wider mb-1">Pickup</p>
+                      <p className="text-sm font-medium text-loft-100">{selectedTrip.from}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <div className="mt-1 w-2 h-2 rounded-full bg-moss-500"></div>
+                    <div>
+                      <p className="text-xs text-loft-400 uppercase tracking-wider mb-1">Drop-off</p>
+                      <p className="text-sm font-medium text-loft-100">{selectedTrip.to}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t border-loft-800 pt-4 mb-6">
+                  <h4 className="text-sm font-bold text-loft-200 mb-3">Fare Breakdown</h4>
+                  <div className="flex justify-between text-sm text-loft-300 mb-2">
+                    <span>Base Fare</span>
+                    <span>{selectedTrip.amount}</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-bold text-loft-50 mt-4 pt-4 border-t border-loft-800/50">
+                    <span>Total Paid</span>
+                    <span className="text-copper-500">{selectedTrip.amount}</span>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={() => setSelectedTrip(null)}
+                  className="btn-secondary w-full py-3"
+                >
+                  Close Details
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 };

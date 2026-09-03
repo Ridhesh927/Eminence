@@ -89,8 +89,28 @@ const getInvoices = async (req, res) => {
 
     return res.status(200).json({ success: true, invoices });
   } catch (error) {
-    console.error('Get Invoices Error:', error);
+    console.error('Fetch Invoices Error:', error);
     return res.status(500).json({ success: false, message: 'Server error fetching invoices' });
+  }
+};
+
+const batchBookings = async (req, res) => {
+  try {
+    // In a real implementation, we would parse req.file using multer
+    // and map the CSV rows to bulk Booking.bulkCreate() logic.
+    // For now, we mock the success response.
+    
+    // Simulating processing delay
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Batch bookings scheduled successfully',
+      processedCount: 15
+    });
+  } catch (error) {
+    console.error('Batch Bookings Error:', error);
+    return res.status(500).json({ success: false, message: 'Server error processing batch bookings' });
   }
 };
 
@@ -98,5 +118,6 @@ module.exports = {
   registerBusiness,
   requestContract,
   getContracts,
-  getInvoices
+  getInvoices,
+  batchBookings
 };

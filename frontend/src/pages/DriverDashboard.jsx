@@ -29,23 +29,22 @@ const DriverDashboard = () => {
     });
     setSocket(newSocket);
     
-    // Auto-receive a mock ride request after 5 seconds if online
-    const timer = setTimeout(() => {
+    newSocket.on('ride_request', (data) => {
       if (isOnline && !isNavigating) {
         setActiveRide({
-          bookingId: 'BKG-1234',
-          fare: 450,
-          distance: '8.2 km',
-          duration: '25 Mins',
-          pickup: '123 Market Street, Viman Nagar',
-          dropoff: '456 Industrial Area, Hinjewadi'
+          bookingId: data.bookingId || 'BKG-NEW',
+          fare: data.estimatedFare || 450,
+          distance: data.distance || '8.2 km',
+          duration: data.duration || '25 Mins',
+          pickup: data.pickupAddress || '123 Market Street, Viman Nagar',
+          dropoff: data.dropAddress || '456 Industrial Area, Hinjewadi'
         });
       }
-    }, 5000);
+    });
 
     return () => {
+      newSocket.off('ride_request');
       newSocket.disconnect();
-      clearTimeout(timer);
     };
   }, [isOnline, isNavigating]);
 
@@ -86,8 +85,29 @@ const DriverDashboard = () => {
     }, 500);
   };
 
-  const handleAcceptTrip = () => {
+  const handleAcceptTrip = async () => {
+    try {
+      // Note: Assuming driver ID is managed via token on backend
+      await axios.put(`${API_BASE_URL}/api/bookings/${activeRide.bookingId}/status`, 
+        { status: 'driver_assigned' },
+        { withCredentials: true } // or use token from Redux if available
+      );
+    } catch (err) {
+      console.error('Error accepting trip:', err);
+    }
     setIsNavigating(true);
+  };
+
+  const handleDeclineTrip = async () => {
+    try {
+      await axios.put(`${API_BASE_URL}/api/bookings/${activeRide.bookingId}/status`, 
+        { status: 'rejected' }, // Depending on your state machine
+        { withCredentials: true }
+      );
+    } catch (err) {
+      console.error('Error declining trip:', err);
+    }
+    setActiveRide(null);
   };
 
   const handleFinishTrip = () => {
@@ -224,7 +244,7 @@ const DriverDashboard = () => {
                     </div>
 
                     <div className="flex gap-4 relative z-10">
-                      <button onClick={() => setActiveRide(null)} className="btn-secondary w-1/3">Decline</button>
+                      <button onClick={handleDeclineTrip} className="btn-secondary w-1/3">Decline</button>
                       <button onClick={handleAcceptTrip} className="btn-primary w-2/3 py-4 text-lg animate-pulse shadow-[0_0_15px_rgba(232,99,49,0.4)]">Accept Trip</button>
                     </div>
                   </div>
