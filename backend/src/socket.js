@@ -27,8 +27,30 @@ const initSocket = (httpServer) => {
       io.to(`trip_${bookingId}`).emit('trip:location_update', { lat, lng });
     });
 
+    // Admin joins telemetry room
+    socket.on('join_admin_telemetry', () => {
+      socket.join('admin_telemetry');
+      console.log(`[Socket] Admin ${socket.id} joined admin_telemetry`);
+      
+      // We start a mock simulation for a dummy vehicle ID when an admin connects
+      const { startTelemetrySimulation } = require('./services/telematicsSimulator');
+      startTelemetrySimulation('VEH-1234');
+    });
+
+    socket.on('leave_admin_telemetry', () => {
+      socket.leave('admin_telemetry');
+      console.log(`[Socket] Admin ${socket.id} left admin_telemetry`);
+      const { stopTelemetrySimulation } = require('./services/telematicsSimulator');
+      stopTelemetrySimulation('VEH-1234');
+    });
+
     socket.on('disconnect', () => {
       console.log(`[Socket] Client disconnected: ${socket.id}`);
+      // Clean up mock simulation if admin disconnects
+      try {
+        const { stopTelemetrySimulation } = require('./services/telematicsSimulator');
+        stopTelemetrySimulation('VEH-1234');
+      } catch (err) {}
     });
   });
 

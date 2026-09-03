@@ -1,4 +1,6 @@
 const { Booking, Customer, Driver, Vehicle } = require('../models');
+const { optimizeRoute } = require('../services/routeOptimizer');
+const { findPoolMatch } = require('../services/poolingEngine');
 
 // Get all bookings
 const getAllBookings = async (_req, res) => {
@@ -22,6 +24,27 @@ const createBooking = async (req, res) => {
   try {
     const customerId = req.user?.id || req.body.customerId;
     const bookingData = { ...req.body, customerId };
+
+    // Multi-stop Optimization (TSP)
+    if (req.body.drops && Array.isArray(req.body.drops)) {
+      // Create mock waypoint objects from addresses
+      const waypoints = req.body.drops.map((address, idx) => ({
+        id: `stop_${idx}`,
+        address,
+        // Adding dummy lat/lng just to pass into the TSP
+        lat: 18.5 + (Math.random() * 0.1),
+        lng: 73.8 + (Math.random() * 0.1)
+      }));
+      
+      const optimized = optimizeRoute(
+        { lat: 18.5204, lng: 73.8567 }, // mock starting point
+        waypoints
+      );
+      
+      bookingData.stops = optimized;
+      // We still keep the first drop as dropAddress for legacy compatibility
+      bookingData.dropAddress = req.body.drops[0];
+    }
 
     const customer = await Customer.findByPk(customerId);
     if (!customer) {
@@ -51,8 +74,17 @@ const createBooking = async (req, res) => {
       await customer.save();
     }
 
+    // Dynamic Load Pooling Logic
+    if (bookingData.bookingMode === 'shared') {
+      const poolMatchId = await findPoolMatch(bookingData);
+      if (poolMatchId) {
+        bookingData.poolMatchId = poolMatchId; // Assign to the matched vehicle
+        bookingData.status = 'driver_assigned'; // Auto-assign since it's an active pool
+      }
+    }
+
     const booking = await Booking.create(bookingData);
-    res.status(201).json({ success: true, booking });
+    res.status(201).json({ success: true, booking, pooled: !!bookingData.poolMatchId });
   } catch (error) {
     console.error('Error creating booking:', error);
     res.status(500).json({ success: false, message: 'Server error' });

@@ -12,7 +12,12 @@ const DriverDashboard = () => {
   const [isOnline, setIsOnline] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [socket, setSocket] = useState(null);
+  const [heatmapData, setHeatmapData] = useState(null);
   
+  // WMS Scanning State
+  const [scanResult, setScanResult] = useState(null);
+  const [isScanning, setIsScanning] = useState(false);
+
   // Navigation State
   const [isNavigating, setIsNavigating] = useState(false);
   const [activeRide, setActiveRide] = useState(null);
@@ -89,6 +94,24 @@ const DriverDashboard = () => {
     setIsNavigating(false);
   };
 
+  useEffect(() => {
+    if (activeTab === 'heatmap') {
+      const fetchHeatmap = async () => {
+        try {
+          const res = await axios.get(`${API_BASE_URL}/api/drivers/heatmap`, {
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+          });
+          if (res.data.success) {
+            setHeatmapData(res.data.data);
+          }
+        } catch (err) {
+          console.error("Error fetching heatmap", err);
+        }
+      };
+      fetchHeatmap();
+    }
+  }, [activeTab]);
+
   return (
     <div className="w-full pt-12 pb-24 relative min-h-[80vh]">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-[radial-gradient(ellipse_at_center,rgba(85,108,145,0.1),transparent_70%)] pointer-events-none z-0"></div>
@@ -142,7 +165,7 @@ const DriverDashboard = () => {
 
         {/* Tab Navigation */}
         <div className="flex space-x-2 border-b border-loft-800 mb-8 overflow-x-auto hide-scrollbar">
-          {['today', 'heatmap', 'earnings', 'completed'].map((tab) => (
+          {['today', 'heatmap', 'wms', 'earnings', 'completed'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -153,7 +176,7 @@ const DriverDashboard = () => {
                   : 'text-loft-400 hover:text-loft-200 hover:bg-loft-900/50 disabled:opacity-50 disabled:cursor-not-allowed'
               }`}
             >
-              {tab === 'today' ? "Active Trip" : tab === 'heatmap' ? 'Surge Map' : tab}
+              {tab === 'today' ? "Active Trip" : tab === 'heatmap' ? 'Surge Map' : tab === 'wms' ? 'WMS Scanner' : tab}
             </button>
           ))}
         </div>
@@ -284,20 +307,35 @@ const DriverDashboard = () => {
                 {/* Simulated Map Background */}
                 <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cartographer.png')]"></div>
                 
-                {/* Simulated Heatmap Blurs */}
-                <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-red-500/40 rounded-full blur-3xl mix-blend-screen animate-pulse"></div>
-                <div className="absolute top-[30%] left-[28%] w-32 h-32 bg-red-500/60 rounded-full blur-2xl mix-blend-screen"></div>
-                <div className="absolute top-1/4 left-1/4 flex flex-col items-center justify-center pointer-events-none">
-                  <MapPin className="text-white w-8 h-8 drop-shadow-lg mb-1" />
-                  <span className="bg-red-600 text-white font-bold text-xs px-2 py-1 rounded shadow-lg">2.5x Hinjewadi</span>
-                </div>
+                {heatmapData && heatmapData.hotspots.map((spot, index) => {
+                  const colors = {
+                    'High': 'red',
+                    'Medium': 'orange',
+                    'Low': 'yellow'
+                  };
+                  const color = colors[spot.intensity];
+                  
+                  // Using randomized fixed positions for simulation since we don't have a real map canvas here
+                  const positions = [
+                    { top: '25%', left: '25%' },
+                    { bottom: '33%', right: '25%' },
+                    { top: '50%', left: '50%' },
+                    { top: '10%', right: '10%' }
+                  ];
+                  const pos = positions[index % positions.length];
 
-                <div className="absolute bottom-1/3 right-1/4 w-48 h-48 bg-orange-500/30 rounded-full blur-3xl mix-blend-screen"></div>
-                <div className="absolute bottom-1/3 right-1/4 flex flex-col items-center justify-center pointer-events-none">
-                  <span className="bg-orange-600 text-white font-bold text-xs px-2 py-1 rounded shadow-lg mt-8">1.5x Kharadi</span>
-                </div>
-
-                <div className="absolute top-1/2 left-1/2 w-40 h-40 bg-yellow-500/20 rounded-full blur-2xl mix-blend-screen"></div>
+                  return (
+                    <div key={spot.id} className="absolute" style={pos}>
+                      <div className={`w-48 h-48 bg-${color}-500/40 rounded-full blur-3xl mix-blend-screen animate-pulse`}></div>
+                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                        <MapPin className="text-white w-8 h-8 drop-shadow-lg mb-1" />
+                        <span className={`bg-${color}-600 text-white font-bold text-xs px-2 py-1 rounded shadow-lg`}>
+                          {spot.surgeMultiplier}x {spot.name}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
                 
                 <div className="absolute bottom-6 right-6">
                   <button className="bg-loft-800 text-white p-3 rounded-full shadow-lg border border-loft-700 hover:bg-loft-700">
@@ -305,6 +343,72 @@ const DriverDashboard = () => {
                   </button>
                 </div>
               </div>
+            </motion.div>
+          )}
+
+          {/* TAB: WMS SCANNER */}
+          {activeTab === 'wms' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-2xl mx-auto space-y-6">
+              <div className="card p-8 border border-moss-500/30 text-center">
+                <h3 className="text-2xl font-bold text-loft-50 mb-2">Warehouse Barcode Scanner</h3>
+                <p className="text-loft-400 mb-8">Scan inventory QR codes to update the digital manifest automatically.</p>
+                
+                <div className="relative w-full max-w-sm mx-auto aspect-square bg-[#0a0c10] rounded-2xl border-2 border-dashed border-loft-700 overflow-hidden flex flex-col items-center justify-center">
+                  {isScanning ? (
+                    <div className="absolute inset-0 bg-black/50 z-10 flex flex-col items-center justify-center">
+                      <div className="w-48 h-1 bg-moss-500 rounded-full animate-[bounce_2s_infinite]"></div>
+                      <p className="text-moss-400 mt-4 font-bold animate-pulse">Scanning...</p>
+                    </div>
+                  ) : null}
+                  
+                  {/* Mock Camera View */}
+                  <div className="absolute inset-4 border-2 border-copper-500/50 rounded-xl pointer-events-none">
+                    <div className="absolute -top-1 -left-1 w-6 h-6 border-t-4 border-l-4 border-copper-500 rounded-tl-lg"></div>
+                    <div className="absolute -top-1 -right-1 w-6 h-6 border-t-4 border-r-4 border-copper-500 rounded-tr-lg"></div>
+                    <div className="absolute -bottom-1 -left-1 w-6 h-6 border-b-4 border-l-4 border-copper-500 rounded-bl-lg"></div>
+                    <div className="absolute -bottom-1 -right-1 w-6 h-6 border-b-4 border-r-4 border-copper-500 rounded-br-lg"></div>
+                  </div>
+                  <AlertTriangle className="w-12 h-12 text-loft-700 mb-4" />
+                  <p className="text-loft-600 font-medium">Camera Feed Simulated</p>
+                </div>
+                
+                <button 
+                  onClick={() => {
+                    setIsScanning(true);
+                    setScanResult(null);
+                    setTimeout(async () => {
+                      try {
+                        const res = await axios.post(`${API_BASE_URL}/api/drivers/scan-inventory`, { barcode: 'MOCK-BOX-001' }, {
+                          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+                        });
+                        setIsScanning(false);
+                        setScanResult(res.data.item);
+                      } catch (err) {
+                        setIsScanning(false);
+                      }
+                    }, 2000);
+                  }}
+                  disabled={isScanning}
+                  className="btn-primary mt-8 py-3 px-8 text-lg disabled:opacity-50"
+                >
+                  Simulate QR Scan
+                </button>
+              </div>
+
+              {scanResult && (
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="card p-6 bg-moss-500/10 border-moss-500/30 flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-moss-500 rounded-full flex items-center justify-center">
+                      <CheckCircle className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h4 className="text-moss-400 font-bold uppercase tracking-wider text-sm">Scan Successful</h4>
+                      <p className="text-loft-50 font-medium">{scanResult.itemName} ({scanResult.barcode})</p>
+                    </div>
+                  </div>
+                  <span className="bg-moss-500 text-white px-3 py-1 rounded-full text-xs font-bold uppercase">{scanResult.status}</span>
+                </motion.div>
+              )}
             </motion.div>
           )}
 
