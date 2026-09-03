@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const driverController = require('../controllers/driverController');
 const { getSurgeHeatmap } = require('../services/aiForecasting');
+const protect = require('../middleware/authMiddleware');
+const adminOnly = require('../middleware/adminMiddleware');
 
 // Add heatmap route
 router.get('/heatmap', (req, res) => {
@@ -41,6 +43,7 @@ router.use(apiLimiter);
 
 router.get('/', driverController.getAllDrivers);
 router.post('/', driverController.createDriver);
-router.put('/:id/availability', driverController.toggleAvailability);
+router.patch('/:id/toggle', driverController.toggleAvailability);
+router.get('/:id/payslip', protect, driverController.generatePayslip);
 
 module.exports = router;

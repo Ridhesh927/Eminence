@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
-import { Package, CheckCircle, Wallet, MapPin, Plus, Gift, Copy, Crown, Target, Star } from 'lucide-react';
+import { Package, CheckCircle, Wallet, MapPin, Plus, Gift, Copy, Crown, Target, Star, Leaf, Truck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import axios from 'axios';
 
@@ -192,8 +192,8 @@ const CustomerDashboard = () => {
               </div>
               <div className="space-y-4">
                 {[
-                  { id: 'BKG-7829', date: 'Aug 21, 2026', vehicle: 'Tata Ace (Chota Hathi)', from: 'Kalyani Nagar', to: 'Viman Nagar', status: 'Completed', amount: '₹450' },
-                  { id: 'BKG-7815', date: 'Aug 18, 2026', vehicle: 'Mahindra Bolero Pickup', from: 'Kothrud', to: 'Deccan Gymkhana', status: 'Completed', amount: '₹600' },
+                  { id: 'BKG-7829', date: 'Aug 21, 2026', vehicle: 'Tata Ace (Chota Hathi)', from: 'Kalyani Nagar', to: 'Viman Nagar', status: 'Completed', amount: '₹450', esgEmissions: '1.44 KG CO2' },
+                  { id: 'BKG-7815', date: 'Aug 18, 2026', vehicle: 'Mahindra Bolero Pickup', from: 'Kothrud', to: 'Deccan Gymkhana', status: 'Completed', amount: '₹600', is3plOutsourced: true, thirdPartyProvider: 'Delhivery Logistics', esgEmissions: '2.50 KG CO2' },
                   { id: 'BKG-7790', date: 'Aug 12, 2026', vehicle: 'Tata Ace', from: 'Shivaji Nagar', to: 'Baner', status: 'Cancelled', amount: '₹0' }
                 ].map((booking, idx) => (
                   <div key={idx} className="card p-5 bg-loft-900 flex flex-col md:flex-row md:items-center justify-between gap-4 border-l-4 border-l-transparent hover:border-l-copper-500 transition-all">
@@ -215,6 +215,22 @@ const CustomerDashboard = () => {
                         <MapPin className="w-4 h-4 text-copper-500" />
                         <span>{booking.from} &rarr; {booking.to}</span>
                       </div>
+                      {(booking.esgEmissions || booking.is3plOutsourced) && (
+                        <div className="flex flex-wrap items-center gap-3 mt-3">
+                          {booking.esgEmissions && (
+                            <span className="flex items-center gap-1.5 text-xs text-moss-400 bg-moss-900/30 px-2 py-1 rounded-md border border-moss-800">
+                              <Leaf className="w-3 h-3" />
+                              {booking.esgEmissions} Saved
+                            </span>
+                          )}
+                          {booking.is3plOutsourced && (
+                            <span className="flex items-center gap-1.5 text-xs text-blue-400 bg-blue-900/30 px-2 py-1 rounded-md border border-blue-800">
+                              <Truck className="w-3 h-3" />
+                              3PL Handled: {booking.thirdPartyProvider}
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center justify-between md:flex-col md:items-end gap-2">
                       <span className="text-xl font-bold text-loft-100">{booking.amount}</span>

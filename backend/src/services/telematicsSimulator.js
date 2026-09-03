@@ -24,6 +24,7 @@ const startTelemetrySimulation = (vehicleId) => {
   let engineTemp = 90; // normal operating temp
   let fuelLevel = 85; // %
   let rpm = 800; // idle
+  let healthScore = 100; // 0-100%
 
   const timer = setInterval(() => {
     try {
@@ -52,6 +53,28 @@ const startTelemetrySimulation = (vehicleId) => {
       // Fuel logic: slow drain
       fuelLevel = Math.max(0, fuelLevel - 0.01);
 
+      // Predictive Maintenance Logic
+      // If speed or RPM is too high, health score degrades over time
+      if (engineTemp > 98 || rpm > 2600) {
+        healthScore = Math.max(0, healthScore - 0.5);
+      } else if (healthScore < 100) {
+        healthScore = Math.min(100, healthScore + 0.1); // slow recovery
+      }
+
+      // 1% chance for a severe mechanical anomaly
+      if (Math.random() < 0.01) {
+        engineTemp += 15; // spike temp
+        healthScore -= 10;
+      }
+
+      let alertType = isHardBraking ? 'HARD_BRAKING' : null;
+      if (healthScore < 50) {
+        alertType = 'PREDICTIVE_MAINTENANCE_WARNING';
+      }
+      if (healthScore < 20) {
+        alertType = 'CRITICAL_ENGINE_FAILURE_IMMINENT';
+      }
+
       const telemetryData = {
         vehicleId,
         timestamp: new Date().toISOString(),
@@ -59,7 +82,8 @@ const startTelemetrySimulation = (vehicleId) => {
         engineTemp: Math.round(engineTemp), // Celsius
         fuelLevel: parseFloat(fuelLevel.toFixed(1)), // %
         rpm: Math.round(rpm),
-        alert: isHardBraking ? 'HARD_BRAKING' : null
+        healthScore: parseFloat(healthScore.toFixed(1)), // %
+        alert: alertType
       };
 
       // Broadcast to the admin telemetry room

@@ -46,8 +46,42 @@ const toggleAvailability = async (req, res) => {
   }
 };
 
+const generatePayslip = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const driver = await Driver.findByPk(id);
+    
+    if (!driver) {
+      return res.status(404).json({ success: false, message: 'Driver not found' });
+    }
+
+    // Mock Aggregation
+    const weeklyEarnings = 15000;
+    const platformFee = weeklyEarnings * 0.15;
+    const tdsTax = weeklyEarnings * 0.01;
+    const netPayout = weeklyEarnings - platformFee - tdsTax;
+
+    // In a real scenario, we'd use pdfkit here to create a buffer.
+    const payslipData = {
+      driverName: driver.name,
+      weekEnding: new Date().toISOString().split('T')[0],
+      grossEarnings: weeklyEarnings,
+      platformFee: parseFloat(platformFee.toFixed(2)),
+      tdsTax: parseFloat(tdsTax.toFixed(2)),
+      netPayout: parseFloat(netPayout.toFixed(2)),
+      pdfUrl: `https://eminence.com/api/drivers/${id}/payslip/download`
+    };
+
+    res.status(200).json({ success: true, payslip: payslipData });
+  } catch (error) {
+    console.error('Error generating payslip:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 module.exports = {
   getAllDrivers,
   createDriver,
-  toggleAvailability
+  toggleAvailability,
+  generatePayslip
 };

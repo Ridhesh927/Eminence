@@ -95,6 +95,23 @@ const Booking = sequelize.define('Booking', {
   gstAmount: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: true,
+  },
+  // ESG & 3PL Fields
+  esgEmissions: {
+    type: DataTypes.FLOAT,
+    allowNull: true,
+  },
+  is3plOutsourced: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
+  thirdPartyProvider: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  podHash: {
+    type: DataTypes.STRING,
+    allowNull: true,
   }
 }, {
   timestamps: true,

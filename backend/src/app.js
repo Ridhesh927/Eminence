@@ -29,6 +29,7 @@ const reviewRoutes = require('./routes/reviewRoutes');
 const walletRoutes = require('./routes/walletRoutes');
 const b2bRoutes = require('./routes/b2bRoutes');
 const addressRoutes = require('./routes/addressRoutes');
+const bookingRoutes = require('./routes/bookingRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
@@ -39,5 +40,6 @@ app.use('/api/integrations', integrationRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/b2b', b2bRoutes);
 app.use('/api/address', addressRoutes);
+app.use('/api/bookings', bookingRoutes);
 
 module.exports = app;
