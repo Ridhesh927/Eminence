@@ -32,8 +32,12 @@ const Navbar = () => {
             <div className="hidden md:flex items-center gap-5 lg:gap-6">
               {isAuthenticated ? (
                 <>
-                  <Link to="/booking" className="text-loft-300 hover:text-loft-50 font-medium transition-colors whitespace-nowrap">Book Tempo</Link>
-                  <Link to="/tracking" className="text-loft-300 hover:text-loft-50 font-medium transition-colors whitespace-nowrap">Track Booking</Link>
+                  {(user?.role === 'customer' || user?.role === 'business') && (
+                    <>
+                      <Link to="/booking" className="text-loft-300 hover:text-loft-50 font-medium transition-colors whitespace-nowrap">Book Tempo</Link>
+                      <Link to="/tracking" className="text-loft-300 hover:text-loft-50 font-medium transition-colors whitespace-nowrap">Track Booking</Link>
+                    </>
+                  )}
                 </>
               ) : (
                 <>
