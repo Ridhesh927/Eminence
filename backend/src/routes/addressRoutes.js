@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const { Address } = require('../models');
-const { verifyToken } = require('../middleware/auth');
+const authMiddleware = require('../middleware/authMiddleware');
 
-router.use(verifyToken);
+router.use(authMiddleware);
 
 // Get all addresses for user
 router.get('/', async (req, res) => {
