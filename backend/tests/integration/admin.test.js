@@ -28,13 +28,12 @@ describe('Admin & Analytics Integration Tests', () => {
       { expiresIn: '1h' }
     );
 
-    // Create a customer token for authorization testing
+    // Create customer token
     customerToken = jwt.sign(
-      { id: 'customer-123', role: 'customer' },
-      process.env.JWT_SECRET || 'fallback_secret',
-      { expiresIn: '1h' }
+      { id: '123e4567-e89b-12d3-a456-426614174000', role: 'customer' },
+      process.env.JWT_SECRET || 'secret'
     );
-  });
+  }, 30000);
 
   describe('POST /api/admin/login', () => {
     it('should authenticate admin with valid credentials', async () => {
