@@ -199,7 +199,7 @@ const AdminDashboard = () => {
 
   const fetchOverviewData = async () => {
     try {
-      const statsRes = await axios.get(`${API_BASE_URL}/api/analytics/overview`, getHeaders());
+      const statsRes = await axios.get(`${API_BASE_URL}/api/admin/stats/overview`, getHeaders());
       if (statsRes.data.success) {
         setStats(prev => ({
           ...prev,
@@ -216,12 +216,12 @@ const AdminDashboard = () => {
         }));
       }
       
-      const revRes = await axios.get(`${API_BASE_URL}/api/analytics/revenue`, getHeaders());
+      const revRes = await axios.get(`${API_BASE_URL}/api/admin/stats/revenue`, getHeaders());
       if (revRes.data.success) {
         setRevenueData(revRes.data.revenueData);
       }
 
-      const routeRes = await axios.get(`${API_BASE_URL}/api/analytics/routes`, getHeaders());
+      const routeRes = await axios.get(`${API_BASE_URL}/api/admin/stats/routes`, getHeaders());
       if (routeRes.data.success) {
         setRouteData(routeRes.data.routeData);
       }

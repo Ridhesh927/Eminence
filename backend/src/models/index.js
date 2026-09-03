@@ -11,6 +11,7 @@ const Wallet = require('./Wallet');
 const Transaction = require('./Transaction');
 const B2BContract = require('./B2BContract');
 const Invoice = require('./Invoice');
+const Address = require('./Address');
 
 // Define Relationships
 Customer.hasMany(Otp, { foreignKey: 'customerId', as: 'otps' });
@@ -46,6 +47,9 @@ B2BContract.belongsTo(Customer, { foreignKey: 'customerId', as: 'customer' });
 
 Customer.hasMany(Invoice, { foreignKey: 'customerId', as: 'invoices' });
 Invoice.belongsTo(Customer, { foreignKey: 'customerId', as: 'customer' });
+
+Customer.hasMany(Address, { foreignKey: 'customerId', as: 'addresses' });
+Address.belongsTo(Customer, { foreignKey: 'customerId', as: 'customer' });
 
 const { Client } = require('pg');
 
@@ -192,5 +196,6 @@ module.exports = {
   Wallet,
   Transaction,
   B2BContract,
-  Invoice
+  Invoice,
+  Address
 };

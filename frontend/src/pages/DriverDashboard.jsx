@@ -1,16 +1,66 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Navigation, Wallet, AlertTriangle, CheckCircle, Clock, MapPin, Fuel, TrendingUp, Map } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import axios from 'axios';
+import { io } from 'socket.io-client';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const DriverDashboard = () => {
   const [activeTab, setActiveTab] = useState('today');
   const [isOnline, setIsOnline] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [socket, setSocket] = useState(null);
   
   // Navigation State
   const [isNavigating, setIsNavigating] = useState(false);
+  const [activeRide, setActiveRide] = useState(null);
+  const [driverPos, setDriverPos] = useState({ lat: 18.5204, lng: 73.8567 });
+
+  useEffect(() => {
+    const newSocket = io(API_BASE_URL.replace('/api', ''), {
+      withCredentials: true,
+    });
+    setSocket(newSocket);
+    
+    // Auto-receive a mock ride request after 5 seconds if online
+    const timer = setTimeout(() => {
+      if (isOnline && !isNavigating) {
+        setActiveRide({
+          bookingId: 'BKG-1234',
+          fare: 450,
+          distance: '8.2 km',
+          duration: '25 Mins',
+          pickup: '123 Market Street, Viman Nagar',
+          dropoff: '456 Industrial Area, Hinjewadi'
+        });
+      }
+    }, 5000);
+
+    return () => {
+      newSocket.disconnect();
+      clearTimeout(timer);
+    };
+  }, [isOnline, isNavigating]);
+
+  // Simulate GPS movement
+  useEffect(() => {
+    if (isNavigating && activeRide && socket) {
+      const interval = setInterval(() => {
+        setDriverPos(prev => {
+          const newPos = { lat: prev.lat + 0.001, lng: prev.lng + 0.001 };
+          socket.emit('driver:location_update', {
+            bookingId: activeRide.bookingId,
+            lat: newPos.lat,
+            lng: newPos.lng
+          });
+          return newPos;
+        });
+      }, 2000);
+      return () => clearInterval(interval);
+    }
+  }, [isNavigating, activeRide, socket]);
 
   // Mock Earnings Data
   const weeklyEarnings = [
@@ -127,12 +177,12 @@ const DriverDashboard = () => {
                     <div className="flex justify-between items-start mb-6 relative z-10">
                       <div>
                         <span className="bg-copper-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider mb-3 inline-block">Surge 1.5x</span>
-                        <p className="text-4xl font-bold text-loft-50">₹450</p>
+                        <p className="text-4xl font-bold text-loft-50">₹{activeRide?.fare || 450}</p>
                         <p className="text-copper-400 text-sm font-medium">Est. Fare (Online Payment)</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-bold text-loft-50 text-xl">8.2 km</p>
-                        <p className="text-loft-400 text-sm">25 Mins</p>
+                        <p className="font-bold text-loft-50 text-xl">{activeRide?.distance || '8.2 km'}</p>
+                        <p className="text-loft-400 text-sm">{activeRide?.duration || '25 Mins'}</p>
                       </div>
                     </div>
 
@@ -146,12 +196,12 @@ const DriverDashboard = () => {
                       <div className="relative">
                         <div className="absolute -left-[29px] top-0.5 w-4 h-4 rounded-full bg-copper-500 border-4 border-loft-900"></div>
                         <p className="text-sm font-bold text-loft-200">Drop-off</p>
-                        <p className="text-sm text-loft-400">456 Industrial Area, Hinjewadi</p>
+                        <p className="text-sm text-loft-400">{activeRide?.dropoff || '456 Industrial Area, Hinjewadi'}</p>
                       </div>
                     </div>
 
                     <div className="flex gap-4 relative z-10">
-                      <button className="btn-secondary w-1/3">Decline</button>
+                      <button onClick={() => setActiveRide(null)} className="btn-secondary w-1/3">Decline</button>
                       <button onClick={handleAcceptTrip} className="btn-primary w-2/3 py-4 text-lg animate-pulse shadow-[0_0_15px_rgba(232,99,49,0.4)]">Accept Trip</button>
                     </div>
                   </div>

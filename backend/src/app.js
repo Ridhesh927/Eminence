@@ -28,6 +28,7 @@ const driverRoutes = require('./routes/driverRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const walletRoutes = require('./routes/walletRoutes');
 const b2bRoutes = require('./routes/b2bRoutes');
+const addressRoutes = require('./routes/addressRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
@@ -37,5 +38,6 @@ app.use('/api/reviews', reviewRoutes);
 app.use('/api/integrations', integrationRoutes);
 app.use('/api/wallet', walletRoutes);
 app.use('/api/b2b', b2bRoutes);
+app.use('/api/address', addressRoutes);
 
 module.exports = app;

@@ -14,10 +14,11 @@ L.Icon.Default.mergeOptions({
 
 // Custom truck icon for driver
 const truckIcon = new L.Icon({
-  iconUrl: 'https://cdn-icons-png.flaticon.com/512/75/75768.png', // placeholder truck icon
-  iconSize: [35, 35],
-  iconAnchor: [17, 35],
-  popupAnchor: [0, -35],
+  iconUrl: '/images/map_marker_truck_1787941237726.jpg', // 3D truck marker
+  iconSize: [45, 45],
+  iconAnchor: [22, 45],
+  popupAnchor: [0, -45],
+  className: 'rounded-full border-2 border-copper-500 shadow-lg object-cover'
 });
 
 const TrackingMap = ({ bookingId, initialLat = 18.5204, initialLng = 73.8567 }) => {

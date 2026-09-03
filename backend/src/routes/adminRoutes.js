@@ -34,4 +34,9 @@ router.post('/vehicles', validateVehicle, adminController.createVehicle);
 router.put('/vehicles/:id', validateVehicle, adminController.updateVehicle);
 router.delete('/vehicles/:id', adminController.deleteVehicle);
 
+// Analytics routes
+router.get('/stats/overview', adminController.getOverviewStats);
+router.get('/stats/revenue', adminController.getRevenueAnalytics);
+router.get('/stats/routes', adminController.getRouteAnalytics);
+
 module.exports = router;

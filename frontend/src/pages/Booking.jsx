@@ -275,14 +275,23 @@ const Booking = () => {
                 <div>
                   <label className="block text-sm font-medium text-loft-200 mb-3">Select Tempo Type</label>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {['small', 'medium', 'large'].map((type) => (
-                      <label key={type} className={`cursor-pointer border rounded-xl p-4 flex flex-col items-center transition-all ${formData.tempoType === type ? 'border-copper-500 bg-copper-500/10' : 'border-loft-800 bg-loft-950/50 hover:border-loft-600'}`}>
-                        <input type="radio" name="tempoType" value={type} checked={formData.tempoType === type} onChange={handleChange} className="sr-only" />
-                        <Truck className={`w-8 h-8 mb-2 ${formData.tempoType === type ? 'text-copper-500' : 'text-loft-400'}`} />
-                        <span className="font-bold text-loft-50 capitalize">{type}</span>
-                        <span className="text-xs text-loft-400">{type === 'small' ? 'Up to 750kg' : type === 'medium' ? 'Up to 1500kg' : 'Up to 3000kg'}</span>
-                      </label>
-                    ))}
+                    {['small', 'medium', 'large'].map((type) => {
+                      const imgMap = {
+                        small: '/images/small_tempo_asset_1787941110706.jpg',
+                        medium: '/images/medium_tempo_asset_1787941129862.jpg',
+                        large: '/images/large_truck_asset_1787941142605.jpg'
+                      };
+                      return (
+                        <label key={type} className={`cursor-pointer border rounded-xl p-4 flex flex-col items-center transition-all overflow-hidden relative group ${formData.tempoType === type ? 'border-copper-500 bg-copper-500/10' : 'border-loft-800 bg-loft-950/50 hover:border-loft-600'}`}>
+                          <input type="radio" name="tempoType" value={type} checked={formData.tempoType === type} onChange={handleChange} className="sr-only" />
+                          <div className="w-24 h-24 mb-3 rounded-full overflow-hidden border-2 border-transparent group-hover:border-copper-500 transition-colors">
+                            <img src={imgMap[type]} alt={`${type} truck`} className="w-full h-full object-cover scale-110" />
+                          </div>
+                          <span className="font-bold text-loft-50 capitalize">{type}</span>
+                          <span className="text-xs text-loft-400 text-center">{type === 'small' ? 'Up to 750kg' : type === 'medium' ? 'Up to 1500kg' : 'Up to 3000kg'}</span>
+                        </label>
+                      );
+                    })}
                   </div>
                 </div>
 

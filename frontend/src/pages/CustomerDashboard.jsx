@@ -12,12 +12,43 @@ const CustomerDashboard = () => {
   const [copySuccess, setCopySuccess] = useState(false);
   const [isPro] = useState(user?.isPro || false); // Mock state for Demo
   const [totalTrips] = useState(user?.totalTrips || 7); // Mock Gamification state
+  
+  // Addresses State
+  const [addresses, setAddresses] = useState([]);
+  const [newAddress, setNewAddress] = useState({ label: '', street: '', city: '', postalCode: '' });
 
   useEffect(() => {
     if (activeTab === 'rewards' && token) {
       fetchWallet();
     }
+    if (activeTab === 'addresses' && token) {
+      fetchAddresses();
+    }
   }, [activeTab, token]);
+
+  const fetchAddresses = async () => {
+    try {
+      const res = await axios.get('http://localhost:3000/api/address', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setAddresses(res.data);
+    } catch (error) {
+      console.error('Error fetching addresses:', error);
+    }
+  };
+
+  const handleSaveAddress = async () => {
+    try {
+      const res = await axios.post('http://localhost:3000/api/address', newAddress, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setAddresses([...addresses, res.data]);
+      setIsAddAddressOpen(false);
+      setNewAddress({ label: '', street: '', city: '', postalCode: '' });
+    } catch (error) {
+      console.error('Error saving address:', error);
+    }
+  };
 
   const fetchWallet = async () => {
     try {
@@ -253,20 +284,26 @@ const CustomerDashboard = () => {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="card p-6 border-l-4 border-l-copper-500">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <h4 className="font-bold text-loft-50 mb-1">Home</h4>
-                      <p className="text-loft-300 text-sm leading-relaxed">
-                        123 Main Street, Apt 4B<br/>
-                        Pune, Maharashtra 411001
-                      </p>
+                {addresses.length === 0 ? (
+                  <p className="text-loft-400">No saved addresses yet.</p>
+                ) : (
+                  addresses.map((address) => (
+                    <div key={address.id} className="card p-6 border-l-4 border-l-copper-500">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h4 className="font-bold text-loft-50 mb-1">{address.label}</h4>
+                          <p className="text-loft-300 text-sm leading-relaxed">
+                            {address.street}<br/>
+                            {address.city}, {address.postalCode}
+                          </p>
+                        </div>
+                        <div className="p-2 bg-loft-800 rounded-lg text-copper-500">
+                          <MapPin className="w-5 h-5" />
+                        </div>
+                      </div>
                     </div>
-                    <div className="p-2 bg-loft-800 rounded-lg text-copper-500">
-                      <MapPin className="w-5 h-5" />
-                    </div>
-                  </div>
-                </div>
+                  ))
+                )}
               </div>
             </motion.div>
           )}
@@ -371,20 +408,20 @@ const CustomerDashboard = () => {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-loft-200 mb-1">Label (e.g. Home, Office)</label>
-                  <input type="text" className="input-field" placeholder="Enter label" />
+                  <input type="text" className="input-field" placeholder="Enter label" value={newAddress.label} onChange={(e) => setNewAddress({...newAddress, label: e.target.value})} />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-loft-200 mb-1">Street Address</label>
-                  <textarea className="input-field resize-none h-24" placeholder="Enter full address"></textarea>
+                  <textarea className="input-field resize-none h-24" placeholder="Enter full address" value={newAddress.street} onChange={(e) => setNewAddress({...newAddress, street: e.target.value})}></textarea>
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-loft-200 mb-1">City</label>
-                    <input type="text" className="input-field" placeholder="Pune" />
+                    <input type="text" className="input-field" placeholder="Pune" value={newAddress.city} onChange={(e) => setNewAddress({...newAddress, city: e.target.value})} />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-loft-200 mb-1">Postal Code</label>
-                    <input type="text" className="input-field" placeholder="411001" />
+                    <input type="text" className="input-field" placeholder="411001" value={newAddress.postalCode} onChange={(e) => setNewAddress({...newAddress, postalCode: e.target.value})} />
                   </div>
                 </div>
               </div>
@@ -397,8 +434,9 @@ const CustomerDashboard = () => {
                   Cancel
                 </button>
                 <button 
-                  onClick={() => setIsAddAddressOpen(false)}
+                  onClick={handleSaveAddress}
                   className="btn-primary w-full"
+                  disabled={!newAddress.label || !newAddress.street}
                 >
                   Save Address
                 </button>
