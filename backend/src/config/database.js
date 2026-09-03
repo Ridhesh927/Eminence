@@ -30,7 +30,7 @@ if (!useSqlite && dbUrl) {
   }
 
   sequelize = new Sequelize(dbUrl, sequelizeOptions);
-} else if (process.env.NODE_ENV === 'development' || !process.env.NODE_ENV) {
+} else if (['development', 'test'].includes(process.env.NODE_ENV) || !process.env.NODE_ENV) {
   // Local development fallback to SQLite
   sequelize = new Sequelize({
     dialect: 'sqlite',
