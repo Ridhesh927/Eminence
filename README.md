@@ -428,6 +428,7 @@ NODE_ENV=production npm start
 | POST   | `/api/auth/register`   | Register new customer     |
 | POST   | `/api/auth/login`      | Send OTP to phone         |
 | POST   | `/api/auth/verify-otp` | Verify OTP, return JWT    |
+| POST   | `/api/auth/complete-profile` | Complete user profile |
 | POST   | `/api/auth/logout`     | Logout & invalidate token |
 | GET    | `/api/auth/me`         | Get current user profile  |
 
@@ -449,6 +450,24 @@ NODE_ENV=production npm start
 | POST   | `/api/addresses`     | Save new address    |
 | PUT    | `/api/addresses/:id` | Update address      |
 | DELETE | `/api/addresses/:id` | Delete address      |
+
+### **B2B / Enterprise Endpoints**
+
+| Method | Endpoint                 | Description         |
+| ------ | ------------------------ | ------------------- |
+| POST   | `/api/b2b/register`      | Upgrade account to B2B |
+| POST   | `/api/b2b/contracts`     | Request dedicated contract |
+| GET    | `/api/b2b/contracts`     | View active business contracts |
+| POST   | `/api/b2b/batch-bookings`| Schedule bulk booking via CSV |
+| GET    | `/api/b2b/invoices`      | View corporate invoices |
+
+### **Admin Endpoints**
+
+| Method | Endpoint                    | Description         |
+| ------ | --------------------------- | ------------------- |
+| GET    | `/api/admin/contracts`      | List all B2B contracts |
+| PUT    | `/api/admin/contracts/:id`  | Approve/Reject B2B contract |
+| GET    | `/api/admin/stats`          | Get overall platform stats |
 
 ### **IVR Endpoints**
 
