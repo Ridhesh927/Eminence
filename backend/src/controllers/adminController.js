@@ -1,5 +1,7 @@
-const { Driver, Customer, Vehicle, Booking, sequelize } = require('../models');
+const { Driver, Customer, Vehicle, Booking, AuditLog, PlatformConfig, sequelize } = require('../models');
 const { Op } = require('sequelize');
+const cache = require('../services/cacheService');
+const startTime = Date.now();
 
 // --- DRIVER CRUD ---
 
@@ -425,6 +427,183 @@ const getRouteAnalytics = async (req, res) => {
   }
 };
 
+// --- ENTERPRISE SCALE & MATURITY ---
+
+// Driver Utilization Analytics
+const getDriverUtilization = async (req, res) => {
+  try {
+    const cacheKey = 'analytics:driver_utilization';
+    const cached = cache.get(cacheKey);
+    if (cached) return res.status(200).json({ success: true, ...cached, fromCache: true });
+
+    const totalDrivers = await Driver.count();
+    const activeDrivers = await Driver.count({ where: { status: 'active' } });
+    const onTripDrivers = await Driver.count({ where: { status: 'on_trip' } });
+    const utilizationRate = totalDrivers > 0 ? ((onTripDrivers / totalDrivers) * 100).toFixed(1) : 0;
+
+    // Peak hours simulation (real implementation would query Booking.time)
+    const peakHours = [
+      { hour: '08:00', bookings: 12 }, { hour: '09:00', bookings: 18 },
+      { hour: '10:00', bookings: 22 }, { hour: '11:00', bookings: 15 },
+      { hour: '14:00', bookings: 20 }, { hour: '17:00', bookings: 28 },
+      { hour: '18:00', bookings: 35 }, { hour: '19:00', bookings: 25 }
+    ];
+
+    const data = { totalDrivers, activeDrivers, onTripDrivers, utilizationRate, peakHours };
+    cache.set(cacheKey, data, 30000); // Cache 30 seconds
+    res.status(200).json({ success: true, ...data });
+  } catch (error) {
+    console.error('Error fetching driver utilization:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// SLA Monitoring & Health Stats
+const getSlaStats = async (req, res) => {
+  try {
+    const uptimeMs = Date.now() - startTime;
+    const uptimeHours = (uptimeMs / 1000 / 60 / 60).toFixed(2);
+    const memoryUsage = process.memoryUsage();
+
+    // DB ping
+    let dbLatencyMs = null;
+    try {
+      const dbStart = Date.now();
+      await sequelize.authenticate();
+      dbLatencyMs = Date.now() - dbStart;
+    } catch { dbLatencyMs = -1; }
+
+    const sla = {
+      uptimeMs,
+      uptimeHours,
+      uptimePercentage: '99.9%', // Simulated
+      dbLatencyMs,
+      memoryUsageMb: (memoryUsage.heapUsed / 1024 / 1024).toFixed(2),
+      cacheStats: cache.stats(),
+      activeAlerts: dbLatencyMs > 500 ? ['HIGH_DB_LATENCY'] : []
+    };
+    res.status(200).json({ success: true, sla });
+  } catch (error) {
+    console.error('Error fetching SLA stats:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// Audit Logs
+const getAuditLogs = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 100);
+    const offset = (page - 1) * limit;
+
+    const { count, rows: logs } = await AuditLog.findAndCountAll({
+      order: [['createdAt', 'DESC']],
+      limit,
+      offset
+    });
+
+    res.status(200).json({ success: true, logs, total: count, page, totalPages: Math.ceil(count / limit) });
+  } catch (error) {
+    console.error('Error fetching audit logs:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// Platform Config (White-Label)
+const getPlatformConfig = async (req, res) => {
+  try {
+    const cacheKey = 'platform:config';
+    const cached = cache.get(cacheKey);
+    if (cached) return res.status(200).json({ success: true, config: cached });
+
+    let config = await PlatformConfig.findOne();
+    if (!config) {
+      config = await PlatformConfig.create({}); // Create with defaults
+    }
+    cache.set(cacheKey, config.toJSON(), 5 * 60 * 1000); // Cache 5 mins
+    res.status(200).json({ success: true, config });
+  } catch (error) {
+    console.error('Error fetching platform config:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+const updatePlatformConfig = async (req, res) => {
+  try {
+    let config = await PlatformConfig.findOne();
+    if (!config) config = await PlatformConfig.create({});
+    await config.update(req.body);
+    cache.del('platform:config');
+    res.status(200).json({ success: true, config });
+  } catch (error) {
+    console.error('Error updating platform config:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// Export bookings as JSON (Expense Management)
+const exportBookings = async (req, res) => {
+  try {
+    const { customerId, startDate, endDate } = req.query;
+    const where = {};
+    if (customerId) where.customerId = customerId;
+    if (startDate && endDate) {
+      where.date = { [Op.between]: [startDate, endDate] };
+    }
+
+    const bookings = await Booking.findAll({
+      where,
+      order: [['date', 'DESC']],
+      limit: 500
+    });
+
+    // Return structured data for CSV/PDF generation on the frontend
+    const exportData = bookings.map(b => ({
+      id: b.id,
+      date: b.date,
+      pickup: b.pickupAddress,
+      drop: b.dropAddress,
+      tempoType: b.tempoType,
+      fare: b.estimatedFare,
+      status: b.status,
+      esgEmissions: b.esgEmissions,
+      podHash: b.podHash
+    }));
+
+    res.status(200).json({ success: true, total: exportData.length, bookings: exportData });
+  } catch (error) {
+    console.error('Error exporting bookings:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
+// Dynamic Surge Pricing
+const getSurgePricing = async (req, res) => {
+  try {
+    const cacheKey = 'pricing:surge';
+    const cached = cache.get(cacheKey);
+    if (cached) return res.status(200).json({ success: true, ...cached, fromCache: true });
+
+    const activeBookings = await Booking.count({ where: { status: ['pending', 'driver_assigned', 'on_trip'] } });
+    const availableDrivers = await Driver.count({ where: { status: 'active' } });
+
+    let surgeMultiplier = 1.0;
+    let surgeLabel = 'Normal';
+
+    const demandRatio = availableDrivers > 0 ? activeBookings / availableDrivers : 999;
+    if (demandRatio > 3) { surgeMultiplier = 2.5; surgeLabel = 'High Demand'; }
+    else if (demandRatio > 2) { surgeMultiplier = 1.8; surgeLabel = 'Surge Active'; }
+    else if (demandRatio > 1.5) { surgeMultiplier = 1.3; surgeLabel = 'Slightly Busy'; }
+
+    const result = { surgeMultiplier, surgeLabel, activeBookings, availableDrivers, demandRatio: parseFloat(demandRatio.toFixed(2)) };
+    cache.set(cacheKey, result, 15000); // Cache 15s
+    res.status(200).json({ success: true, ...result });
+  } catch (error) {
+    console.error('Error calculating surge pricing:', error);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+};
+
 module.exports = {
   getDrivers,
   createDriver,
@@ -440,5 +619,12 @@ module.exports = {
   deleteVehicle,
   getOverviewStats,
   getRevenueAnalytics,
-  getRouteAnalytics
+  getRouteAnalytics,
+  getDriverUtilization,
+  getSlaStats,
+  getAuditLogs,
+  getPlatformConfig,
+  updatePlatformConfig,
+  exportBookings,
+  getSurgePricing
 };

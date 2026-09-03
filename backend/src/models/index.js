@@ -13,6 +13,8 @@ const B2BContract = require('./B2BContract');
 const Invoice = require('./Invoice');
 const Address = require('./Address');
 const Inventory = require('./Inventory');
+const AuditLog = require('./AuditLog');
+const PlatformConfig = require('./PlatformConfig');
 
 // Define Relationships
 Customer.hasMany(Otp, { foreignKey: 'customerId', as: 'otps' });
@@ -202,5 +204,7 @@ module.exports = {
   B2BContract,
   Invoice,
   Address,
-  Inventory
+  Inventory,
+  AuditLog,
+  PlatformConfig
 };

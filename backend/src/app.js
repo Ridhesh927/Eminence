@@ -16,7 +16,25 @@ app.use(express.urlencoded({ extended: true }));
 
 // Basic route
 app.get('/api/health', (_req, res) => {
-  res.status(200).json({ success: true, message: 'EMINENCE API is running' });
+  const mem = process.memoryUsage();
+  res.status(200).json({ 
+    success: true, 
+    message: 'EMINENCE API is running',
+    uptimeSeconds: Math.floor(process.uptime()),
+    memoryUsageMb: (mem.heapUsed / 1024 / 1024).toFixed(2)
+  });
+});
+
+// Public white-label config (no auth required)
+app.get('/api/config', async (_req, res) => {
+  try {
+    const { PlatformConfig } = require('./models');
+    let config = await PlatformConfig.findOne();
+    if (!config) config = await PlatformConfig.create({});
+    res.status(200).json({ success: true, config });
+  } catch {
+    res.status(200).json({ success: true, config: { brandName: 'Eminence Logistics', primaryColor: '#b87333' } });
+  }
 });
 
 // Routes

@@ -14,5 +14,12 @@ router.use(adminMiddleware);
 router.get('/overview', adminController.getOverviewStats);
 router.get('/revenue', adminController.getRevenueAnalytics);
 router.get('/routes', adminController.getRouteAnalytics);
+router.get('/utilization', adminController.getDriverUtilization);
+router.get('/sla', adminController.getSlaStats);
+router.get('/audit-logs', adminController.getAuditLogs);
+router.get('/surge', adminController.getSurgePricing);
+router.get('/export-bookings', adminController.exportBookings);
+router.get('/platform-config', adminController.getPlatformConfig);
+router.put('/platform-config', adminController.updatePlatformConfig);
 
 module.exports = router;
