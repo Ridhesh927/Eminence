@@ -69,6 +69,15 @@ const Customer = sequelize.define('Customer', {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  // Gamification & Retention Fields
+  isPro: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
+  totalTrips: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+  },
   // B2B & Enterprise Fields
   isBusiness: {
     type: DataTypes.BOOLEAN,

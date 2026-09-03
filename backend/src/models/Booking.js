@@ -35,6 +35,10 @@ const Booking = sequelize.define('Booking', {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: true,
   },
+  insuranceFee: {
+    type: DataTypes.DECIMAL(10, 2),
+    defaultValue: 0,
+  },
   bookingMode: {
     type: DataTypes.ENUM('dedicated', 'shared'),
     defaultValue: 'dedicated',

@@ -1,21 +1,26 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Calendar, Clock, Truck, Box, ShieldCheck, Tag } from 'lucide-react';
+import { MapPin, Calendar, Clock, Truck, Box, ShieldCheck, Tag, Package, Shield, Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
 
 const Booking = () => {
   const navigate = useNavigate();
-  const { token } = useSelector((state) => state.auth);
+  const { user, token } = useSelector((state) => state.auth);
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const [promoCode, setPromoCode] = useState('');
   const [discount, setDiscount] = useState(0);
   const [promoMessage, setPromoMessage] = useState(null);
   
   // Smart Pricing Engine (Simulated Surge)
   const [surgeMultiplier] = useState(1.4); // e.g. 1.4x due to Rush Hour
+
+  // Gamification States
+  const [hasInsurance, setHasInsurance] = useState(false);
+  const [isPro] = useState(user?.isPro || true); // Mocking true for Demo purposes
   
   const [formData, setFormData] = useState({
     pickup: '',
@@ -75,9 +80,20 @@ const Booking = () => {
     }
 
     const waitingFee = formData.isRoundTrip ? formData.waitingTimeHours * 100 : 0;
+    const insuranceFee = hasInsurance ? 50 : 0;
     
-    const total = base + waitingFee;
-    return Math.max(0, total - discount);
+    let total = base + waitingFee + insuranceFee;
+
+    // Eminence Pro Discount (5% off total)
+    if (isPro) {
+      total *= 0.95;
+    }
+
+    if (discount > 0) {
+      total -= discount;
+    }
+    
+    return Math.max(0, Math.round(total));
   };
 
   const handleApplyPromo = async () => {
@@ -296,6 +312,26 @@ const Booking = () => {
                   </div>
                 </div>
 
+                {/* Cargo Insurance Toggle */}
+                <div className="pt-4 border-t border-loft-800">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input 
+                      type="checkbox" 
+                      className="mt-1 w-5 h-5 accent-copper-500 rounded bg-loft-900 border-loft-700" 
+                      checked={hasInsurance} 
+                      onChange={() => setHasInsurance(!hasInsurance)} 
+                    />
+                    <div>
+                      <span className="text-loft-50 font-bold flex items-center gap-2">
+                        <Shield className="w-4 h-4 text-moss-500" /> Secure Cargo Insurance (+₹50)
+                      </span>
+                      <p className="text-xs text-loft-400 mt-1">
+                        Protect your high-value goods up to ₹50,000 against transit damage instantly.
+                      </p>
+                    </div>
+                  </label>
+                </div>
+
                 <div className="flex gap-4 mt-6">
                   <button type="button" onClick={handleBack} className="btn-secondary w-1/3">Back</button>
                   <button type="submit" className="btn-primary w-2/3">Continue to Payment</button>
@@ -344,17 +380,31 @@ const Booking = () => {
                   {formData.drops.length > 1 && (
                     <div className="flex justify-between items-center mb-2">
                       <span className="text-loft-300">Multiple Stops Fee ({formData.drops.length - 1} extra)</span>
-                      <span className="font-medium text-loft-100">₹{Math.max(0, (formData.drops.length - 1) * 150)}</span>
+                      <span className="font-medium">
+                        +₹{(formData.drops.length - 1) * 150}
+                      </span>
                     </div>
                   )}
                   {formData.isRoundTrip && (
-                    <div className="flex justify-between items-center mb-2 text-copper-400">
+                    <div className="flex justify-between items-center mb-2">
                       <span className="text-loft-300">Waiting Fee ({formData.waitingTimeHours} hrs)</span>
-                      <span className="font-medium">₹{formData.waitingTimeHours * 100}</span>
+                      <span className="font-medium">+₹{formData.waitingTimeHours * 100}</span>
+                    </div>
+                  )}
+                  {hasInsurance && (
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-loft-300 flex items-center gap-2"><Shield className="w-4 h-4 text-moss-500"/> Cargo Insurance</span>
+                      <span className="font-medium text-moss-400">+₹50</span>
+                    </div>
+                  )}
+                  {isPro && (
+                    <div className="flex justify-between items-center mb-2 text-yellow-500">
+                      <span className="text-yellow-500 flex items-center gap-2 font-bold"><Crown className="w-4 h-4"/> Eminence Pro Discount</span>
+                      <span className="font-bold">-5%</span>
                     </div>
                   )}
                   {discount > 0 && (
-                    <div className="flex justify-between items-center mb-4 text-moss-500">
+                    <div className="flex justify-between items-center mb-4 pt-4 border-t border-loft-800">
                       <span>Discount Applied</span>
                       <span className="font-bold">-₹{discount}</span>
                     </div>
