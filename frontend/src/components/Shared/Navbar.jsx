@@ -10,8 +10,8 @@ const Navbar = () => {
     <nav className="sticky top-0 z-50 bg-loft-950/80 backdrop-blur-md border-b border-loft-800/60 transition-all">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-20 items-center">
-          {/* Left: Logo and Nav Links */}
-          <div className="flex items-center gap-8 lg:gap-12">
+          {/* Left: Logo and Nav Links grouped together */}
+          <div className="flex items-center gap-6 lg:gap-8">
             <Link to="/" className="flex items-center gap-2 group">
               <div className="bg-copper-500/10 p-2 rounded-lg group-hover:bg-copper-500/20 transition-colors">
                 <Truck className="w-6 h-6 text-copper-500" />
@@ -21,26 +21,25 @@ const Navbar = () => {
               </span>
             </Link>
 
-            <div className="hidden md:flex items-center space-x-6 lg:space-x-8">
+            <div className="hidden md:flex items-center gap-5 lg:gap-6">
               {isAuthenticated ? (
                 <>
-                  <Link to="/booking" className="text-loft-300 hover:text-loft-50 font-medium transition-colors">Book Tempo</Link>
-                  <Link to="/tracking" className="text-loft-300 hover:text-loft-50 font-medium transition-colors">Track Booking</Link>
+                  <Link to="/booking" className="text-loft-300 hover:text-loft-50 font-medium transition-colors whitespace-nowrap">Book Tempo</Link>
+                  <Link to="/tracking" className="text-loft-300 hover:text-loft-50 font-medium transition-colors whitespace-nowrap">Track Booking</Link>
                 </>
               ) : (
                 <>
-                  <Link to="/services" className="text-loft-300 hover:text-loft-50 font-medium transition-colors">Services</Link>
-                  <Link to="/contracts" className="text-loft-300 hover:text-loft-50 font-medium transition-colors hidden lg:block">Business Contracts</Link>
-                  <Link to="/pricing" className="text-loft-300 hover:text-loft-50 font-medium transition-colors hidden lg:block">Pricing</Link>
-                  <Link to="/about" className="text-loft-300 hover:text-loft-50 font-medium transition-colors hidden xl:block">About Us</Link>
-                  <Link to="/contact" className="text-loft-300 hover:text-loft-50 font-medium transition-colors hidden xl:block">Contact</Link>
+                  <Link to="/services" className="text-loft-300 hover:text-loft-50 font-medium transition-colors whitespace-nowrap">Services</Link>
+                  <Link to="/contracts" className="text-loft-300 hover:text-loft-50 font-medium transition-colors hidden lg:block whitespace-nowrap">Business Contracts</Link>
+                  <Link to="/pricing" className="text-loft-300 hover:text-loft-50 font-medium transition-colors hidden lg:block whitespace-nowrap">Pricing</Link>
+                  <Link to="/about" className="text-loft-300 hover:text-loft-50 font-medium transition-colors hidden xl:block whitespace-nowrap">About Us</Link>
+                  <Link to="/contact" className="text-loft-300 hover:text-loft-50 font-medium transition-colors hidden xl:block whitespace-nowrap">Contact</Link>
                 </>
               )}
             </div>
           </div>
           
           {/* Right: Actions */}
-
           <div className="hidden md:flex items-center space-x-4 lg:space-x-6">
             <a href="tel:18001234567" className="flex items-center gap-2 px-4 py-2 bg-moss-500/10 border border-moss-500/20 rounded-full text-moss-300 hover:bg-moss-500/20 transition-all cursor-pointer">
               <Phone className="w-4 h-4" />
@@ -53,7 +52,7 @@ const Navbar = () => {
                 Dashboard
               </Link>
             ) : (
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center gap-4">
                 <Link to="/login" className="text-loft-300 hover:text-loft-50 font-medium transition-colors whitespace-nowrap">
                   Sign In
                 </Link>

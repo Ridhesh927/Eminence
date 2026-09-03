@@ -1,6 +1,91 @@
 @import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@400;500;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
 
 @import "tailwindcss";
+:root {
+  --loft-50: #f4f6f8;
+  --loft-100: #e4e9f0;
+  --loft-200: #c9d3df;
+  --loft-300: #a2b2c7;
+  --loft-400: #748bac;
+  --loft-500: #556c91;
+  --loft-600: #425576;
+  --loft-700: #36445f;
+  --loft-800: #2f3a4e;
+  --loft-900: #293243;
+  --loft-950: #0f141f;
+
+  --copper-50: #fef5f1;
+  --copper-100: #fce8df;
+  --copper-200: #fad1c0;
+  --copper-300: #f6b399;
+  --copper-400: #f08b65;
+  --copper-500: #e86331;
+  --copper-600: #db4b1e;
+  --copper-700: #b73915;
+  --copper-800: #912e17;
+  --copper-900: #752815;
+  --copper-950: #3f1107;
+
+  --moss-50: #f2f9f4;
+  --moss-100: #e1f2e5;
+  --moss-200: #c3e4cc;
+  --moss-300: #96cfb3;
+  --moss-400: #62b395;
+  --moss-500: #3e9779;
+  --moss-600: #2d7960;
+  --moss-700: #26604e;
+  --moss-800: #214d40;
+  --moss-900: #1c3f35;
+  --moss-950: #0e231e;
+
+  --glow-primary: rgba(232, 99, 49, 0.08);
+  --glow-secondary: rgba(62, 151, 121, 0.05);
+  --grid-color: rgba(128, 128, 128, 0.07);
+  --shadow-hover-color: rgba(232, 99, 49, 0.15);
+}
+
+html[data-theme="light"] {
+  --loft-50: #020617;
+  --loft-100: #0f172a;
+  --loft-200: #1e293b;
+  --loft-300: #334155;
+  --loft-400: #475569;
+  --loft-500: #64748b;
+  --loft-600: #94a3b8;
+  --loft-700: #cbd5e1;
+  --loft-800: #e2e8f0;
+  --loft-900: #f1f5f9;
+  --loft-950: #f8fafc;
+
+  --copper-50: #fff5f2;
+  --copper-100: #ffe4db;
+  --copper-200: #ffcdbd;
+  --copper-300: #ffa285;
+  --copper-400: #ff734d;
+  --copper-500: #e05320;
+  --copper-600: #c23c13;
+  --copper-700: #9e2a0b;
+  --copper-800: #7d2009;
+  --copper-900: #611807;
+  --copper-950: #330a03;
+
+  --moss-50: #f0fbf6;
+  --moss-100: #dcf7ea;
+  --moss-200: #b9edd2;
+  --moss-300: #86dcaf;
+  --moss-400: #4ec48b;
+  --moss-500: #229e64;
+  --moss-600: #177d4e;
+  --moss-700: #12623d;
+  --moss-800: #0e4f32;
+  --moss-900: #0a3d27;
+  --moss-950: #052014;
+
+  --glow-primary: rgba(232, 99, 49, 0.03);
+  --glow-secondary: rgba(34, 158, 100, 0.03);
+  --grid-color: rgba(0, 0, 0, 0.04);
+  --shadow-hover-color: rgba(232, 99, 49, 0.06);
+}
 
 @theme {
   --color-loft-50: #f4f6f8;

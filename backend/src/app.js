@@ -23,6 +23,7 @@ app.get('/api/health', (_req, res) => {
 const authRoutes = require('./routes/authRoutes');
 const integrationRoutes = require('./routes/integrationRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const analyticsRoutes = require('./routes/analyticsRoutes');
 const driverRoutes = require('./routes/driverRoutes');
 const reviewRoutes = require('./routes/reviewRoutes');
 const walletRoutes = require('./routes/walletRoutes');
@@ -30,6 +31,7 @@ const b2bRoutes = require('./routes/b2bRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/analytics', analyticsRoutes);
 app.use('/api/drivers', driverRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/integrations', integrationRoutes);

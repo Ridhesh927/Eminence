@@ -1,9 +1,381 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { BarChart3, Users, Truck, FileText, Settings, ShieldAlert, Activity, DollarSign } from 'lucide-react';
+import { useSelector } from 'react-redux';
+import axios from 'axios';
+import { io } from 'socket.io-client';
+import { 
+  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, 
+  CartesianGrid, Tooltip, BarChart, Bar, Cell 
+} from 'recharts';
+import { 
+  BarChart3, Users, Truck, FileText, Settings, 
+  ShieldAlert, Activity, DollarSign, Plus, Edit2, Trash2,
+  MessageSquare, Send
+} from 'lucide-react';
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
+const CustomTooltip = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-loft-900 border border-loft-800 p-3 rounded-xl shadow-xl">
+        <p className="text-xs text-loft-400 font-medium">{payload[0].payload.date}</p>
+        <p className="text-sm font-bold text-copper-500 mt-1">₹{payload[0].value.toLocaleString()}</p>
+      </div>
+    );
+  }
+  return null;
+};
+
+const CustomRouteTooltip = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-loft-900 border border-loft-800 p-3 rounded-xl shadow-xl max-w-xs">
+        <p className="text-xs text-loft-200 font-bold">{payload[0].payload.route}</p>
+        <p className="text-sm font-semibold text-moss-500 mt-1">{payload[0].value} trips completed</p>
+      </div>
+    );
+  }
+  return null;
+};
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
+  const { user } = useSelector((state) => state.auth);
+  const token = user?.token || localStorage.getItem('token');
+
+  // Overview stats & list state
+  const [stats, setStats] = useState({
+    revenue: '₹0',
+    activeDrivers: '0',
+    totalVehicles: '0',
+    totalCustomers: '0',
+    activities: []
+  });
+
+  // Analytics states
+  const [revenueData, setRevenueData] = useState([]);
+  const [routeData, setRouteData] = useState([]);
+
+  // CRUD state
+  const [customers, setCustomers] = useState([]);
+  const [drivers, setDrivers] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  // Chat Inbox states
+  const [activeChats, setActiveChats] = useState([]);
+  const [selectedChat, setSelectedChat] = useState(null); // chat object
+  const [chatMessages, setChatMessages] = useState([]);
+  const [replyText, setReplyText] = useState('');
+  const socketRef = useRef(null);
+  const messagesEndRef = useRef(null);
+
+  // Modal / Form state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalType, setModalType] = useState(''); // 'customer', 'driver', 'vehicle'
+  const [editMode, setEditMode] = useState(false); // true for update, false for create
+  const [currentItem, setCurrentItem] = useState(null); // item being edited
+
+  // Form Fields
+  const [customerForm, setCustomerForm] = useState({
+    name: '', phone: '', email: '', city: '', state: '', address: '', isPhoneVerified: true, isProfileComplete: true
+  });
+  const [driverForm, setDriverForm] = useState({
+    name: '', phone: '', email: '', licenseNumber: '', status: 'active'
+  });
+  const [vehicleForm, setVehicleForm] = useState({
+    registrationNumber: '', type: 'small', model: '', capacityWeight: 1000, status: 'available'
+  });
+
+  // Fetch API headers
+  const getHeaders = () => ({
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  // Auto scroll in chat
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [chatMessages, selectedChat]);
+
+  // Fetch Data based on active tab
+  useEffect(() => {
+    if (activeTab === 'overview' || activeTab === 'analytics') {
+      fetchOverviewData();
+    } else if (activeTab === 'users') {
+      fetchCustomers();
+    } else if (activeTab === 'drivers') {
+      fetchDrivers();
+    } else if (activeTab === 'vehicles') {
+      fetchVehicles();
+    }
+  }, [activeTab]);
+
+  // Selected chat ref to prevent stale closures in socket callbacks
+  const selectedChatRef = useRef(selectedChat);
+  useEffect(() => {
+    selectedChatRef.current = selectedChat;
+  }, [selectedChat]);
+
+  // Admin Socket.io connection for Support Inbox
+  useEffect(() => {
+    if (activeTab !== 'chat') {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+      setSelectedChat(null);
+      setChatMessages([]);
+      return;
+    }
+
+    const socket = io(API_BASE_URL, {
+      auth: { token }
+    });
+    socketRef.current = socket;
+
+    // Join admin inbox channel
+    socket.emit('join_admin');
+
+    socket.on('chat_list', (list) => {
+      setActiveChats(list || []);
+    });
+
+    // Update active chats list in sidebar only — never overwrite active thread view
+    socket.on('chat_list_update', (list) => {
+      setActiveChats(list || []);
+    });
+
+    socket.on('chat_history', (data) => {
+      const history = Array.isArray(data) ? data : (data?.messages || []);
+      const targetId = data?.customerId;
+      if (!targetId || targetId === selectedChatRef.current?.customerId) {
+        setChatMessages(history);
+      }
+    });
+
+    socket.on('receive_message', (msg) => {
+      if (msg.customerId === selectedChatRef.current?.customerId) {
+        setChatMessages((prev) => {
+          // Avoid duplicate messages
+          if (msg.id && prev.some(m => m.id === msg.id)) return prev;
+          return [...prev, msg];
+        });
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [activeTab]);
+
+  const selectChatRoom = (chat) => {
+    const prevId = selectedChat?.customerId;
+    setSelectedChat(chat);
+    setChatMessages(chat.messages || []);
+
+    if (socketRef.current) {
+      socketRef.current.emit('admin_select_chat', {
+        customerId: chat.customerId,
+        previousCustomerId: prevId
+      });
+    }
+  };
+
+  const handleSendReply = (e) => {
+    e.preventDefault();
+    if (!replyText.trim() || !selectedChat || !socketRef.current) return;
+
+    socketRef.current.emit('send_message', {
+      customerId: selectedChat.customerId,
+      sender: 'admin',
+      text: replyText,
+      name: 'Admin Support'
+    });
+
+    setReplyText('');
+  };
+
+  const fetchOverviewData = async () => {
+    try {
+      const statsRes = await axios.get(`${API_BASE_URL}/api/analytics/overview`, getHeaders());
+      if (statsRes.data.success) {
+        setStats(prev => ({
+          ...prev,
+          revenue: statsRes.data.stats.revenue,
+          activeDrivers: statsRes.data.stats.activeDrivers,
+          totalVehicles: statsRes.data.stats.totalVehicles,
+          totalCustomers: statsRes.data.stats.totalCustomers,
+          activities: [
+            { time: '10:42 AM', event: 'New Booking Created', user: 'Rahul D.', status: 'Processing' },
+            { time: '10:39 AM', event: 'Driver Offline (MH 12)', status: 'Completed', user: 'System' },
+            { time: '10:30 AM', event: 'B2B Contract Signed', user: 'DMart', status: 'Success' },
+            { time: '10:15 AM', event: 'Support Ticket Raised', user: 'Sneha K.', status: 'Pending' }
+          ]
+        }));
+      }
+      
+      const revRes = await axios.get(`${API_BASE_URL}/api/analytics/revenue`, getHeaders());
+      if (revRes.data.success) {
+        setRevenueData(revRes.data.revenueData);
+      }
+
+      const routeRes = await axios.get(`${API_BASE_URL}/api/analytics/routes`, getHeaders());
+      if (routeRes.data.success) {
+        setRouteData(routeRes.data.routeData);
+      }
+    } catch (err) {
+      console.error('Error fetching overview data:', err);
+    }
+  };
+
+  const fetchCustomers = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/admin/customers`, getHeaders());
+      if (res.data.success) {
+        setCustomers(res.data.customers);
+      }
+    } catch (err) {
+      console.error('Error fetching customers:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchDrivers = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/admin/drivers`, getHeaders());
+      if (res.data.success) {
+        setDrivers(res.data.drivers);
+      }
+    } catch (err) {
+      console.error('Error fetching drivers:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchVehicles = async () => {
+    setLoading(true);
+    try {
+      const res = await axios.get(`${API_BASE_URL}/api/admin/vehicles`, getHeaders());
+      if (res.data.success) {
+        setVehicles(res.data.vehicles);
+      }
+    } catch (err) {
+      console.error('Error fetching vehicles:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- CRUD Actions ---
+
+  const handleOpenCreateModal = (type) => {
+    setModalType(type);
+    setEditMode(false);
+    setCurrentItem(null);
+    if (type === 'customer') {
+      setCustomerForm({ name: '', phone: '', email: '', city: '', state: '', address: '', isPhoneVerified: true, isProfileComplete: true });
+    } else if (type === 'driver') {
+      setDriverForm({ name: '', phone: '', email: '', licenseNumber: '', status: 'active' });
+    } else if (type === 'vehicle') {
+      setVehicleForm({ registrationNumber: '', type: 'small', model: '', capacityWeight: 1000, status: 'available' });
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleOpenEditModal = (type, item) => {
+    setModalType(type);
+    setEditMode(true);
+    setCurrentItem(item);
+    if (type === 'customer') {
+      setCustomerForm({
+        name: item.name || '',
+        phone: item.phone || '',
+        email: item.email || '',
+        city: item.city || '',
+        state: item.state || '',
+        address: item.address || '',
+        isPhoneVerified: item.isPhoneVerified ?? true,
+        isProfileComplete: item.isProfileComplete ?? true
+      });
+    } else if (type === 'driver') {
+      setDriverForm({
+        name: item.name || '',
+        phone: item.phone || '',
+        email: item.email || '',
+        licenseNumber: item.licenseNumber || '',
+        status: item.status || 'active'
+      });
+    } else if (type === 'vehicle') {
+      setVehicleForm({
+        registrationNumber: item.registrationNumber || '',
+        type: item.type || 'small',
+        model: item.model || '',
+        capacityWeight: item.capacityWeight || 1000,
+        status: item.status || 'available'
+      });
+    }
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteItem = async (type, id) => {
+    if (!window.confirm(`Are you sure you want to delete this ${type}?`)) return;
+    try {
+      const endpoint = `${API_BASE_URL}/api/admin/${type === 'customer' ? 'customers' : type + 's'}/${id}`;
+      const res = await axios.delete(endpoint, getHeaders());
+      if (res.data.success) {
+        alert(`${type} deleted successfully`);
+        if (type === 'customer') fetchCustomers();
+        else if (type === 'driver') fetchDrivers();
+        else if (type === 'vehicle') fetchVehicles();
+      }
+    } catch (err) {
+      console.error(`Error deleting ${type}:`, err);
+      alert(err.response?.data?.message || 'Delete operation failed');
+    }
+  };
+
+  const handleSubmitForm = async (e) => {
+    e.preventDefault();
+    try {
+      let endpoint = '';
+      let method = 'post';
+      let payload = {};
+
+      if (modalType === 'customer') {
+        endpoint = `${API_BASE_URL}/api/admin/customers`;
+        payload = customerForm;
+      } else if (modalType === 'driver') {
+        endpoint = `${API_BASE_URL}/api/admin/drivers`;
+        payload = driverForm;
+      } else if (modalType === 'vehicle') {
+        endpoint = `${API_BASE_URL}/api/admin/vehicles`;
+        payload = vehicleForm;
+      }
+
+      if (editMode && currentItem) {
+        endpoint += `/${currentItem.id}`;
+        method = 'put';
+      }
+
+      const res = await axios[method](endpoint, payload, getHeaders());
+      if (res.data.success) {
+        alert(`${modalType} ${editMode ? 'updated' : 'created'} successfully`);
+        setIsModalOpen(false);
+        if (modalType === 'customer') fetchCustomers();
+        else if (modalType === 'driver') fetchDrivers();
+        else if (modalType === 'vehicle') fetchVehicles();
+      }
+    } catch (err) {
+      console.error('Form submit error:', err);
+      alert(err.response?.data?.message || 'Save operation failed');
+    }
+  };
 
   return (
     <div className="w-full pt-12 pb-24 relative min-h-screen bg-loft-950">
@@ -25,12 +397,13 @@ const AdminDashboard = () => {
                 { id: 'vehicles', label: 'Manage Vehicles', icon: Truck },
                 { id: 'contracts', label: 'Contracts', icon: FileText },
                 { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+                { id: 'chat', label: 'Support Inbox', icon: MessageSquare },
                 { id: 'settings', label: 'Settings', icon: Settings },
               ].map((item) => (
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-sm font-medium ${
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors text-sm font-medium cursor-pointer ${
                     activeTab === item.id 
                       ? 'bg-copper-500 text-white' 
                       : 'text-loft-300 hover:text-loft-50 hover:bg-loft-800'
@@ -48,7 +421,6 @@ const AdminDashboard = () => {
         <div className="flex-1">
           {activeTab === 'overview' && (
             <div className="space-y-8">
-              
               <div className="flex justify-between items-center">
                 <h1 className="text-3xl font-bold text-loft-50 font-serif">System Overview</h1>
                 <div className="text-sm text-loft-400">Last updated: Just now</div>
@@ -57,10 +429,10 @@ const AdminDashboard = () => {
               {/* Stats Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {[
-                  { label: 'Revenue (Today)', value: '₹1,24,500', icon: DollarSign, color: 'text-moss-500' },
-                  { label: 'Active Drivers', value: '342', icon: Truck, color: 'text-blue-500' },
-                  { label: 'Pending Contracts', value: '14', icon: FileText, color: 'text-copper-500' },
-                  { label: 'Support Tickets', value: '28', icon: ShieldAlert, color: 'text-red-500' }
+                  { label: 'Revenue (Today)', value: stats.revenue, icon: DollarSign, color: 'text-moss-500' },
+                  { label: 'Active Drivers', value: stats.activeDrivers, icon: Truck, color: 'text-blue-500' },
+                  { label: 'Total Vehicles', value: stats.totalVehicles, icon: FileText, color: 'text-copper-500' },
+                  { label: 'Total Customers', value: stats.totalCustomers, icon: Users, color: 'text-red-500' }
                 ].map((stat, idx) => (
                   <motion.div 
                     initial={{ opacity: 0, y: 10 }}
@@ -78,17 +450,52 @@ const AdminDashboard = () => {
                 ))}
               </div>
 
-              {/* Graphs Placeholder */}
+              {/* Graphs Container */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="card p-6 bg-loft-900 border-loft-800 h-80 flex flex-col items-center justify-center border-dashed">
-                  <BarChart3 className="w-12 h-12 text-loft-700 mb-4" />
-                  <h3 className="text-lg font-bold text-loft-200">Revenue Chart (Mock)</h3>
-                  <p className="text-sm text-loft-400">Will render Recharts/Chart.js here</p>
+                <div className="card p-6 bg-loft-900 border-loft-800 h-80 flex flex-col justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-loft-50 font-serif">Revenue Trend</h3>
+                    <p className="text-xs text-loft-400">Weekly platform transactions</p>
+                  </div>
+                  <div className="h-56 w-full mt-4">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={revenueData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#e86331" stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor="#e86331" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#2a2220" />
+                        <XAxis dataKey="date" stroke="#94a3b8" fontSize={11} tickLine={false} />
+                        <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Area type="monotone" dataKey="revenue" stroke="#e86331" fillOpacity={1} fill="url(#colorRev)" strokeWidth={2} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
-                <div className="card p-6 bg-loft-900 border-loft-800 h-80 flex flex-col items-center justify-center border-dashed">
-                  <Activity className="w-12 h-12 text-loft-700 mb-4" />
-                  <h3 className="text-lg font-bold text-loft-200">Peak Hours Analysis</h3>
-                  <p className="text-sm text-loft-400">Will render heatmap here</p>
+
+                <div className="card p-6 bg-loft-900 border-loft-800 h-80 flex flex-col justify-between">
+                  <div>
+                    <h3 className="text-lg font-bold text-loft-50 font-serif">Popular Routes</h3>
+                    <p className="text-xs text-loft-400">Top 5 trip destinations</p>
+                  </div>
+                  <div className="h-56 w-full mt-4">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={routeData} layout="vertical" margin={{ top: 10, right: 10, left: 30, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#2c2420" horizontal={false} />
+                        <XAxis type="number" stroke="#94a3b8" fontSize={11} />
+                        <YAxis dataKey="route" type="category" stroke="#94a3b8" fontSize={10} width={120} tickLine={false} />
+                        <Tooltip content={<CustomRouteTooltip />} />
+                        <Bar dataKey="trips" fill="#229e64" radius={[0, 4, 4, 0]}>
+                          {routeData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={index === 0 ? '#e86331' : '#229e64'} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               </div>
               
@@ -109,12 +516,7 @@ const AdminDashboard = () => {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-loft-800">
-                      {[
-                        { time: '10:42 AM', event: 'New Booking Created', user: 'Rahul D.', status: 'Processing' },
-                        { time: '10:39 AM', event: 'Driver Offline', user: 'MH 12 XY 9981', status: 'Completed' },
-                        { time: '10:30 AM', event: 'B2B Contract Signed', user: 'DMart (Kalyani Nagar)', status: 'Success' },
-                        { time: '10:15 AM', event: 'Support Ticket Raised', user: 'Sneha K.', status: 'Pending' }
-                      ].map((row, idx) => (
+                      {stats.activities.map((row, idx) => (
                         <tr key={idx} className="hover:bg-loft-800/50 transition-colors">
                           <td className="px-6 py-4 whitespace-nowrap">{row.time}</td>
                           <td className="px-6 py-4">{row.event}</td>
@@ -133,186 +535,594 @@ const AdminDashboard = () => {
                   </table>
                 </div>
               </div>
-
             </div>
           )}
 
+          {/* Dedicated Analytics View */}
+          {activeTab === 'analytics' && (
+            <div className="space-y-8">
+              <div className="flex justify-between items-center">
+                <h1 className="text-3xl font-bold text-loft-50 font-serif">Business Analytics</h1>
+                <button 
+                  onClick={fetchOverviewData}
+                  className="btn-secondary py-2 px-4 text-sm font-semibold rounded-xl cursor-pointer"
+                >
+                  Refresh Reports
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 gap-8">
+                <div className="card p-8 bg-loft-900 border-loft-800">
+                  <h3 className="text-xl font-bold text-loft-50 font-serif mb-2">Revenue Growth</h3>
+                  <p className="text-sm text-loft-400 mb-6">Detailed transaction analytics across standard billing dates.</p>
+                  <div className="h-96 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={revenueData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="colorRevFull" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#e86331" stopOpacity={0.4}/>
+                            <stop offset="95%" stopColor="#e86331" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#2a2220" />
+                        <XAxis dataKey="date" stroke="#94a3b8" fontSize={12} />
+                        <YAxis stroke="#94a3b8" fontSize={12} />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Area type="monotone" dataKey="revenue" stroke="#e86331" fillOpacity={1} fill="url(#colorRevFull)" strokeWidth={3} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                <div className="card p-8 bg-loft-900 border-loft-800">
+                  <h3 className="text-xl font-bold text-loft-50 font-serif mb-2">Popular Route Traffic</h3>
+                  <p className="text-sm text-loft-400 mb-6">Visual volume representation of peak-loaded routes.</p>
+                  <div className="h-96 w-full">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={routeData} layout="vertical" margin={{ top: 10, right: 20, left: 40, bottom: 5 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#2c2420" horizontal={false} />
+                        <XAxis type="number" stroke="#94a3b8" fontSize={12} />
+                        <YAxis dataKey="route" type="category" stroke="#94a3b8" fontSize={11} width={150} tickLine={false} />
+                        <Tooltip content={<CustomRouteTooltip />} />
+                        <Bar dataKey="trips" fill="#229e64" radius={[0, 6, 6, 0]} barSize={24}>
+                          {routeData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={index === 0 ? '#e86331' : '#229e64'} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Manage Users Tab */}
           {activeTab === 'users' && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            <div className="space-y-6">
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-loft-50 font-serif">Manage Users</h2>
-                <button className="btn-primary text-sm py-2">Add New User</button>
+                <h1 className="text-3xl font-bold text-loft-50 font-serif">Manage Users</h1>
+                <button 
+                  onClick={() => handleOpenCreateModal('customer')}
+                  className="btn-primary flex items-center gap-2 py-2 px-4 text-sm font-semibold rounded-xl cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" /> Add User
+                </button>
               </div>
+
               <div className="card bg-loft-900 border-loft-800 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm text-loft-300">
-                    <thead className="bg-loft-950/50 text-xs uppercase font-medium">
-                      <tr>
-                        <th className="px-6 py-4">Name</th>
-                        <th className="px-6 py-4">Phone</th>
-                        <th className="px-6 py-4">Total Bookings</th>
-                        <th className="px-6 py-4">Status</th>
-                        <th className="px-6 py-4">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-loft-800">
-                      {[
-                        { name: 'Rahul Deshmukh', phone: '+91 9876543210', bookings: 12, status: 'Active' },
-                        { name: 'Sneha Kulkarni', phone: '+91 9876543211', bookings: 5, status: 'Active' },
-                        { name: 'Amit Patil', phone: '+91 9876543212', bookings: 24, status: 'Inactive' }
-                      ].map((user, idx) => (
-                        <tr key={idx} className="hover:bg-loft-800/50 transition-colors">
-                          <td className="px-6 py-4 font-medium text-loft-200">{user.name}</td>
-                          <td className="px-6 py-4">{user.phone}</td>
-                          <td className="px-6 py-4">{user.bookings}</td>
-                          <td className="px-6 py-4">
-                            <span className={`px-2 py-1 rounded text-xs font-bold ${
-                              user.status === 'Active' ? 'bg-moss-500/10 text-moss-500' : 'bg-red-500/10 text-red-500'
-                            }`}>
-                              {user.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <button className="text-copper-500 hover:text-copper-400 font-medium text-xs mr-3">Edit</button>
-                            <button className="text-red-500 hover:text-red-400 font-medium text-xs">Block</button>
-                          </td>
+                {loading ? (
+                  <div className="p-12 text-center text-loft-400">Loading customers...</div>
+                ) : customers.length === 0 ? (
+                  <div className="p-12 text-center text-loft-400">No users found.</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm text-loft-300">
+                      <thead className="bg-loft-950/50 text-xs uppercase font-medium">
+                        <tr>
+                          <th className="px-6 py-4">Name</th>
+                          <th className="px-6 py-4">Phone</th>
+                          <th className="px-6 py-4">Email</th>
+                          <th className="px-6 py-4">City</th>
+                          <th className="px-6 py-4 text-right">Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody className="divide-y divide-loft-800">
+                        {customers.map((cust) => (
+                          <tr key={cust.id} className="hover:bg-loft-800/50 transition-colors">
+                            <td className="px-6 py-4 font-medium text-loft-100">{cust.name || 'N/A'}</td>
+                            <td className="px-6 py-4">{cust.phone || 'N/A'}</td>
+                            <td className="px-6 py-4">{cust.email || 'N/A'}</td>
+                            <td className="px-6 py-4">{cust.city || 'N/A'}</td>
+                            <td className="px-6 py-4 text-right flex justify-end gap-2">
+                              <button 
+                                onClick={() => handleOpenEditModal('customer', cust)}
+                                className="p-2 text-loft-400 hover:text-copper-500 rounded-lg hover:bg-loft-800 transition-colors"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteItem('customer', cust.id)}
+                                className="p-2 text-loft-400 hover:text-red-500 rounded-lg hover:bg-loft-800 transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
-            </motion.div>
+            </div>
           )}
 
+          {/* Manage Drivers Tab */}
           {activeTab === 'drivers' && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+            <div className="space-y-6">
               <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-loft-50 font-serif">Manage Drivers</h2>
-                <button className="btn-primary text-sm py-2">Onboard Driver</button>
-              </div>
-              <div className="card bg-loft-900 border-loft-800 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm text-loft-300">
-                    <thead className="bg-loft-950/50 text-xs uppercase font-medium">
-                      <tr>
-                        <th className="px-6 py-4">Driver Name</th>
-                        <th className="px-6 py-4">Vehicle No.</th>
-                        <th className="px-6 py-4">Rating</th>
-                        <th className="px-6 py-4">Status</th>
-                        <th className="px-6 py-4">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-loft-800">
-                      {[
-                        { name: 'Suresh Kumar', vehicle: 'MH 12 AB 1234', rating: '4.8', status: 'On Trip' },
-                        { name: 'Ramesh Singh', vehicle: 'MH 14 XY 9876', rating: '4.5', status: 'Available' },
-                        { name: 'Vikram Jadhav', vehicle: 'MH 12 CD 5678', rating: '4.9', status: 'Offline' }
-                      ].map((driver, idx) => (
-                        <tr key={idx} className="hover:bg-loft-800/50 transition-colors">
-                          <td className="px-6 py-4 font-medium text-loft-200">{driver.name}</td>
-                          <td className="px-6 py-4">{driver.vehicle}</td>
-                          <td className="px-6 py-4">⭐ {driver.rating}</td>
-                          <td className="px-6 py-4">
-                            <span className={`px-2 py-1 rounded text-xs font-bold ${
-                              driver.status === 'Available' ? 'bg-moss-500/10 text-moss-500' :
-                              driver.status === 'On Trip' ? 'bg-copper-500/10 text-copper-500' : 'bg-loft-500/10 text-loft-400'
-                            }`}>
-                              {driver.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <button className="text-copper-500 hover:text-copper-400 font-medium text-xs mr-3">View Profile</button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          {activeTab === 'contracts' && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-              <div className="flex justify-between items-center">
-                <h2 className="text-2xl font-bold text-loft-50 font-serif">Receipts & Contracts</h2>
-                <div className="flex gap-2">
-                  <button className="btn-secondary text-sm py-2">Export CSV</button>
-                  <button className="btn-primary text-sm py-2">Generate Receipt</button>
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                 <div className="card p-4 bg-loft-900 border-l-4 border-l-moss-500">
-                   <p className="text-loft-400 text-xs font-medium uppercase mb-1">Total Collected</p>
-                   <p className="text-2xl font-bold text-loft-50">₹45,200</p>
-                 </div>
-                 <div className="card p-4 bg-loft-900 border-l-4 border-l-copper-500">
-                   <p className="text-loft-400 text-xs font-medium uppercase mb-1">Pending Payments</p>
-                   <p className="text-2xl font-bold text-loft-50">₹8,400</p>
-                 </div>
-                 <div className="card p-4 bg-loft-900 border-l-4 border-l-blue-500">
-                   <p className="text-loft-400 text-xs font-medium uppercase mb-1">Invoices Generated</p>
-                   <p className="text-2xl font-bold text-loft-50">142</p>
-                 </div>
+                <h1 className="text-3xl font-bold text-loft-50 font-serif">Manage Drivers</h1>
+                <button 
+                  onClick={() => handleOpenCreateModal('driver')}
+                  className="btn-primary flex items-center gap-2 py-2 px-4 text-sm font-semibold rounded-xl cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" /> Add Driver
+                </button>
               </div>
 
               <div className="card bg-loft-900 border-loft-800 overflow-hidden">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm text-loft-300">
-                    <thead className="bg-loft-950/50 text-xs uppercase font-medium">
-                      <tr>
-                        <th className="px-6 py-4">Receipt ID</th>
-                        <th className="px-6 py-4">Date</th>
-                        <th className="px-6 py-4">Customer/Business</th>
-                        <th className="px-6 py-4">Amount</th>
-                        <th className="px-6 py-4">Status</th>
-                        <th className="px-6 py-4">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-loft-800">
-                      {[
-                        { id: 'RCP-2026-0801', date: '21 Aug, 2026', name: 'DMart (Kalyani Nagar)', amount: '₹12,500', status: 'Paid' },
-                        { id: 'RCP-2026-0802', date: '21 Aug, 2026', name: 'Rahul Deshmukh', amount: '₹850', status: 'Paid' },
-                        { id: 'RCP-2026-0803', date: '20 Aug, 2026', name: 'Reliance Fresh', amount: '₹8,400', status: 'Pending' },
-                        { id: 'RCP-2026-0804', date: '19 Aug, 2026', name: 'Sneha Kulkarni', amount: '₹450', status: 'Paid' }
-                      ].map((receipt, idx) => (
-                        <tr key={idx} className="hover:bg-loft-800/50 transition-colors">
-                          <td className="px-6 py-4 font-medium text-loft-200">{receipt.id}</td>
-                          <td className="px-6 py-4">{receipt.date}</td>
-                          <td className="px-6 py-4">{receipt.name}</td>
-                          <td className="px-6 py-4 font-bold text-loft-100">{receipt.amount}</td>
-                          <td className="px-6 py-4">
-                            <span className={`px-2 py-1 rounded text-xs font-bold ${
-                              receipt.status === 'Paid' ? 'bg-moss-500/10 text-moss-500' : 'bg-copper-500/10 text-copper-500'
-                            }`}>
-                              {receipt.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4">
-                            <button className="text-copper-500 hover:text-copper-400 font-medium text-xs flex items-center gap-1">
-                              <FileText className="w-3 h-3" /> View PDF
-                            </button>
-                          </td>
+                {loading ? (
+                  <div className="p-12 text-center text-loft-400">Loading drivers...</div>
+                ) : drivers.length === 0 ? (
+                  <div className="p-12 text-center text-loft-400">No drivers found.</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm text-loft-300">
+                      <thead className="bg-loft-950/50 text-xs uppercase font-medium">
+                        <tr>
+                          <th className="px-6 py-4">Name</th>
+                          <th className="px-6 py-4">Phone</th>
+                          <th className="px-6 py-4">License Number</th>
+                          <th className="px-6 py-4">Status</th>
+                          <th className="px-6 py-4 text-right">Actions</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                      </thead>
+                      <tbody className="divide-y divide-loft-800">
+                        {drivers.map((drv) => (
+                          <tr key={drv.id} className="hover:bg-loft-800/50 transition-colors">
+                            <td className="px-6 py-4 font-medium text-loft-100">{drv.name}</td>
+                            <td className="px-6 py-4">{drv.phone}</td>
+                            <td className="px-6 py-4">{drv.licenseNumber}</td>
+                            <td className="px-6 py-4">
+                              <span className={`px-2 py-1 rounded text-xs font-bold capitalize ${
+                                drv.status === 'active' ? 'bg-moss-500/10 text-moss-500' :
+                                drv.status === 'on_trip' ? 'bg-copper-500/10 text-copper-500' : 'bg-loft-700 text-loft-400'
+                              }`}>
+                                {drv.status.replace('_', ' ')}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right flex justify-end gap-2">
+                              <button 
+                                onClick={() => handleOpenEditModal('driver', drv)}
+                                className="p-2 text-loft-400 hover:text-copper-500 rounded-lg hover:bg-loft-800 transition-colors"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteItem('driver', drv.id)}
+                                className="p-2 text-loft-400 hover:text-red-500 rounded-lg hover:bg-loft-800 transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
-            </motion.div>
+            </div>
           )}
 
-          {['vehicles', 'analytics', 'settings'].includes(activeTab) && (
+          {/* Manage Vehicles Tab */}
+          {activeTab === 'vehicles' && (
+            <div className="space-y-6">
+              <div className="flex justify-between items-center">
+                <h1 className="text-3xl font-bold text-loft-50 font-serif">Manage Vehicles</h1>
+                <button 
+                  onClick={() => handleOpenCreateModal('vehicle')}
+                  className="btn-primary flex items-center gap-2 py-2 px-4 text-sm font-semibold rounded-xl cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" /> Add Vehicle
+                </button>
+              </div>
+
+              <div className="card bg-loft-900 border-loft-800 overflow-hidden">
+                {loading ? (
+                  <div className="p-12 text-center text-loft-400">Loading vehicles...</div>
+                ) : vehicles.length === 0 ? (
+                  <div className="p-12 text-center text-loft-400">No vehicles found.</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm text-loft-300">
+                      <thead className="bg-loft-950/50 text-xs uppercase font-medium">
+                        <tr>
+                          <th className="px-6 py-4">Reg Number</th>
+                          <th className="px-6 py-4">Type</th>
+                          <th className="px-6 py-4">Model</th>
+                          <th className="px-6 py-4">Weight (kg)</th>
+                          <th className="px-6 py-4">Status</th>
+                          <th className="px-6 py-4 text-right">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-loft-800">
+                        {vehicles.map((vh) => (
+                          <tr key={vh.id} className="hover:bg-loft-800/50 transition-colors">
+                            <td className="px-6 py-4 font-medium text-loft-100">{vh.registrationNumber}</td>
+                            <td className="px-6 py-4 capitalize">{vh.type}</td>
+                            <td className="px-6 py-4">{vh.model || 'N/A'}</td>
+                            <td className="px-6 py-4">{vh.capacityWeight}</td>
+                            <td className="px-6 py-4">
+                              <span className={`px-2 py-1 rounded text-xs font-bold capitalize ${
+                                vh.status === 'available' ? 'bg-moss-500/10 text-moss-500' :
+                                vh.status === 'on_trip' ? 'bg-copper-500/10 text-copper-500' : 'bg-red-500/10 text-red-500'
+                              }`}>
+                                {vh.status.replace('_', ' ')}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 text-right flex justify-end gap-2">
+                              <button 
+                                onClick={() => handleOpenEditModal('vehicle', vh)}
+                                className="p-2 text-loft-400 hover:text-copper-500 rounded-lg hover:bg-loft-800 transition-colors"
+                              >
+                                <Edit2 className="w-4 h-4" />
+                              </button>
+                              <button 
+                                onClick={() => handleDeleteItem('vehicle', vh.id)}
+                                className="p-2 text-loft-400 hover:text-red-500 rounded-lg hover:bg-loft-800 transition-colors"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Support Inbox Tab (Phase 3) */}
+          {activeTab === 'chat' && (
+            <div className="space-y-6 h-[75vh] flex flex-col">
+              <h1 className="text-3xl font-bold text-loft-50 font-serif">Support Inbox</h1>
+
+              <div className="flex-grow flex bg-loft-900 border border-loft-800 rounded-2xl overflow-hidden min-h-0">
+                {/* Left pane: Active Chat list */}
+                <div className="w-1/3 border-r border-loft-800 flex flex-col">
+                  <div className="p-4 border-b border-loft-800">
+                    <p className="text-xs font-bold text-loft-400 uppercase tracking-wider">Active Conversations</p>
+                  </div>
+                  <div className="flex-1 overflow-y-auto divide-y divide-loft-800/40">
+                    {activeChats.length === 0 ? (
+                      <div className="p-8 text-center text-loft-400 text-xs">No active tickets.</div>
+                    ) : (
+                      activeChats.map((chat) => {
+                        const isSelected = selectedChat?.customerId === chat.customerId;
+                        const lastMsg = chat.messages[chat.messages.length - 1];
+                        return (
+                          <button
+                            key={chat.customerId}
+                            onClick={() => selectChatRoom(chat)}
+                            className={`w-full text-left p-4 hover:bg-loft-800/50 transition-colors block cursor-pointer ${
+                              isSelected ? 'bg-loft-800 border-l-4 border-copper-500' : ''
+                            }`}
+                          >
+                            <p className="font-bold text-loft-100 text-sm truncate">{chat.customerName}</p>
+                            <p className="text-xs text-loft-400 truncate mt-1">
+                              {lastMsg ? `${lastMsg.name}: ${lastMsg.text}` : 'No messages yet'}
+                            </p>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                {/* Right pane: Message details */}
+                <div className="flex-1 flex flex-col bg-loft-950/20">
+                  {selectedChat ? (
+                    <>
+                      {/* Chat Header */}
+                      <div className="p-4 border-b border-loft-800 flex items-center justify-between bg-loft-950/40">
+                        <div>
+                          <p className="font-bold text-loft-50 font-serif text-sm">{selectedChat.customerName}</p>
+                          <p className="text-[10px] text-moss-500 font-bold uppercase tracking-wider">Room: {selectedChat.customerId.split('-')[0]}</p>
+                        </div>
+                      </div>
+
+                      {/* Chat Messages */}
+                      <div className="flex-grow p-6 overflow-y-auto space-y-4 flex flex-col min-h-0">
+                        {chatMessages.map((msg, index) => {
+                          const isMe = msg.sender === 'admin';
+                          return (
+                            <div
+                              key={index}
+                              className={`max-w-[70%] rounded-2xl p-3 text-xs leading-relaxed ${
+                                isMe
+                                  ? 'bg-copper-500 text-white self-end rounded-tr-none'
+                                  : 'bg-loft-900 text-loft-100 border border-loft-800 self-start rounded-tl-none'
+                              }`}
+                            >
+                              <p className="font-bold mb-0.5 text-[9px] opacity-75">
+                                {isMe ? 'You' : msg.name || 'Customer'}
+                              </p>
+                              <p className="whitespace-pre-wrap">{msg.text}</p>
+                              <span className="block text-[8px] opacity-50 mt-1 text-right">
+                                {msg.time}
+                              </span>
+                            </div>
+                          );
+                        })}
+                        <div ref={messagesEndRef} />
+                      </div>
+
+                      {/* Chat Input */}
+                      <form onSubmit={handleSendReply} className="p-4 border-t border-loft-800 bg-loft-900 flex gap-3">
+                        <input
+                          type="text"
+                          placeholder="Type your response..."
+                          className="flex-1 input-field py-3 text-xs"
+                          value={replyText}
+                          onChange={(e) => setReplyText(e.target.value)}
+                        />
+                        <button
+                          type="submit"
+                          disabled={!replyText.trim()}
+                          className="btn-primary p-3 rounded-xl disabled:opacity-50 cursor-pointer"
+                        >
+                          <Send className="w-5 h-5" />
+                        </button>
+                      </form>
+                    </>
+                  ) : (
+                    <div className="flex-1 flex flex-col items-center justify-center text-loft-400 text-sm">
+                      <MessageSquare className="w-12 h-12 text-loft-800 mb-3" />
+                      Select a conversation to start chatting in real-time.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Placeholder for other tabs */}
+          {['contracts', 'settings'].includes(activeTab) && (
              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card p-24 bg-loft-900 text-center flex flex-col items-center justify-center border-dashed border-loft-800/80">
               <h3 className="text-2xl font-bold text-loft-200 mb-2 capitalize">{activeTab} Management</h3>
-              <p className="text-loft-400 max-w-md">This section is currently under development.</p>
+              <p className="text-loft-400 max-w-md">CRUD operations for {activeTab} will be implemented here connected to the Node.js backend.</p>
             </motion.div>
           )}
         </div>
-        
       </div>
+
+      {/* CRUD Modal Dialog */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-loft-900 border border-loft-800 rounded-2xl max-w-md w-full p-8 relative z-50 shadow-2xl">
+            <h2 className="text-2xl font-bold text-loft-50 mb-6 font-serif capitalize">
+              {editMode ? 'Edit' : 'Add'} {modalType}
+            </h2>
+
+            <form onSubmit={handleSubmitForm} className="space-y-4">
+              
+              {/* Customer Form Fields */}
+              {modalType === 'customer' && (
+                <>
+                  <div>
+                    <label className="block text-xs font-semibold text-loft-300 uppercase tracking-wider mb-2">Name</label>
+                    <input 
+                      type="text" 
+                      required
+                      className="input-field" 
+                      value={customerForm.name}
+                      onChange={(e) => setCustomerForm({ ...customerForm, name: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-loft-300 uppercase tracking-wider mb-2">Phone</label>
+                    <input 
+                      type="text" 
+                      required
+                      className="input-field" 
+                      value={customerForm.phone}
+                      onChange={(e) => setCustomerForm({ ...customerForm, phone: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-loft-300 uppercase tracking-wider mb-2">Email</label>
+                    <input 
+                      type="email" 
+                      className="input-field" 
+                      value={customerForm.email}
+                      onChange={(e) => setCustomerForm({ ...customerForm, email: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-loft-300 uppercase tracking-wider mb-2">City</label>
+                      <input 
+                        type="text" 
+                        className="input-field" 
+                        value={customerForm.city}
+                        onChange={(e) => setCustomerForm({ ...customerForm, city: e.target.value })}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-loft-300 uppercase tracking-wider mb-2">State</label>
+                      <input 
+                        type="text" 
+                        className="input-field" 
+                        value={customerForm.state}
+                        onChange={(e) => setCustomerForm({ ...customerForm, state: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-loft-300 uppercase tracking-wider mb-2">Address</label>
+                    <textarea 
+                      rows="2"
+                      className="input-field py-2" 
+                      value={customerForm.address}
+                      onChange={(e) => setCustomerForm({ ...customerForm, address: e.target.value })}
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Driver Form Fields */}
+              {modalType === 'driver' && (
+                <>
+                  <div>
+                    <label className="block text-xs font-semibold text-loft-300 uppercase tracking-wider mb-2">Name</label>
+                    <input 
+                      type="text" 
+                      required
+                      className="input-field" 
+                      value={driverForm.name}
+                      onChange={(e) => setDriverForm({ ...driverForm, name: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-loft-300 uppercase tracking-wider mb-2">Phone</label>
+                    <input 
+                      type="text" 
+                      required
+                      className="input-field" 
+                      value={driverForm.phone}
+                      onChange={(e) => setDriverForm({ ...driverForm, phone: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-loft-300 uppercase tracking-wider mb-2">Email</label>
+                    <input 
+                      type="email" 
+                      className="input-field" 
+                      value={driverForm.email}
+                      onChange={(e) => setDriverForm({ ...driverForm, email: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-loft-300 uppercase tracking-wider mb-2">License Number</label>
+                    <input 
+                      type="text" 
+                      required
+                      className="input-field" 
+                      value={driverForm.licenseNumber}
+                      onChange={(e) => setDriverForm({ ...driverForm, licenseNumber: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-loft-300 uppercase tracking-wider mb-2">Status</label>
+                    <select 
+                      className="input-field py-3 bg-loft-950" 
+                      value={driverForm.status}
+                      onChange={(e) => setDriverForm({ ...driverForm, status: e.target.value })}
+                    >
+                      <option value="active">Active</option>
+                      <option value="inactive">Inactive</option>
+                      <option value="on_trip">On Trip</option>
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {/* Vehicle Form Fields */}
+              {modalType === 'vehicle' && (
+                <>
+                  <div>
+                    <label className="block text-xs font-semibold text-loft-300 uppercase tracking-wider mb-2">Registration Number</label>
+                    <input 
+                      type="text" 
+                      required
+                      className="input-field" 
+                      value={vehicleForm.registrationNumber}
+                      onChange={(e) => setVehicleForm({ ...vehicleForm, registrationNumber: e.target.value })}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-loft-300 uppercase tracking-wider mb-2">Model</label>
+                    <input 
+                      type="text" 
+                      className="input-field" 
+                      value={vehicleForm.model}
+                      onChange={(e) => setVehicleForm({ ...vehicleForm, model: e.target.value })}
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-loft-300 uppercase tracking-wider mb-2">Type</label>
+                      <select 
+                        className="input-field py-3 bg-loft-950" 
+                        value={vehicleForm.type}
+                        onChange={(e) => setVehicleForm({ ...vehicleForm, type: e.target.value })}
+                      >
+                        <option value="small">Small</option>
+                        <option value="medium">Medium</option>
+                        <option value="large">Large</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-loft-300 uppercase tracking-wider mb-2">Capacity (kg)</label>
+                      <input 
+                        type="number" 
+                        required
+                        className="input-field" 
+                        value={vehicleForm.capacityWeight}
+                        onChange={(e) => setVehicleForm({ ...vehicleForm, capacityWeight: parseInt(e.target.value) || 0 })}
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-loft-300 uppercase tracking-wider mb-2">Status</label>
+                    <select 
+                      className="input-field py-3 bg-loft-950" 
+                      value={vehicleForm.status}
+                      onChange={(e) => setVehicleForm({ ...vehicleForm, status: e.target.value })}
+                    >
+                      <option value="available">Available</option>
+                      <option value="maintenance">Maintenance</option>
+                      <option value="on_trip">On Trip</option>
+                    </select>
+                  </div>
+                </>
+              )}
+
+              {/* Form Buttons */}
+              <div className="flex justify-end gap-3 pt-6 border-t border-loft-800">
+                <button 
+                  type="button" 
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-5 py-2.5 bg-transparent border border-loft-700 hover:bg-loft-800 text-loft-300 rounded-xl text-sm font-semibold transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit"
+                  className="btn-primary py-2.5 px-5 text-sm font-semibold rounded-xl cursor-pointer"
+                >
+                  Save Changes
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

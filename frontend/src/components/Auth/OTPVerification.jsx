@@ -40,7 +40,7 @@ const OTPVerification = () => {
           
           if (data.success) {
             localStorage.setItem('token', data.token);
-            const userRole = location.state?.role || data.user.role || 'customer';
+            const userRole = data.user.role || 'customer';
             dispatch(loginSuccess({
               id: data.user.id,
               phone: data.user.phone,
@@ -147,7 +147,7 @@ const OTPVerification = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-5rem)] flex items-center justify-center pt-28 pb-16 px-4 sm:px-6 lg:px-8 relative">
+    <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(232,99,49,0.08),transparent_50%)] pointer-events-none"></div>
 
       <motion.div 

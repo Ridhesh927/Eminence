@@ -1,5 +1,6 @@
 import Navbar from './Navbar';
 import Footer from './Footer';
+import ChatWidget from './ChatWidget';
 
 const MainLayout = ({ children }) => {
   return (
@@ -8,6 +9,7 @@ const MainLayout = ({ children }) => {
       <main className="flex-grow">
         {children}
       </main>
+      <ChatWidget />
       <Footer />
     </div>
   );

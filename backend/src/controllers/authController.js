@@ -274,9 +274,11 @@ const phoneLogin = async (req, res) => {
 const phoneVerify = async (req, res) => {
   try {
     const { phone, code } = req.body;
+    const userRole = 'customer'; // Role is strictly determined server-side
     
-    // For demo purposes, we can hardcode '1234' as a bypass
-    if (code === '1234') {
+    // For local development only, allow bypass for the designated seed phone number
+    const isDevDemo = process.env.NODE_ENV === 'development' && code === '1234' && phone === (process.env.SEED_PHONE || '1234567890');
+    if (isDevDemo) {
       let customer = await Customer.findOne({ where: { phone } });
       if (!customer) {
         const refCode = `EMINENCE-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
@@ -289,11 +291,15 @@ const phoneVerify = async (req, res) => {
       }
       customer = await checkAndSetProfileComplete(customer);
       const token = jwt.sign(
-        { id: customer.id, role: 'customer', isProfileComplete: customer.isProfileComplete },
+        { id: customer.id, role: userRole, isProfileComplete: customer.isProfileComplete },
         process.env.JWT_SECRET || 'fallback_secret',
         { expiresIn: process.env.JWT_EXPIRE || '7d' }
       );
-      return res.status(200).json({ success: true, token, user: customer });
+
+      const userObj = customer.toJSON ? customer.toJSON() : { ...customer };
+      userObj.role = userRole;
+
+      return res.status(200).json({ success: true, token, user: userObj });
     }
 
     const customer = await Customer.findOne({ where: { phone } });
@@ -311,12 +317,15 @@ const phoneVerify = async (req, res) => {
     const verifiedCustomer = await checkAndSetProfileComplete(customer);
 
     const token = jwt.sign(
-      { id: verifiedCustomer.id, role: 'customer', isProfileComplete: verifiedCustomer.isProfileComplete },
+      { id: verifiedCustomer.id, role: userRole, isProfileComplete: verifiedCustomer.isProfileComplete },
       process.env.JWT_SECRET || 'fallback_secret',
       { expiresIn: process.env.JWT_EXPIRE || '7d' }
     );
 
-    return res.status(200).json({ success: true, token, user: verifiedCustomer });
+    const userObj = verifiedCustomer.toJSON ? verifiedCustomer.toJSON() : { ...verifiedCustomer };
+    userObj.role = userRole;
+
+    return res.status(200).json({ success: true, token, user: userObj });
   } catch (error) {
     console.error('Phone Verify Error:', error);
     return res.status(500).json({ success: false, message: 'Server error' });
