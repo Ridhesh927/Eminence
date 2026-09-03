@@ -632,13 +632,13 @@ git push origin feature/your-feature-name
 
 | Name                           | Role                 | GitHub                          |
 | ------------------------------ | -------------------- | ------------------------------- |
-| Ridhesh Mahajan (1012412023)   | Full-Stack Developer | [@ridhesh](https://github.com/) |
-| Krishna Dhamdhere (1012412008) | Backend Developer    | [@krishna](https://github.com/) |
-| Sanket Devkar (1012412002)     | Frontend Developer   | [@sanket](https://github.com/)  |
-| Pranay Khodake (1012412009)    | Full-Stack Developer | [@pranay](https://github.com/)  |
+| Ridhesh Mahajan (1012412023)   | Full Stack Developer | [@Ridhesh927](https://github.com/Ridhesh927) |
+| Krishna Dhamdhere (1012412008) | Full Stack Developer | [@20-Krishna-04](https://github.com/20-Krishna-04) |
+| Sanket Devkar (1012412002)     | Full Stack Developer | [@sanket-devkar](https://github.com/sanketdevkar)  |
+| Pranay Khodake (1012412009)    | Full Stack Developer | [@pranay-cyberguy](https://github.com/pranay-cyberguy)  |
 
 **Mentor:** [Your Professor Name]  
-**University:** Deccan Education Society, Pune
+**University:** Des Pune University, Pune , Maharashtra, India
 
 ---
 
@@ -646,7 +646,7 @@ git push origin feature/your-feature-name
 
 - **Issues:** Please use GitHub Issues for bug reports and feature requests
 - **Discussions:** Join our GitHub Discussions for questions and ideas
-- **Email:** eminence.transport@gmail.com (placeholder)
+- **Email:** eminence.support.helpline@gmail.com 
 
 ---
 
@@ -677,10 +677,10 @@ git push origin feature/your-feature-name
 ## 🔗 Useful Links
 
 - **Live Demo:** [Coming Soon]
-- **Project Board:** [GitHub Projects](https://github.com/yourusername/eminence/projects)
+- **Project Board:** [GitHub Projects](https://github.com/ridhesh927eminence/projects)
 - **Documentation:** [docs/](docs/)
-- **Bug Tracker:** [Issues](https://github.com/yourusername/eminence/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/yourusername/eminence/discussions)
+- **Bug Tracker:** [Issues](https://github.com/ridhesh927eminence/issues)
+- **Discussions:** [GitHub Discussions](https://github.com/ridhesh927eminence/discussions)
 
 ---
 
@@ -707,5 +707,5 @@ git push origin feature/your-feature-name
 
 ---
 
-**Last Updated:** July 2026  
+**Last Updated:** September 2026  
 **Version:** 1.0.0 (MVP)

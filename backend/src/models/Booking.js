@@ -48,7 +48,7 @@ const Booking = sequelize.define('Booking', {
     defaultValue: 'pending',
   },
   paymentMethod: {
-    type: DataTypes.ENUM('online', 'cash'),
+    type: DataTypes.ENUM('online', 'cash', 'postpaid'),
     allowNull: false,
   },
   paymentStatus: {
@@ -57,6 +57,15 @@ const Booking = sequelize.define('Booking', {
   },
   otp: {
     type: DataTypes.STRING(4),
+    allowNull: true,
+  },
+  // B2B Fields
+  isB2B: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
+  gstAmount: {
+    type: DataTypes.DECIMAL(10, 2),
     allowNull: true,
   }
 }, {

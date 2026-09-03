@@ -3,6 +3,7 @@ const router = express.Router();
 const { getWallet, applyReferralCode } = require('../controllers/walletController');
 const authMiddleware = require('../middleware/authMiddleware');
 const { apiLimiter } = require('../middleware/rateLimiter');
+const protect = require('../middleware/authMiddleware');
 
 // Apply rate limiting and auth middleware to wallet routes
 router.use(apiLimiter);

@@ -9,6 +9,8 @@ const Booking = require('./Booking');
 const Review = require('./Review');
 const Wallet = require('./Wallet');
 const Transaction = require('./Transaction');
+const B2BContract = require('./B2BContract');
+const Invoice = require('./Invoice');
 
 // Define Relationships
 Customer.hasMany(Otp, { foreignKey: 'customerId', as: 'otps' });
@@ -37,6 +39,13 @@ Wallet.belongsTo(Customer, { foreignKey: 'customerId', as: 'customer' });
 
 Wallet.hasMany(Transaction, { foreignKey: 'walletId', as: 'transactions' });
 Transaction.belongsTo(Wallet, { foreignKey: 'walletId', as: 'wallet' });
+
+// B2B Associations
+Customer.hasMany(B2BContract, { foreignKey: 'customerId', as: 'contracts' });
+B2BContract.belongsTo(Customer, { foreignKey: 'customerId', as: 'customer' });
+
+Customer.hasMany(Invoice, { foreignKey: 'customerId', as: 'invoices' });
+Invoice.belongsTo(Customer, { foreignKey: 'customerId', as: 'customer' });
 
 const { Client } = require('pg');
 
@@ -181,5 +190,7 @@ module.exports = {
   Booking,
   Review,
   Wallet,
-  Transaction
+  Transaction,
+  B2BContract,
+  Invoice
 };

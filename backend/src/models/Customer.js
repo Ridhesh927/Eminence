@@ -68,6 +68,31 @@ const Customer = sequelize.define('Customer', {
   referredBy: {
     type: DataTypes.STRING,
     allowNull: true,
+  },
+  // B2B & Enterprise Fields
+  isBusiness: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
+  companyName: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  gstNumber: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  billingMode: {
+    type: DataTypes.ENUM('prepaid', 'postpaid'),
+    defaultValue: 'prepaid',
+  },
+  creditLimit: {
+    type: DataTypes.DECIMAL(10, 2),
+    defaultValue: 0.00,
+  },
+  creditUsed: {
+    type: DataTypes.DECIMAL(10, 2),
+    defaultValue: 0.00,
   }
 }, {
   timestamps: true,
