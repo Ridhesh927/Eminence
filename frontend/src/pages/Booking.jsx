@@ -16,12 +16,15 @@ const Booking = () => {
   
   const [formData, setFormData] = useState({
     pickup: '',
-    drop: '',
+    drops: [''], // Array of drop-off addresses
     date: '',
     time: '',
     goodsType: '',
     weight: '',
     tempoType: 'small', // small, medium, large
+    bookingMode: 'dedicated', // dedicated, shared
+    isRoundTrip: false,
+    waitingTimeHours: 1,
     phone: '',
     paymentMethod: 'online'
   });
@@ -30,10 +33,44 @@ const Booking = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  const handleDropChange = (index, value) => {
+    const newDrops = [...formData.drops];
+    newDrops[index] = value;
+    setFormData({ ...formData, drops: newDrops });
+  };
+
+  const addDrop = () => {
+    setFormData({ ...formData, drops: [...formData.drops, ''] });
+  };
+
+  const removeDrop = (index) => {
+    const newDrops = [...formData.drops];
+    newDrops.splice(index, 1);
+    setFormData({ ...formData, drops: newDrops });
+  };
+
   const calculateFare = () => {
     // Mock calculation
     const baseRates = { small: 350, medium: 550, large: 1200 };
-    const total = baseRates[formData.tempoType] || 0;
+    let base = baseRates[formData.tempoType] || 0;
+    
+    // Add ₹150 for each stop after the first one
+    const extraStopsCost = Math.max(0, (formData.drops.length - 1) * 150);
+    base += extraStopsCost;
+
+    // Round Trip Multiplier (1.8x base distance fare)
+    if (formData.isRoundTrip) {
+      base *= 1.8;
+    }
+
+    // Shared Load Discount (40% off base)
+    if (formData.bookingMode === 'shared') {
+      base *= 0.6;
+    }
+
+    const waitingFee = formData.isRoundTrip ? formData.waitingTimeHours * 100 : 0;
+    
+    const total = base + waitingFee;
     return Math.max(0, total - discount);
   };
 
@@ -114,10 +151,31 @@ const Booking = () => {
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-loft-200 mb-1">Drop Address</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-copper-500" />
-                    <input required name="drop" value={formData.drop} onChange={handleChange} type="text" className="input-field pl-12" placeholder="Enter drop location" />
+                  <div className="flex justify-between items-center mb-1">
+                    <label className="block text-sm font-medium text-loft-200">Drop Addresses</label>
+                    <button type="button" onClick={addDrop} className="text-xs text-copper-500 hover:text-copper-400 font-medium">+ Add Stop</button>
+                  </div>
+                  <div className="space-y-3">
+                    {formData.drops.map((drop, index) => (
+                      <div key={index} className="relative flex items-center gap-2">
+                        <div className="relative flex-1">
+                          <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-copper-500" />
+                          <input 
+                            required 
+                            value={drop} 
+                            onChange={(e) => handleDropChange(index, e.target.value)} 
+                            type="text" 
+                            className="input-field pl-12" 
+                            placeholder={`Enter drop location ${index + 1}`} 
+                          />
+                        </div>
+                        {formData.drops.length > 1 && (
+                          <button type="button" onClick={() => removeDrop(index)} className="p-2 text-loft-400 hover:text-red-400 transition-colors">
+                            <span className="text-xl leading-none">×</span>
+                          </button>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 </div>
 
@@ -136,6 +194,37 @@ const Booking = () => {
                       <input required name="time" value={formData.time} onChange={handleChange} type="time" className="input-field pl-12" />
                     </div>
                   </div>
+                </div>
+
+                <div className="pt-4 border-t border-loft-800">
+                  <label className="flex items-center gap-3 cursor-pointer p-4 border border-loft-800 rounded-xl bg-loft-950/50 hover:border-copper-500 transition-colors">
+                    <input 
+                      type="checkbox" 
+                      checked={formData.isRoundTrip} 
+                      onChange={(e) => setFormData({ ...formData, isRoundTrip: e.target.checked })}
+                      className="w-5 h-5 accent-copper-500 rounded border-loft-700 bg-loft-900" 
+                    />
+                    <div>
+                      <span className="font-bold text-loft-50 block">Make this a Round Trip</span>
+                      <span className="text-xs text-loft-400">Driver waits at the destination and returns to pickup</span>
+                    </div>
+                  </label>
+
+                  {formData.isRoundTrip && (
+                    <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="mt-4">
+                      <label className="block text-sm font-medium text-loft-200 mb-1">Waiting Time at Destination (Hours)</label>
+                      <select 
+                        name="waitingTimeHours" 
+                        value={formData.waitingTimeHours} 
+                        onChange={handleChange}
+                        className="input-field"
+                      >
+                        {[1, 2, 3, 4, 5, 6, 8, 12, 24].map(hours => (
+                          <option key={hours} value={hours}>{hours} {hours === 1 ? 'Hour' : 'Hours'} (₹{hours * 100})</option>
+                        ))}
+                      </select>
+                    </motion.div>
+                  )}
                 </div>
 
                 <button type="submit" className="btn-primary w-full mt-6">Continue to Details</button>
@@ -175,6 +264,32 @@ const Booking = () => {
                   </div>
                 </div>
 
+                <div>
+                  <label className="block text-sm font-medium text-loft-200 mb-3">Booking Mode</label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <label className={`cursor-pointer border rounded-xl p-4 flex items-center gap-3 transition-all ${formData.bookingMode === 'dedicated' ? 'border-copper-500 bg-copper-500/10' : 'border-loft-800 bg-loft-950/50 hover:border-loft-600'}`}>
+                      <input type="radio" name="bookingMode" value="dedicated" checked={formData.bookingMode === 'dedicated'} onChange={handleChange} className="sr-only" />
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${formData.bookingMode === 'dedicated' ? 'border-copper-500' : 'border-loft-600'}`}>
+                        {formData.bookingMode === 'dedicated' && <div className="w-2 h-2 rounded-full bg-copper-500"></div>}
+                      </div>
+                      <div>
+                        <span className="font-bold text-loft-50 block">Dedicated Truck</span>
+                        <span className="text-xs text-loft-400 block">Private, direct, fastest route</span>
+                      </div>
+                    </label>
+                    <label className={`cursor-pointer border rounded-xl p-4 flex items-center gap-3 transition-all ${formData.bookingMode === 'shared' ? 'border-copper-500 bg-copper-500/10' : 'border-loft-800 bg-loft-950/50 hover:border-loft-600'}`}>
+                      <input type="radio" name="bookingMode" value="shared" checked={formData.bookingMode === 'shared'} onChange={handleChange} className="sr-only" />
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${formData.bookingMode === 'shared' ? 'border-copper-500' : 'border-loft-600'}`}>
+                        {formData.bookingMode === 'shared' && <div className="w-2 h-2 rounded-full bg-copper-500"></div>}
+                      </div>
+                      <div>
+                        <span className="font-bold text-loft-50 block text-copper-400">Shared Load (40% OFF)</span>
+                        <span className="text-xs text-loft-400 block">Pool with others, budget-friendly</span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
                 <div className="flex gap-4 mt-6">
                   <button type="button" onClick={handleBack} className="btn-secondary w-1/3">Back</button>
                   <button type="submit" className="btn-primary w-2/3">Continue to Payment</button>
@@ -189,9 +304,35 @@ const Booking = () => {
                 
                 <div className="bg-loft-950/80 rounded-xl p-6 border border-loft-800 mb-6">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-loft-300">Base Fare</span>
-                    <span className="font-medium text-loft-100">₹{calculateFare() + discount}</span>
+                    <span className="text-loft-300">Base Fare ({formData.tempoType}){formData.isRoundTrip ? ' (Round Trip 1.8x)' : ''}</span>
+                    <span className="font-medium text-loft-100">
+                      ₹{
+                        (() => {
+                          let base = { small: 350, medium: 550, large: 1200 }[formData.tempoType] || 0;
+                          if (formData.isRoundTrip) base *= 1.8;
+                          return base;
+                        })()
+                      }
+                    </span>
                   </div>
+                  {formData.bookingMode === 'shared' && (
+                    <div className="flex justify-between items-center mb-2 text-copper-400">
+                      <span className="text-loft-300">Shared Load Discount</span>
+                      <span className="font-bold">-40%</span>
+                    </div>
+                  )}
+                  {formData.drops.length > 1 && (
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-loft-300">Multiple Stops Fee ({formData.drops.length - 1} extra)</span>
+                      <span className="font-medium text-loft-100">₹{Math.max(0, (formData.drops.length - 1) * 150)}</span>
+                    </div>
+                  )}
+                  {formData.isRoundTrip && (
+                    <div className="flex justify-between items-center mb-2 text-copper-400">
+                      <span className="text-loft-300">Waiting Fee ({formData.waitingTimeHours} hrs)</span>
+                      <span className="font-medium">₹{formData.waitingTimeHours * 100}</span>
+                    </div>
+                  )}
                   {discount > 0 && (
                     <div className="flex justify-between items-center mb-4 text-moss-500">
                       <span>Discount Applied</span>

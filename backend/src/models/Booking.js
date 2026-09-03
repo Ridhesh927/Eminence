@@ -13,7 +13,31 @@ const Booking = sequelize.define('Booking', {
   },
   dropAddress: {
     type: DataTypes.TEXT,
-    allowNull: false,
+    allowNull: true, // Made nullable for multi-stop
+  },
+  stops: {
+    type: DataTypes.JSONB,
+    allowNull: true,
+  },
+  totalDistance: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+  },
+  isRoundTrip: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
+  waitingTimeHours: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+  },
+  waitingFee: {
+    type: DataTypes.DECIMAL(10, 2),
+    allowNull: true,
+  },
+  bookingMode: {
+    type: DataTypes.ENUM('dedicated', 'shared'),
+    defaultValue: 'dedicated',
   },
   date: {
     type: DataTypes.DATEONLY,
