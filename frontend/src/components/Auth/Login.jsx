@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { ArrowRight, Phone } from 'lucide-react';
+import { ArrowRight, Phone, Mail, Lock, ShieldAlert } from 'lucide-react';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../../config/firebase';
 import { loginSuccess } from '../../redux/slices/authSlice';
@@ -18,16 +18,21 @@ const GoogleIcon = () => (
 
 const Login = () => {
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState('customer'); // 'customer', 'driver', 'admin'
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
+  const isAdmin = activeTab === 'admin';
+
   const handlePhoneSubmit = async (e) => {
     e.preventDefault();
     if (phone.length < 10) return;
-    
     setIsLoading(true);
+    setError('');
     try {
       await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/phone-login`, {
         method: 'POST',
@@ -36,10 +41,44 @@ const Login = () => {
       });
       setIsLoading(false);
       navigate('/otp', { state: { phone } });
-    } catch (error) {
-      console.error('Phone login error:', error);
+    } catch (err) {
+      console.error('Phone login error:', err);
       setIsLoading(false);
-      alert('Error sending OTP. Please try again.');
+      setError('Error sending OTP. Please try again.');
+    }
+  };
+
+  const handleAdminLogin = async (e) => {
+    e.preventDefault();
+    if (!email || !password) return;
+    setIsLoading(true);
+    setError('');
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/admin/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await response.json();
+      setIsLoading(false);
+      if (data.success) {
+        localStorage.setItem('token', data.token);
+        dispatch(loginSuccess({
+          id: data.user.id,
+          email: data.user.email,
+          name: data.user.name,
+          role: data.user.role,
+          token: data.token,
+          isProfileComplete: true
+        }));
+        navigate('/admin/dashboard');
+      } else {
+        setError(data.message || 'Invalid credentials');
+      }
+    } catch (err) {
+      console.error('Admin login error:', err);
+      setIsLoading(false);
+      setError('Server error. Please try again later.');
     }
   };
 
@@ -53,12 +92,11 @@ const Login = () => {
         body: JSON.stringify({ phone: demoPhone, role: activeTab })
       });
       setIsLoading(false);
-      // Pass autoSubmit: true so the OTP page can bypass automatically
       navigate('/otp', { state: { phone: demoPhone, autoSubmit: true, role: activeTab } });
-    } catch (error) {
-      console.error('Demo login error:', error);
+    } catch (err) {
+      console.error('Demo login error:', err);
       setIsLoading(false);
-      alert('Error logging in as demo user.');
+      setError('Error logging in as demo user.');
     }
   };
 
@@ -67,16 +105,13 @@ const Login = () => {
       setIsLoading(true);
       const result = await signInWithPopup(auth, googleProvider);
       const idToken = await result.user.getIdToken();
-      
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/google-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken })
       });
-      
       const data = await response.json();
       setIsLoading(false);
-      
       if (data.success) {
         localStorage.setItem('token', data.token);
         dispatch(loginSuccess({
@@ -88,20 +123,14 @@ const Login = () => {
           token: data.token,
           isProfileComplete: data.user.isProfileComplete
         }));
-        const userRole = data.user.role || 'customer';
-        navigate(`/${userRole}/dashboard`);
+        navigate(`/${data.user.role || 'customer'}/dashboard`);
       } else {
-        alert(data.message || 'Google Login failed on server');
+        setError(data.message || 'Google Login failed on server');
       }
-    } catch (error) {
-      console.error("Google Sign-In Error", error);
+    } catch (err) {
+      console.error('Google Sign-In Error', err);
       setIsLoading(false);
-      
-      if (error.code === 'auth/unauthorized-domain' || error.message.includes('auth/handler')) {
-        alert("Firebase Configuration Issue: 'localhost' is not added to your Firebase Authorized Domains.\n\nTo fix this: Go to Firebase Console -> Authentication -> Settings -> Authorized Domains and add 'localhost'.\n\nFor now, please use 'Continue with phone' to sign in!");
-      } else {
-        alert("Google Sign-In failed due to configuration. Please use 'Continue with phone' to log in for local development.");
-      }
+      setError("Google Sign-In failed. Please use phone login for local development.");
     }
   };
 
@@ -125,96 +154,194 @@ const Login = () => {
           {['customer', 'driver', 'admin'].map((role) => (
             <button
               key={role}
-              onClick={() => setActiveTab(role)}
+              onClick={() => { setActiveTab(role); setError(''); }}
               className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all capitalize ${
                 activeTab === role 
-                  ? 'bg-copper-500/20 text-copper-500 shadow-sm border border-copper-500/30' 
+                  ? role === 'admin'
+                    ? 'bg-moss-500/20 text-moss-400 shadow-sm border border-moss-500/30'
+                    : 'bg-copper-500/20 text-copper-500 shadow-sm border border-copper-500/30'
                   : 'text-loft-400 hover:text-loft-200 hover:bg-loft-800/50'
               }`}
             >
-              {role}
+              {role === 'admin' ? '🔐 Admin' : role.charAt(0).toUpperCase() + role.slice(1)}
             </button>
           ))}
         </div>
 
-        <button 
-          onClick={handleGoogleSignIn}
-          disabled={isLoading}
-          className="w-full flex items-center justify-center px-4 py-3.5 border border-loft-700 hover:border-loft-600 rounded-xl bg-loft-800/50 hover:bg-loft-800 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-offset-loft-950 focus:ring-copper-500 transition-all duration-200 text-loft-50 font-medium mb-6"
-        >
-          <GoogleIcon />
-          Continue with Google
-        </button>
-
-        <div className="relative mb-6">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-loft-800"></div>
+        {error && (
+          <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center">
+            {error}
           </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-4 bg-loft-900 text-loft-400">Or continue with phone</span>
-          </div>
-        </div>
+        )}
 
-        <form onSubmit={handlePhoneSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="phone" className="block text-sm font-medium text-loft-200 mb-2">
-              Phone Number
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <Phone className="h-5 w-5 text-loft-400" />
+        <AnimatePresence mode="wait">
+          {isAdmin ? (
+            /* ── ADMIN: Email + Password ── */
+            <motion.div
+              key="admin-form"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="flex items-center justify-center mb-6 gap-2 text-moss-400">
+                <ShieldAlert className="w-5 h-5" />
+                <span className="text-sm font-medium">Authorized personnel only</span>
               </div>
-              <input
-                id="phone"
-                name="phone"
-                type="tel"
-                required
-                className="input-field pl-12"
-                placeholder="Enter 10 digit number"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-              />
-            </div>
-          </div>
 
-          <button
-            type="submit"
-            disabled={isLoading || phone.length < 10}
-            className="btn-primary w-full"
-          >
-            {isLoading ? (
-              <span className="flex items-center">
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                Processing...
-              </span>
-            ) : (
-              <span className="flex items-center">
-                Sign In <ArrowRight className="ml-2 w-5 h-5" />
-              </span>
-            )}
-          </button>
-        </form>
+              <form onSubmit={handleAdminLogin} className="space-y-5">
+                <div>
+                  <label htmlFor="admin-email" className="block text-sm font-medium text-loft-200 mb-2">Admin Email</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <Mail className="h-5 w-5 text-loft-400" />
+                    </div>
+                    <input
+                      id="admin-email"
+                      type="email"
+                      required
+                      autoComplete="email"
+                      className="input-field pl-12"
+                      placeholder="admin@eminence.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
+                </div>
 
-        <div className="mt-8 text-center text-sm text-loft-300">
-          Don't have an account?{' '}
-          <Link to="/register" className="font-medium text-copper-500 hover:text-copper-400 transition-colors">
-            Sign up
-          </Link>
-        </div>
+                <div>
+                  <label htmlFor="admin-password" className="block text-sm font-medium text-loft-200 mb-2">Password</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <Lock className="h-5 w-5 text-loft-400" />
+                    </div>
+                    <input
+                      id="admin-password"
+                      type="password"
+                      required
+                      autoComplete="current-password"
+                      className="input-field pl-12"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                  </div>
+                </div>
 
-        {/* Demo Login Button */}
-        <div className="mt-6 pt-6 border-t border-loft-800 text-center">
-          <button
-            onClick={handleDemoLogin}
-            disabled={isLoading}
-            className="text-sm font-medium text-loft-400 hover:text-copper-400 transition-colors"
-          >
-            Looking for a quick demo? <span className="underline decoration-copper-500/50 underline-offset-4">Log in as Demo User</span>
-          </button>
-        </div>
+                <button
+                  type="submit"
+                  disabled={isLoading || !email || !password}
+                  className="w-full flex items-center justify-center px-6 py-3.5 rounded-xl text-base font-medium text-white bg-moss-600 hover:bg-moss-500 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isLoading ? (
+                    <span className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Authenticating...
+                    </span>
+                  ) : (
+                    <span className="flex items-center">Secure Login <ArrowRight className="ml-2 w-5 h-5" /></span>
+                  )}
+                </button>
+
+                <div className="text-center pt-1">
+                  <button
+                    type="button"
+                    onClick={() => { setEmail('admin@eminence.com'); setPassword('adminpassword123'); }}
+                    className="text-xs text-moss-400 hover:text-moss-300 underline underline-offset-4"
+                  >
+                    Fill demo admin credentials
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          ) : (
+            /* ── CUSTOMER / DRIVER: Phone + OTP ── */
+            <motion.div
+              key="phone-form"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.2 }}
+            >
+              <button 
+                onClick={handleGoogleSignIn}
+                disabled={isLoading}
+                className="w-full flex items-center justify-center px-4 py-3.5 border border-loft-700 hover:border-loft-600 rounded-xl bg-loft-800/50 hover:bg-loft-800 transition-all duration-200 text-loft-50 font-medium mb-6"
+              >
+                <GoogleIcon />
+                Continue with Google
+              </button>
+
+              <div className="relative mb-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-loft-800"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-4 bg-loft-900 text-loft-400">Or continue with phone</span>
+                </div>
+              </div>
+
+              <form onSubmit={handlePhoneSubmit} className="space-y-6">
+                <div>
+                  <label htmlFor="phone" className="block text-sm font-medium text-loft-200 mb-2">Phone Number</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <Phone className="h-5 w-5 text-loft-400" />
+                    </div>
+                    <input
+                      id="phone"
+                      name="phone"
+                      type="tel"
+                      required
+                      className="input-field pl-12"
+                      placeholder="Enter 10 digit number"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoading || phone.length < 10}
+                  className="btn-primary w-full"
+                >
+                  {isLoading ? (
+                    <span className="flex items-center">
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Processing...
+                    </span>
+                  ) : (
+                    <span className="flex items-center">Sign In <ArrowRight className="ml-2 w-5 h-5" /></span>
+                  )}
+                </button>
+              </form>
+
+              <div className="mt-8 text-center text-sm text-loft-300">
+                Don't have an account?{' '}
+                <Link to="/register" className="font-medium text-copper-500 hover:text-copper-400 transition-colors">
+                  Sign up
+                </Link>
+              </div>
+
+              <div className="mt-6 pt-6 border-t border-loft-800 text-center">
+                <button
+                  onClick={handleDemoLogin}
+                  disabled={isLoading}
+                  className="text-sm font-medium text-loft-400 hover:text-copper-400 transition-colors"
+                >
+                  Quick demo? <span className="underline decoration-copper-500/50 underline-offset-4">Log in as Demo User</span>
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
     </div>
   );

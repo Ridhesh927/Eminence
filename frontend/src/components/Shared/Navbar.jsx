@@ -1,10 +1,18 @@
-import { Link } from 'react-router-dom';
-import { Menu, Phone, Truck } from 'lucide-react';
-import { useSelector } from 'react-redux';
-
+import { Link, useNavigate } from 'react-router-dom';
+import { Menu, Phone, Truck, LogOut } from 'lucide-react';
+import { useSelector, useDispatch } from 'react-redux';
+import { logout } from '../../redux/slices/authSlice';
 
 const Navbar = () => {
-  const { isAuthenticated } = useSelector((state) => state.auth);
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    dispatch(logout());
+    localStorage.removeItem('token');
+    navigate('/');
+  };
 
   return (
     <nav className="sticky top-0 z-50 bg-loft-950/80 backdrop-blur-md border-b border-loft-800/60 transition-all">
@@ -48,9 +56,18 @@ const Navbar = () => {
             </a>
 
             {isAuthenticated ? (
-              <Link to="/customer/dashboard" className="btn-secondary rounded-xl py-2.5 px-6 whitespace-nowrap">
-                Dashboard
-              </Link>
+              <div className="flex items-center gap-3">
+                <Link to={`/${user?.role || 'customer'}/dashboard`} className="btn-secondary rounded-xl py-2.5 px-6 whitespace-nowrap">
+                  Dashboard
+                </Link>
+                <button 
+                  onClick={handleLogout}
+                  className="p-2.5 text-loft-400 hover:text-red-400 hover:bg-red-500/10 rounded-xl transition-all"
+                  title="Sign Out"
+                >
+                  <LogOut className="w-5 h-5" />
+                </button>
+              </div>
             ) : (
               <div className="flex items-center gap-4">
                 <Link to="/login" className="text-loft-300 hover:text-loft-50 font-medium transition-colors whitespace-nowrap">
