@@ -17,6 +17,7 @@ const GoogleIcon = () => (
 const Register = () => {
   const [formData, setFormData] = useState({ name: '', phone: '', email: '' });
   const [isLoading, setIsLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState('customer');
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -32,14 +33,14 @@ const Register = () => {
       await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/phone-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: formData.phone })
+        body: JSON.stringify({ phone: formData.phone, role: activeTab })
       });
       
       // Save pending name for profile completion
       localStorage.setItem('pendingName', formData.name);
       
       setIsLoading(false);
-      navigate('/otp', { state: { phone: formData.phone, isNewUser: true, name: formData.name } });
+      navigate('/otp', { state: { phone: formData.phone, isNewUser: true, name: formData.name, role: activeTab } });
     } catch (error) {
       console.error('Registration phone submit error:', error);
       setIsLoading(false);
@@ -56,7 +57,7 @@ const Register = () => {
       console.log("Firebase Google Token:", token);
       
       setIsLoading(false);
-      navigate('/customer/dashboard');
+      navigate(`/${activeTab}/dashboard`);
     } catch (error) {
       console.error("Google Sign-Up Error", error);
       setIsLoading(false);
@@ -76,6 +77,24 @@ const Register = () => {
         <div className="mb-8 text-center">
           <h2 className="text-3xl font-serif font-bold text-loft-50 mb-2">Create Account</h2>
           <p className="text-loft-300">Join Eminence for a seamless booking experience</p>
+        </div>
+
+        {/* Role Selection Tabs */}
+        <div className="flex bg-loft-950/50 p-1 rounded-xl mb-8 overflow-x-auto">
+          {['customer', 'business', 'driver'].map((role) => (
+            <button
+              type="button"
+              key={role}
+              onClick={() => setActiveTab(role)}
+              className={`flex-1 py-2 px-4 text-sm font-medium rounded-lg transition-all capitalize whitespace-nowrap ${
+                activeTab === role 
+                  ? 'bg-copper-500/20 text-copper-500 shadow-sm border border-copper-500/30'
+                  : 'text-loft-400 hover:text-loft-200 hover:bg-loft-800/50'
+              }`}
+            >
+              {role.charAt(0).toUpperCase() + role.slice(1)}
+            </button>
+          ))}
         </div>
 
         <button 
