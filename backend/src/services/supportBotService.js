@@ -1,184 +1,88 @@
 const { Booking, Driver, Vehicle } = require('../models');
+const Groq = require('groq-sdk');
+
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY
+});
 
 /**
- * Handle incoming support messages from customers
+ * Handle incoming support messages from customers using Groq LLM
  * @param {string} customerId - The UUID of the customer
  * @param {string} text - The query text sent by the customer
  * @returns {Promise<string>} The response text from the bot
  */
 async function handleSupportMessage(customerId, text) {
-  const query = text.toLowerCase().trim();
-  
-  // 1. Greetings
-  if (query.match(/\b(hi|hello|hey|greetings|yo)\b/)) {
-    return `Hello! 👋 I am the Eminence Customer Support Bot. How can I help you today?
+  try {
+    // 1. Fetch recent context for the LLM
+    const bookings = await Booking.findAll({
+      where: { customerId },
+      include: [
+        { model: Driver, as: 'driver', attributes: ['name', 'phone'] },
+        { model: Vehicle, as: 'vehicle', attributes: ['registrationNumber', 'type'] }
+      ],
+      order: [['createdAt', 'DESC']],
+      limit: 5
+    });
 
-Here are some things I can do for you:
-• Type **"bookings"** or **"status"** to view your recent ride bookings and their live status.
-• Type **"cancel [booking_id]"** to cancel a pending booking.
-• Type **"fare [pickup] to [drop] (small/medium/large)"** to estimate your fare.
-• Type **"contact"** or **"help"** to get our phone number and support email.
-• Or ask me any question about our services!`;
-  }
-  
-  // 2. Help/Contact
-  if (query.match(/\b(help|contact|support|phone|email|number|call)\b/)) {
-    return `📞 **Eminence Helpline Support:**
-• **Phone:** +1234567890 (Twilio IVR Helpline)
-• **Email:** support@eminence.com
-• **Address:** Pune, Maharashtra, India
-
-Feel free to call our IVR helpline directly from your registered phone number for automatic address recognition and bookings!`;
-  }
-
-  // 3. Bookings list / Status
-  if (query === 'bookings' || query === 'status' || query.includes('my booking') || query.includes('my bookings') || query.includes('show booking')) {
-    try {
-      const bookings = await Booking.findAll({
-        where: { customerId },
-        include: [
-          { model: Driver, as: 'driver', attributes: ['name', 'phone'] },
-          { model: Vehicle, as: 'vehicle', attributes: ['registrationNumber', 'type'] }
-        ],
-        order: [['createdAt', 'DESC']],
-        limit: 5
-      });
-      
-      if (!bookings || bookings.length === 0) {
-        return `You don't have any bookings yet. 🚚
-Would you like to book a tempo? Go to the "Book Tempo" page or type **"fare [pickup] to [drop]"** to estimate costs!`;
-      }
-      
-      let response = `Here are your recent bookings (showing up to 5): \n\n`;
+    // 2. Format context for the LLM
+    let bookingsContext = "Customer's Recent Bookings Context:\n";
+    if (bookings.length === 0) {
+      bookingsContext += "The customer has no recent bookings.\n";
+    } else {
       bookings.forEach((b, index) => {
         const shortId = b?.id ? String(b.id).substring(0, 8).toUpperCase() : 'N/A';
-        response += `**${index + 1}. Booking ID: ${shortId}**
-• **From:** ${b.pickupAddress || 'N/A'}
-• **To:** ${b.dropAddress || 'N/A'}
-• **Date/Time:** ${b.date || 'N/A'} at ${b.time || 'N/A'}
-• **Goods:** ${b.goodsType || 'N/A'} (${b.weight || 0} kg)
-• **Fare:** ₹${b.estimatedFare || 0}
-• **Status:** 🔴 ${(b.status || 'unknown').toUpperCase().replace(/_/g, ' ')}
-`;
-        if (b.driver) {
-          const maskedPhone = b.driver.phone ? String(b.driver.phone).replace(/(\d{3})\d{4}(\d{3})/, '$1****$2') : 'N/A';
-          response += `• **Driver:** ${b.driver.name} (${maskedPhone})
-`;
-        }
-        if (b.vehicle) {
-          response += `• **Vehicle:** ${b.vehicle.registrationNumber} (${b.vehicle.type})
-`;
-        }
-        response += `\n`;
+        bookingsContext += `[Booking ${index + 1}] ID: ${shortId}, From: ${b.pickupAddress || 'N/A'}, To: ${b.dropAddress || 'N/A'}, Status: ${b.status}, Fare: ₹${b.estimatedFare || 0}, Goods: ${b.goodsType || 'N/A'}, Vehicle Type: ${b.tempoType || 'N/A'}\n`;
+        if (b.driver) bookingsContext += `  Driver: ${b.driver.name} (Phone: ${b.driver.phone})\n`;
+        if (b.vehicle) bookingsContext += `  Vehicle Reg: ${b.vehicle.registrationNumber}\n`;
       });
-      
-      return response;
-    } catch (err) {
-      console.error('Error fetching bookings for support bot:', err);
-      return "Sorry, I had an error fetching your bookings. Please try again later.";
     }
-  }
-  
-  // 4. Cancel booking
-  if (query.startsWith('cancel')) {
-    const parts = query.split(' ');
-    if (parts.length < 2) {
-      return `To cancel a booking, please type:
-**"cancel [booking_id]"** (e.g., *cancel BKG-1234*)`;
-    }
-    
-    const searchId = parts[1].toUpperCase();
-    try {
-      // Find bookings for this customer
-      const bookings = await Booking.findAll({ where: { customerId } });
-      const booking = bookings.find(b => {
-        if (!b?.id) return false;
-        const bId = String(b.id).toUpperCase();
-        return bId.startsWith(searchId) || bId.substring(0, 8) === searchId;
-      });
-      
-      if (!booking) {
-        return `Could not find a booking with ID starting with "${searchId}". Please type **"bookings"** to view your bookings and copy the ID.`;
-      }
-      
-      const bShortId = String(booking.id).substring(0, 8).toUpperCase();
-      
-      if (booking.status === 'completed') {
-        return `Booking **${bShortId}** is already completed and cannot be cancelled.`;
-      }
-      if (booking.status === 'cancelled') {
-        return `Booking **${bShortId}** is already cancelled.`;
-      }
-      if (booking.status === 'in_transit') {
-        return `Booking **${bShortId}** is currently in transit and cannot be cancelled.`;
-      }
-      
-      // Update status to cancelled
-      booking.status = 'cancelled';
-      await booking.save();
-      
-      return `✅ Booking **${bShortId}** has been successfully cancelled.`;
-    } catch (err) {
-      console.error('Error cancelling booking in support bot:', err);
-      return "An error occurred while trying to cancel your booking. Please try again.";
-    }
-  }
 
-  // 5. Fare estimate
-  // Format: fare [pickup] to [drop] [optional vehicle type]
-  if (query.startsWith('fare')) {
-    const fareMatch = query.match(/fare\s+(.+?)\s+to\s+(.+)/i);
-    if (!fareMatch) {
-      return `To estimate a fare, please use the format:
-**"fare [pickup] to [drop]"**
-*(e.g., "fare Swargate to Hinjewadi")*`;
-    }
-    
-    let pickup = fareMatch[1].trim();
-    let drop = fareMatch[2].trim();
-    let tempoType = 'small';
-    
-    // Check if tempo type is specified at the end
-    if (drop.includes('large')) {
-      tempoType = 'large';
-      drop = drop.replace('large', '').trim();
-    } else if (drop.includes('medium')) {
-      tempoType = 'medium';
-      drop = drop.replace('medium', '').trim();
-    } else if (drop.includes('small')) {
-      tempoType = 'small';
-      drop = drop.replace('small', '').trim();
-    }
-    
-    const baseRates = { small: 350, medium: 550, large: 1200 };
-    const rate = baseRates[tempoType];
-    
-    return `Estimated Fare from **${pickup}** to **${drop}**:
-• **Tempo Type:** ${tempoType.toUpperCase()}
-• **Estimated Base Fare:** ₹${rate}
-• **Status:** Available for immediate booking!
+    // 3. Build the System Prompt
+    const systemPrompt = `You are the official Customer Support Assistant for "Eminence", Pune's leading smart transport booking platform for local tempos.
+Your tone should be helpful, professional, yet friendly and concise. You may use a few appropriate emojis.
 
-To confirm this booking, please use our online "Book Tempo" form.`;
+COMPANY INFORMATION:
+- Helpline Phone: +1234567890 (IVR System available)
+- Support Email: support@eminence.com
+- Base Fares: Small Tempo (₹350), Medium Tempo (₹550), Large Tempo (₹1200). Prices may vary by distance.
+
+YOUR CAPABILITIES & RULES:
+1. You can answer general queries about Eminence.
+2. You can estimate fares based on the base rates provided.
+3. You have access to the customer's recent bookings below. If they ask about their bookings, track their ride, or driver details, USE THE CONTEXT below to answer them accurately. Do NOT hallucinate bookings.
+4. If they want to cancel a booking, tell them they must contact support or use the "Cancel" button on their dashboard. (You cannot cancel it yourself).
+5. If you don't know the answer, politely direct them to call the helpline or email support.
+
+--- CONTEXT INJECTION ---
+${bookingsContext}
+-------------------------
+`;
+
+    // 4. Call Groq LLM
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [
+        {
+          role: "system",
+          content: systemPrompt
+        },
+        {
+          role: "user",
+          content: text
+        }
+      ],
+      model: "llama3-70b-8192", // Using the 70B model for high reasoning
+      temperature: 0.5,
+      max_tokens: 500,
+    });
+
+    // 5. Return the response
+    return chatCompletion.choices[0]?.message?.content || "I'm sorry, but I couldn't generate a response at this time.";
+
+  } catch (error) {
+    console.error('Groq LLM Support Bot Error:', error);
+    // Fallback response if API fails
+    return "I'm currently experiencing some technical difficulties connecting to my AI brain. Please try again later or contact our human support team at support@eminence.com! 🛠️";
   }
-  
-  // 6. About Eminence
-  if (query.match(/\b(about|eminence|what|info|how|book)\b/)) {
-    return `ℹ️ **About Eminence:**
-Eminence is Pune's leading smart transport booking platform for local tempos. We offer:
-• 🖥️ **Web bookings** with real-time tracking.
-• ☎️ **IVR Voice Helpline** where repeat customers can book instantly using their registered phone number without re-entering details.
-• 🚚 **Smart Driver Allocation** matching you with the nearest driver.
-
-To book a ride, go to the "Book Tempo" page in the navigation bar, or call our IVR Helpline!`;
-  }
-
-  // 7. General queries/fallback
-  return `I'm not sure how to answer that. 🤖
-Would you like to try one of these options?
-• Type **"bookings"** to view your recent rides and status.
-• Type **"fare [pickup] to [drop]"** to get a price estimate.
-• Type **"contact"** for support email and helpline numbers.
-• Type **"about"** to learn more about Eminence.`;
 }
 
 module.exports = { handleSupportMessage };
