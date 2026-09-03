@@ -21,8 +21,8 @@ const Navbar = () => {
           {/* Left: Logo and Nav Links grouped together */}
           <div className="flex items-center gap-6 lg:gap-8">
             <Link to="/" className="flex items-center gap-2 group">
-              <div className="bg-copper-500/10 p-2 rounded-lg group-hover:bg-copper-500/20 transition-colors">
-                <Truck className="w-6 h-6 text-copper-500" />
+              <div className="bg-loft-950 p-1 rounded-lg border border-copper-500/30 group-hover:border-copper-500/60 transition-colors flex items-center justify-center overflow-hidden">
+                <img src="/logo.jpg" alt="Eminence Logo" className="w-8 h-8 object-contain rounded-md" />
               </div>
               <span className="text-2xl font-serif font-bold tracking-tight text-loft-50">
                 EMIN<span className="text-copper-500">ENCE</span>
