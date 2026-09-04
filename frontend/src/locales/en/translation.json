@@ -1,0 +1,16 @@
+{
+  "navbar": {
+    "bookTempo": "Book Tempo",
+    "trackBooking": "Track Booking",
+    "services": "Services",
+    "businessContracts": "Business Contracts",
+    "pricing": "Pricing",
+    "aboutUs": "About Us",
+    "contact": "Contact",
+    "ivrHelpline": "IVR HELPLINE",
+    "copied": "COPIED!",
+    "dashboard": "Dashboard",
+    "signIn": "Sign In",
+    "getStarted": "Get Started"
+  }
+}

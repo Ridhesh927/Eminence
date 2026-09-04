@@ -12,6 +12,7 @@ const CustomerDashboard = () => {
   const [copySuccess, setCopySuccess] = useState(false);
   const [isPro] = useState(user?.isPro || false); // Mock state for Demo
   const [totalTrips] = useState(user?.totalTrips || 7); // Mock Gamification state
+  const [downloadingInvoice, setDownloadingInvoice] = useState(null);
   
   // Addresses State
   const [addresses, setAddresses] = useState([]);
@@ -62,6 +63,17 @@ const CustomerDashboard = () => {
     }
   };
 
+  const handleDeleteAddress = async (id) => {
+    try {
+      await axios.delete(`http://localhost:3000/api/address/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setAddresses(addresses.filter(addr => addr.id !== id));
+    } catch (error) {
+      console.error('Error deleting address:', error);
+    }
+  };
+
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
     try {
@@ -95,6 +107,14 @@ const CustomerDashboard = () => {
     }
   };
 
+  const handleDownloadInvoice = (id) => {
+    setDownloadingInvoice(id);
+    setTimeout(() => {
+      setDownloadingInvoice(null);
+      alert(`Invoice ${id} downloaded successfully!`);
+    }, 1500);
+  };
+
   return (
     <div className="w-full pt-12 pb-24 relative min-h-[80vh]">
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-[radial-gradient(ellipse_at_center,rgba(85,108,145,0.1),transparent_70%)] pointer-events-none z-0"></div>
@@ -112,6 +132,23 @@ const CustomerDashboard = () => {
           </div>
         </div>
         
+        {/* Tab Navigation */}
+        <div className="flex space-x-2 border-b border-loft-800 mb-8 overflow-x-auto hide-scrollbar">
+          {['history', 'tracking', 'invoices', 'addresses', 'payments', 'rewards', 'support', 'profile'].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-6 py-3 font-medium text-sm rounded-t-lg transition-colors whitespace-nowrap capitalize ${
+                activeTab === tab
+                  ? 'bg-copper-500/15 text-copper-300 border-b-2 border-copper-500'
+                  : 'text-loft-400 hover:text-loft-200 hover:bg-loft-900/50'
+              }`}
+            >
+              {tab === 'history' ? 'Bookings' : tab}
+            </button>
+          ))}
+        </div>
+
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           {[
@@ -189,23 +226,6 @@ const CustomerDashboard = () => {
               <p className="text-xs text-right text-moss-500 mt-1">{10 - totalTrips} rides remaining!</p>
             </div>
           </div>
-        </div>
-
-        {/* Tab Navigation */}
-        <div className="flex space-x-2 border-b border-loft-800 mb-8 overflow-x-auto hide-scrollbar">
-          {['history', 'tracking', 'invoices', 'addresses', 'payments', 'rewards', 'support', 'profile'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-6 py-3 font-medium text-sm rounded-t-lg transition-colors whitespace-nowrap capitalize ${
-                activeTab === tab
-                  ? 'bg-copper-500/15 text-copper-300 border-b-2 border-copper-500'
-                  : 'text-loft-400 hover:text-loft-200 hover:bg-loft-900/50'
-              }`}
-            >
-              {tab === 'history' ? 'Bookings' : tab}
-            </button>
-          ))}
         </div>
 
         {/* Tab Content */}
@@ -302,8 +322,12 @@ const CustomerDashboard = () => {
                           <td className="px-6 py-4">{invoice.ref}</td>
                           <td className="px-6 py-4 font-bold text-loft-100">{invoice.amount}</td>
                           <td className="px-6 py-4">
-                            <button className="text-copper-500 hover:text-copper-400 font-medium text-xs flex items-center gap-1">
-                              Download PDF
+                            <button 
+                              onClick={() => handleDownloadInvoice(invoice.id)}
+                              disabled={downloadingInvoice === invoice.id}
+                              className="text-copper-500 hover:text-copper-400 font-medium text-xs flex items-center gap-1 disabled:opacity-50"
+                            >
+                              {downloadingInvoice === invoice.id ? 'Downloading...' : 'Download PDF'}
                             </button>
                           </td>
                         </tr>
@@ -344,8 +368,16 @@ const CustomerDashboard = () => {
                             {address.city}, {address.postalCode}
                           </p>
                         </div>
-                        <div className="p-2 bg-loft-800 rounded-lg text-copper-500">
-                          <MapPin className="w-5 h-5" />
+                        <div className="flex flex-col gap-2">
+                          <div className="p-2 bg-loft-800 rounded-lg text-copper-500">
+                            <MapPin className="w-5 h-5" />
+                          </div>
+                          <button 
+                            onClick={() => handleDeleteAddress(address.id)}
+                            className="p-1.5 text-xs text-red-500 hover:bg-red-500/10 rounded transition-colors text-center"
+                          >
+                            Delete
+                          </button>
                         </div>
                       </div>
                     </div>

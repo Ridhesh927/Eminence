@@ -156,6 +156,24 @@ const DriverDashboard = () => {
             <AlertTriangle className="w-5 h-5 mr-2" /> SOS / Emergency
           </button>
         </div>
+
+        {/* Tab Navigation */}
+        <div className="flex space-x-2 border-b border-loft-800 mb-8 overflow-x-auto hide-scrollbar">
+          {['today', 'heatmap', 'wms', 'earnings', 'completed'].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              disabled={isNavigating && tab !== 'today'}
+              className={`px-6 py-3 font-medium text-sm rounded-t-lg transition-colors whitespace-nowrap capitalize ${
+                activeTab === tab
+                  ? 'bg-copper-500/15 text-copper-300 border-b-2 border-copper-500'
+                  : 'text-loft-400 hover:text-loft-200 hover:bg-loft-900/50 disabled:opacity-50 disabled:cursor-not-allowed'
+              }`}
+            >
+              {tab === 'today' ? "Active Trip" : tab === 'heatmap' ? 'Surge Map' : tab === 'wms' ? 'WMS Scanner' : tab}
+            </button>
+          ))}
+        </div>
         
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
@@ -180,24 +198,6 @@ const DriverDashboard = () => {
                 <p className="text-xl font-bold text-loft-50">{stat.value}</p>
               </div>
             </motion.div>
-          ))}
-        </div>
-
-        {/* Tab Navigation */}
-        <div className="flex space-x-2 border-b border-loft-800 mb-8 overflow-x-auto hide-scrollbar">
-          {['today', 'heatmap', 'wms', 'earnings', 'completed'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              disabled={isNavigating && tab !== 'today'}
-              className={`px-6 py-3 font-medium text-sm rounded-t-lg transition-colors whitespace-nowrap capitalize ${
-                activeTab === tab
-                  ? 'bg-copper-500/15 text-copper-300 border-b-2 border-copper-500'
-                  : 'text-loft-400 hover:text-loft-200 hover:bg-loft-900/50 disabled:opacity-50 disabled:cursor-not-allowed'
-              }`}
-            >
-              {tab === 'today' ? "Active Trip" : tab === 'heatmap' ? 'Surge Map' : tab === 'wms' ? 'WMS Scanner' : tab}
-            </button>
           ))}
         </div>
 

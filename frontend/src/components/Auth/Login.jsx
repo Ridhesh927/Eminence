@@ -123,6 +123,8 @@ const Login = () => {
           token: data.token,
           isProfileComplete: data.user.isProfileComplete
         }));
+        
+        // Always route to dashboard; the CompleteProfileModal will handle the rest
         navigate(`/${data.user.role || 'customer'}/dashboard`);
       } else {
         setError(data.message || 'Google Login failed on server');

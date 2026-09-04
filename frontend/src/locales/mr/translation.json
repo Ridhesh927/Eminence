@@ -1,0 +1,16 @@
+{
+  "navbar": {
+    "bookTempo": "टेम्पो बुक करा",
+    "trackBooking": "बुकिंग ट्रॅक करा",
+    "services": "सेवा",
+    "businessContracts": "व्यवसाय करार",
+    "pricing": "किंमत",
+    "aboutUs": "आमच्याबद्दल",
+    "contact": "संपर्क",
+    "ivrHelpline": "आयव्हीआर हेल्पलाईन",
+    "copied": "कॉपी केले!",
+    "dashboard": "डॅशबोर्ड",
+    "signIn": "साइन इन करा",
+    "getStarted": "सुरू करा"
+  }
+}

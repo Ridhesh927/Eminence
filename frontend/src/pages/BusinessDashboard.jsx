@@ -60,6 +60,23 @@ const BusinessDashboard = () => {
             <Truck className="w-4 h-4 mr-2" /> Request Extra Vehicle
           </button>
         </div>
+
+        {/* Tab Navigation */}
+        <div className="flex space-x-2 border-b border-loft-800 mb-8 overflow-x-auto hide-scrollbar">
+          {['overview', 'contracts', 'bulk-load', 'trips', 'invoices', 'fleet', 'support'].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-6 py-3 font-medium text-sm rounded-t-lg transition-colors whitespace-nowrap capitalize ${
+                activeTab === tab
+                  ? 'bg-copper-500/15 text-copper-300 border-b-2 border-copper-500'
+                  : 'text-loft-400 hover:text-loft-200 hover:bg-loft-900/50'
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
         
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
@@ -85,23 +102,6 @@ const BusinessDashboard = () => {
                 <p className="text-xl font-bold text-loft-50">{stat.value}</p>
               </div>
             </motion.div>
-          ))}
-        </div>
-
-        {/* Tab Navigation */}
-        <div className="flex space-x-2 border-b border-loft-800 mb-8 overflow-x-auto hide-scrollbar">
-          {['overview', 'contracts', 'bulk-load', 'trips', 'invoices', 'fleet', 'support'].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-6 py-3 font-medium text-sm rounded-t-lg transition-colors whitespace-nowrap capitalize ${
-                activeTab === tab
-                  ? 'bg-copper-500/15 text-copper-300 border-b-2 border-copper-500'
-                  : 'text-loft-400 hover:text-loft-200 hover:bg-loft-900/50'
-              }`}
-            >
-              {tab}
-            </button>
           ))}
         </div>
 

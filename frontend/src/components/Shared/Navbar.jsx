@@ -3,12 +3,18 @@ import { Menu, Phone, Truck, LogOut } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../../redux/slices/authSlice';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const Navbar = () => {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [ivrCopied, setIvrCopied] = useState(false);
+  const { t, i18n } = useTranslation();
+
+  const handleLanguageChange = (e) => {
+    i18n.changeLanguage(e.target.value);
+  };
 
   const handleLogout = () => {
     dispatch(logout());
@@ -36,18 +42,18 @@ const Navbar = () => {
                 <>
                   {(user?.role === 'customer' || user?.role === 'business') && (
                     <>
-                      <Link to="/booking" className="text-loft-300 hover:text-loft-50 font-medium transition-colors whitespace-nowrap">Book Tempo</Link>
-                      <Link to="/tracking" className="text-loft-300 hover:text-loft-50 font-medium transition-colors whitespace-nowrap">Track Booking</Link>
+                      <Link to="/booking" className="text-loft-300 hover:text-loft-50 font-medium transition-colors whitespace-nowrap">{t('navbar.bookTempo')}</Link>
+                      <Link to="/tracking" className="text-loft-300 hover:text-loft-50 font-medium transition-colors whitespace-nowrap">{t('navbar.trackBooking')}</Link>
                     </>
                   )}
                 </>
               ) : (
                 <>
-                  <Link to="/services" className="text-loft-300 hover:text-loft-50 font-medium transition-colors whitespace-nowrap">Services</Link>
-                  <Link to="/contracts" className="text-loft-300 hover:text-loft-50 font-medium transition-colors hidden lg:block whitespace-nowrap">Business Contracts</Link>
-                  <Link to="/pricing" className="text-loft-300 hover:text-loft-50 font-medium transition-colors hidden lg:block whitespace-nowrap">Pricing</Link>
-                  <Link to="/about" className="text-loft-300 hover:text-loft-50 font-medium transition-colors hidden xl:block whitespace-nowrap">About Us</Link>
-                  <Link to="/contact" className="text-loft-300 hover:text-loft-50 font-medium transition-colors hidden xl:block whitespace-nowrap">Contact</Link>
+                  <Link to="/services" className="text-loft-300 hover:text-loft-50 font-medium transition-colors whitespace-nowrap">{t('navbar.services')}</Link>
+                  <Link to="/contracts" className="text-loft-300 hover:text-loft-50 font-medium transition-colors hidden lg:block whitespace-nowrap">{t('navbar.businessContracts')}</Link>
+                  <Link to="/pricing" className="text-loft-300 hover:text-loft-50 font-medium transition-colors hidden lg:block whitespace-nowrap">{t('navbar.pricing')}</Link>
+                  <Link to="/about" className="text-loft-300 hover:text-loft-50 font-medium transition-colors hidden xl:block whitespace-nowrap">{t('navbar.aboutUs')}</Link>
+                  <Link to="/contact" className="text-loft-300 hover:text-loft-50 font-medium transition-colors hidden xl:block whitespace-nowrap">{t('navbar.contact')}</Link>
                 </>
               )}
             </div>
@@ -55,6 +61,17 @@ const Navbar = () => {
           
           {/* Right: Actions */}
           <div className="hidden md:flex items-center space-x-4 lg:space-x-6">
+            
+            <select 
+              className="bg-loft-900 border border-loft-700 text-loft-300 text-sm rounded-lg focus:ring-copper-500 focus:border-copper-500 block p-1.5 cursor-pointer outline-none hover:bg-loft-800 transition-colors"
+              value={i18n.language}
+              onChange={handleLanguageChange}
+            >
+              <option value="en">Eng</option>
+              <option value="hi">हिंदी</option>
+              <option value="mr">मराठी</option>
+            </select>
+
             <button 
               onClick={(e) => {
                 e.preventDefault();
@@ -66,17 +83,17 @@ const Navbar = () => {
             >
               <Phone className="w-4 h-4" />
               <span className="font-semibold text-sm tracking-wide hidden lg:inline">
-                {ivrCopied ? 'COPIED!' : 'IVR HELPLINE'}
+                {ivrCopied ? t('navbar.copied') : t('navbar.ivrHelpline')}
               </span>
               <span className="font-semibold text-sm tracking-wide lg:hidden">
-                {ivrCopied ? 'COPIED' : 'IVR'}
+                {ivrCopied ? t('navbar.copied') : 'IVR'}
               </span>
             </button>
 
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
                 <Link to={`/${user?.role || 'customer'}/dashboard`} className="btn-secondary rounded-xl py-2.5 px-6 whitespace-nowrap">
-                  Dashboard
+                  {t('navbar.dashboard')}
                 </Link>
                 <button 
                   onClick={handleLogout}
@@ -89,10 +106,10 @@ const Navbar = () => {
             ) : (
               <div className="flex items-center gap-4">
                 <Link to="/login" className="text-loft-300 hover:text-loft-50 font-medium transition-colors whitespace-nowrap">
-                  Sign In
+                  {t('navbar.signIn')}
                 </Link>
                 <Link to="/register" className="btn-primary py-2.5 px-6 shadow-lg shadow-copper-500/20 whitespace-nowrap">
-                  Get Started
+                  {t('navbar.getStarted')}
                 </Link>
               </div>
             )}
