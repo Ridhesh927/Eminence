@@ -65,7 +65,7 @@ const razorpayWebhook = async (req, res) => {
   try {
     const secret = process.env.RAZORPAY_WEBHOOK_SECRET || 'eminence_secret';
     const signature = req.headers['x-razorpay-signature'];
-    const body = JSON.stringify(req.body);
+    const body = req.rawBody;
 
     const expectedSignature = crypto
       .createHmac('sha256', secret)

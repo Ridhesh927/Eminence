@@ -1,9 +1,9 @@
 const { Booking, Driver, Vehicle } = require('../models');
 const Groq = require('groq-sdk');
 
-const groq = new Groq({
+const groq = process.env.GROQ_API_KEY ? new Groq({
   apiKey: process.env.GROQ_API_KEY
-});
+}) : null;
 
 /**
  * Handle incoming support messages from customers using Groq LLM
@@ -59,6 +59,9 @@ ${bookingsContext}
 `;
 
     // 4. Call Groq LLM
+    if (!groq) {
+      return "Groq AI is not configured. Please contact human support at support@eminence.com.";
+    }
     const chatCompletion = await groq.chat.completions.create({
       messages: [
         {
