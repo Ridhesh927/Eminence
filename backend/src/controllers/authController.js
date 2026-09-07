@@ -262,7 +262,7 @@ const phoneVerify = async (req, res) => {
     const userRole = 'customer'; // Role is strictly determined server-side
     
     // For local development only, allow bypass for the designated seed phone number
-    const isDevDemo = process.env.NODE_ENV === 'development' && code === '1234' && phone === (process.env.SEED_PHONE || '1234567890');
+    const isDevDemo = process.env.NODE_ENV === 'development' && code === '123456' && (phone === (process.env.SEED_PHONE || '1234567890') || phone === '9999999999');
     if (isDevDemo) {
       let customer = await Customer.findOne({ where: { phone } });
       if (!customer) {

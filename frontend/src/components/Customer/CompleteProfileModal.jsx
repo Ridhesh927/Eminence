@@ -27,8 +27,8 @@ const CompleteProfileModal = () => {
   const [message, setMessage] = useState('');
   const [isClosed, setIsClosed] = useState(false);
 
-  // If user is not logged in or already complete, don't render the modal
-  if (!user || user.isProfileComplete) return null;
+  // If user is not logged in or already complete, or modal is dismissed, don't render
+  if (!user || user.isProfileComplete || isClosed) return null;
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -122,8 +122,13 @@ const CompleteProfileModal = () => {
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col relative"
         >
-          {/* Close button removed to enforce profile completion */}
-          <div className="bg-primary p-6 text-white text-center flex-shrink-0 pt-10">
+          <button 
+            onClick={() => setIsClosed(true)}
+            className="absolute top-4 right-4 z-10 p-2 text-white/70 hover:text-white bg-black/20 hover:bg-black/40 rounded-full transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+          <div className="bg-primary p-6 text-white text-center flex-shrink-0 pt-10 relative">
             <h2 className="text-3xl font-serif font-bold mb-2">Complete Your Profile</h2>
             <p className="text-primary-foreground/90">
               We need a few more details to set up your account completely.
