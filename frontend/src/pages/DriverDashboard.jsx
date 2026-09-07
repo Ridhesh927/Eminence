@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Navigation, Wallet, AlertTriangle, CheckCircle, Clock, MapPin, Fuel, TrendingUp, Map } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import axios from 'axios';
+import api from '../services/api';
 import { io } from 'socket.io-client';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
@@ -88,9 +88,8 @@ const DriverDashboard = () => {
   const handleAcceptTrip = async () => {
     try {
       // Note: Assuming driver ID is managed via token on backend
-      await axios.put(`${API_BASE_URL}/api/bookings/${activeRide.bookingId}/status`, 
-        { status: 'driver_assigned' },
-        { withCredentials: true } // or use token from Redux if available
+      await api.put(`/api/bookings/${activeRide.bookingId}/status`, 
+        { status: 'driver_assigned' }
       );
     } catch (err) {
       console.error('Error accepting trip:', err);
@@ -100,9 +99,8 @@ const DriverDashboard = () => {
 
   const handleDeclineTrip = async () => {
     try {
-      await axios.put(`${API_BASE_URL}/api/bookings/${activeRide.bookingId}/status`, 
-        { status: 'rejected' }, // Depending on your state machine
-        { withCredentials: true }
+      await api.put(`/api/bookings/${activeRide.bookingId}/status`, 
+        { status: 'rejected' } // Depending on your state machine
       );
     } catch (err) {
       console.error('Error declining trip:', err);
@@ -118,9 +116,7 @@ const DriverDashboard = () => {
     if (activeTab === 'heatmap') {
       const fetchHeatmap = async () => {
         try {
-          const res = await axios.get(`${API_BASE_URL}/api/drivers/heatmap`, {
-            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-          });
+          const res = await api.get('/api/drivers/heatmap');
           if (res.data.success) {
             setHeatmapData(res.data.data);
           }
@@ -398,9 +394,7 @@ const DriverDashboard = () => {
                     setScanResult(null);
                     setTimeout(async () => {
                       try {
-                        const res = await axios.post(`${API_BASE_URL}/api/drivers/scan-inventory`, { barcode: 'MOCK-BOX-001' }, {
-                          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-                        });
+                        const res = await api.post('/api/drivers/scan-inventory', { barcode: 'MOCK-BOX-001' });
                         setIsScanning(false);
                         setScanResult(res.data.item);
                       } catch (err) {

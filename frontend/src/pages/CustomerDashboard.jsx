@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { Package, CheckCircle, Wallet, MapPin, Plus, Gift, Copy, Crown, Target, Star, Leaf, Truck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import axios from 'axios';
-
+import api from '../services/api';
+import { updateProfileSuccess } from '../redux/slices/authSlice';
+import { useDispatch } from 'react-redux';
 const CustomerDashboard = () => {
   const { user, token } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
   const [activeTab, setActiveTab] = useState('history');
   const [isAddAddressOpen, setIsAddAddressOpen] = useState(false);
   const [walletData, setWalletData] = useState(null);
@@ -41,7 +43,7 @@ const CustomerDashboard = () => {
 
   const fetchAddresses = async () => {
     try {
-      const res = await axios.get('http://localhost:3000/api/address', {
+      const res = await api.get('/api/address', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setAddresses(res.data);
@@ -52,7 +54,7 @@ const CustomerDashboard = () => {
 
   const handleSaveAddress = async () => {
     try {
-      const res = await axios.post('http://localhost:3000/api/address', newAddress, {
+      const res = await api.post('/api/address', newAddress, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setAddresses([...addresses, res.data]);
@@ -65,7 +67,7 @@ const CustomerDashboard = () => {
 
   const handleDeleteAddress = async (id) => {
     try {
-      await axios.delete(`http://localhost:3000/api/address/${id}`, {
+      await api.delete(`/api/address/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setAddresses(addresses.filter(addr => addr.id !== id));
@@ -77,9 +79,10 @@ const CustomerDashboard = () => {
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
     try {
-      const res = await axios.post('http://localhost:3000/api/auth/complete-profile', profileForm, {
+      const res = await api.post('/api/auth/complete-profile', profileForm, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      dispatch(updateProfileSuccess(res.data.user));
       alert('Profile updated successfully!');
       // In a real app we'd dispatch(loginSuccess(res.data)) to update Redux state
     } catch (error) {
@@ -90,7 +93,7 @@ const CustomerDashboard = () => {
 
   const fetchWallet = async () => {
     try {
-      const res = await axios.get('http://localhost:3000/api/wallet', {
+      const res = await api.get('/api/wallet', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setWalletData(res.data);
