@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Phone, Mail, MapPin } from 'lucide-react';
-import axios from 'axios';
+import api from '../services/api';
 
 const Contact = () => {
   const [formData, setFormData] = useState({ name: '', email: '', message: '' });
@@ -15,7 +15,7 @@ const Contact = () => {
     setLoading(true);
     setStatus(null);
     try {
-      await axios.post('http://localhost:3000/api/integrations/contact-message', formData);
+      await api.post('/api/integrations/contact-message', formData);
       setStatus('success');
       setFormData({ name: '', email: '', message: '' });
     } catch (error) {
