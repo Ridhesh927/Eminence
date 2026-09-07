@@ -220,33 +220,55 @@ const verifyOtp = async (req, res) => {
 
 const phoneLogin = async (req, res) => {
   try {
-    const { phone } = req.body;
+    const { phone, role = 'customer' } = req.body;
     if (!phone) return res.status(400).json({ success: false, message: 'Phone number is required' });
 
-    let customer = await Customer.findOne({ where: { phone } });
-    if (!customer) {
-      const refCode = `EMINENCE-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-      customer = await Customer.create({
-        phone,
-        isPhoneVerified: false,
-        referralCode: refCode
-      });
-      // Create wallet
-      const { Wallet } = require('../models');
-      await Wallet.create({ customerId: customer.id, balance: 0.0 });
+    // Bypass OTP generation and DB operations for the Demo Login phone
+    const isDevDemo = process.env.NODE_ENV === 'development' && (phone === (process.env.SEED_PHONE || '1234567890') || phone === '9999999999');
+    if (isDevDemo) {
+      return res.status(200).json({ success: true, message: 'Demo OTP sent successfully' });
+    }
+
+    let userId;
+    if (role === 'driver') {
+      const Driver = require('../models/Driver');
+      let driver = await Driver.findOne({ where: { phone } });
+      if (!driver) {
+        driver = await Driver.create({ phone, name: 'Demo Driver', licenseNumber: 'DL-' + Math.floor(Math.random()*10000) });
+      }
+      userId = driver.id;
+    } else {
+      const isBusiness = role === 'business';
+      const { Customer } = require('../models');
+      let customer = await Customer.findOne({ where: { phone, isBusiness } });
+      if (!customer) {
+        const refCode = 'EMINENCE-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+        customer = await Customer.create({
+          phone,
+          isPhoneVerified: false,
+          referralCode: refCode,
+          isBusiness,
+          name: isBusiness ? 'Demo Business' : 'Demo User'
+        });
+        const { Wallet } = require('../models');
+        await Wallet.create({ customerId: customer.id, balance: 0.0 });
+      }
+      userId = customer.id;
     }
 
     const code = generateOtp();
     const expiresAt = new Date(Date.now() + 10 * 60000); // 10 minutes
 
-    await Otp.destroy({ where: { customerId: customer.id, type: 'phone' } });
+    const { Otp } = require('../models');
+    await Otp.destroy({ where: { customerId: userId, type: 'phone' } });
     await Otp.create({
-      customerId: customer.id,
+      customerId: userId,
       type: 'phone',
       code,
       expiresAt
     });
 
+    const smsService = require('../services/smsService');
     await smsService.sendSMS(phone, `Your Eminence Login OTP is: ${code}. Valid for 10 minutes.`);
 
     return res.status(200).json({ success: true, message: 'OTP sent successfully' });
@@ -258,56 +280,101 @@ const phoneLogin = async (req, res) => {
 
 const phoneVerify = async (req, res) => {
   try {
-    const { phone, code } = req.body;
-    const userRole = 'customer'; // Role is strictly determined server-side
+    const { phone, code, role = 'customer' } = req.body;
+    const userRole = role; // Use provided role instead of hardcoding 'customer'
     
     // For local development only, allow bypass for the designated seed phone number
     const isDevDemo = process.env.NODE_ENV === 'development' && code === '123456' && (phone === (process.env.SEED_PHONE || '1234567890') || phone === '9999999999');
+    
     if (isDevDemo) {
-      let customer = await Customer.findOne({ where: { phone } });
-      if (!customer) {
-        const refCode = `EMINENCE-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-        customer = await Customer.create({ phone, isPhoneVerified: true, referralCode: refCode });
-        const { Wallet } = require('../models');
-        await Wallet.create({ customerId: customer.id, balance: 0.0 });
+      let userObj;
+      let token;
+      
+      if (userRole === 'driver') {
+        const Driver = require('../models/Driver');
+        let driver = await Driver.findOne({ where: { phone } });
+        if (!driver) {
+          driver = await Driver.create({ phone, name: 'Demo Driver', licenseNumber: 'DL-' + Math.floor(Math.random()*10000) });
+        }
+        const jwt = require('jsonwebtoken');
+        token = jwt.sign(
+          { id: driver.id, role: userRole, isProfileComplete: true },
+          process.env.JWT_SECRET || 'fallback_secret',
+          { expiresIn: process.env.JWT_EXPIRE || '7d' }
+        );
+        userObj = driver.toJSON ? driver.toJSON() : { ...driver };
       } else {
-        customer.isPhoneVerified = true;
-        await customer.save();
+        const isBusiness = userRole === 'business';
+        const { Customer } = require('../models');
+        let customer = await Customer.findOne({ where: { phone, isBusiness } });
+        if (!customer) {
+          const refCode = 'EMINENCE-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+          customer = await Customer.create({ phone, isPhoneVerified: true, referralCode: refCode, isBusiness, name: isBusiness ? 'Demo Business' : 'Demo User' });
+          const { Wallet } = require('../models');
+          await Wallet.create({ customerId: customer.id, balance: 0.0 });
+        } else {
+          customer.isPhoneVerified = true;
+          await customer.save();
+        }
+        
+        // inline checkAndSetProfileComplete since we modify it
+        if (customer.name && customer.email && customer.phone && customer.isEmailVerified && customer.isPhoneVerified && customer.city && customer.state && customer.address && customer.governmentId) {
+          customer.isProfileComplete = true;
+          await customer.save();
+        }
+        
+        const jwt = require('jsonwebtoken');
+        token = jwt.sign(
+          { id: customer.id, role: userRole, isProfileComplete: customer.isProfileComplete },
+          process.env.JWT_SECRET || 'fallback_secret',
+          { expiresIn: process.env.JWT_EXPIRE || '7d' }
+        );
+        userObj = customer.toJSON ? customer.toJSON() : { ...customer };
       }
-      customer = await checkAndSetProfileComplete(customer);
-      const token = jwt.sign(
-        { id: customer.id, role: userRole, isProfileComplete: customer.isProfileComplete },
-        process.env.JWT_SECRET || 'fallback_secret',
-        { expiresIn: process.env.JWT_EXPIRE || '7d' }
-      );
 
-      const userObj = customer.toJSON ? customer.toJSON() : { ...customer };
       userObj.role = userRole;
-
       return res.status(200).json({ success: true, token, user: userObj });
     }
 
-    const customer = await Customer.findOne({ where: { phone } });
-    if (!customer) return res.status(404).json({ success: false, message: 'User not found' });
+    // Normal non-demo flow
+    let user;
+    if (userRole === 'driver') {
+      const Driver = require('../models/Driver');
+      user = await Driver.findOne({ where: { phone } });
+    } else {
+      const isBusiness = userRole === 'business';
+      const { Customer } = require('../models');
+      user = await Customer.findOne({ where: { phone, isBusiness } });
+    }
+    
+    if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
-    const otpRecord = await Otp.findOne({ where: { customerId: customer.id, type: 'phone', code } });
+    const { Otp } = require('../models');
+    const otpRecord = await Otp.findOne({ where: { customerId: user.id, type: 'phone', code } });
     
     if (!otpRecord) return res.status(400).json({ success: false, message: 'Invalid OTP' });
     if (new Date() > otpRecord.expiresAt) return res.status(400).json({ success: false, message: 'OTP has expired' });
 
-    customer.isPhoneVerified = true;
-    await customer.save();
+    if (userRole !== 'driver') {
+      user.isPhoneVerified = true;
+      await user.save();
+      
+      if (user.name && user.email && user.phone && user.isEmailVerified && user.isPhoneVerified && user.city && user.state && user.address && user.governmentId) {
+          user.isProfileComplete = true;
+          await user.save();
+      }
+    }
+    
     await otpRecord.destroy();
 
-    const verifiedCustomer = await checkAndSetProfileComplete(customer);
-
+    const jwt = require('jsonwebtoken');
     const token = jwt.sign(
-      { id: verifiedCustomer.id, role: userRole, isProfileComplete: verifiedCustomer.isProfileComplete },
+      { id: user.id, role: userRole, isProfileComplete: userRole === 'driver' ? true : user.isProfileComplete },
       process.env.JWT_SECRET || 'fallback_secret',
       { expiresIn: process.env.JWT_EXPIRE || '7d' }
     );
 
-    const userObj = verifiedCustomer.toJSON ? verifiedCustomer.toJSON() : { ...verifiedCustomer };
+    const userObj = user.toJSON ? user.toJSON() : { ...user };
     userObj.role = userRole;
 
     return res.status(200).json({ success: true, token, user: userObj });
