@@ -32,7 +32,7 @@ const AuditLog = sequelize.define('AuditLog', {
     allowNull: true,
   },
   metadata: {
-    type: DataTypes.JSONB,
+    type: DataTypes.JSON,
     allowNull: true, // Extra context (before/after changes, etc.)
   }
 }, {

@@ -16,7 +16,7 @@ const Booking = sequelize.define('Booking', {
     allowNull: true, // Made nullable for multi-stop
   },
   stops: {
-    type: DataTypes.JSONB,
+    type: DataTypes.JSON,
     allowNull: true,
   },
   totalDistance: {
