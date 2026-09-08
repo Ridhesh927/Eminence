@@ -1,9 +1,18 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const router = express.Router();
 const { Address } = require('../models');
 const authMiddleware = require('../middleware/authMiddleware');
 
+const addressRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
 router.use(authMiddleware);
+router.use(addressRateLimiter);
 
 // Get all addresses for user
 router.get('/', async (req, res) => {
