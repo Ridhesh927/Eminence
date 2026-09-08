@@ -2,6 +2,15 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { Admin } = require('../models');
 
+// Secure JWT Secret Loader
+const getJwtSecret = () => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret && process.env.NODE_ENV === 'production') {
+    throw new Error('FATAL: JWT_SECRET is not defined in production');
+  }
+  return secret || 'fallback_secret';
+};
+
 const adminLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -24,7 +33,7 @@ const adminLogin = async (req, res) => {
 
     const token = jwt.sign(
       { id: admin.id, role: 'admin' },
-      process.env.JWT_SECRET || 'fallback_secret',
+      getJwtSecret(),
       { expiresIn: process.env.JWT_EXPIRE || '1d' }
     );
 
