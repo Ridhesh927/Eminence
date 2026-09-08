@@ -100,7 +100,7 @@ const Booking = () => {
     if (!promoCode) return;
     try {
       const res = await axios.post(
-        'http://localhost:3000/api/wallet/referral',
+        'http://localhost:5000/api/wallet/referral',
         { referralCode: promoCode },
         { headers: { Authorization: `Bearer ${token}` } }
       );

@@ -5,7 +5,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recha
 import api from '../services/api';
 import { io } from 'socket.io-client';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const DriverDashboard = () => {
   const [activeTab, setActiveTab] = useState('today');
@@ -166,7 +166,7 @@ const DriverDashboard = () => {
                   : 'text-loft-400 hover:text-loft-200 hover:bg-loft-900/50 disabled:opacity-50 disabled:cursor-not-allowed'
               }`}
             >
-              {tab === 'today' ? "Active Trip" : tab === 'heatmap' ? 'Surge Map' : tab === 'wms' ? 'WMS Scanner' : tab}
+              {tab === 'today' ? "Active Trip" : tab === 'heatmap' ? 'Heatmap' : tab === 'wms' ? 'WMS Scanner' : tab}
             </button>
           ))}
         </div>
