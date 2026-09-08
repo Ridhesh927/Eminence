@@ -11,8 +11,8 @@ const addressRateLimiter = rateLimit({
   legacyHeaders: false
 });
 
-router.use(authMiddleware);
 router.use(addressRateLimiter);
+router.use(authMiddleware);
 
 // Get all addresses for user
 router.get('/', async (req, res) => {
