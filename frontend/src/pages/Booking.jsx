@@ -144,14 +144,22 @@ const Booking = () => {
             style={{ width: `${((step - 1) / 2) * 100}%` }}
           ></div>
           
-          {[1, 2, 3].map((num) => (
-            <div 
-              key={num} 
-              className={`relative z-10 w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-colors ${
-                step >= num ? 'bg-copper-500 text-white shadow-[0_0_15px_rgba(232,99,49,0.4)]' : 'bg-loft-800 text-loft-400'
-              }`}
-            >
-              {num}
+          {[
+            { num: 1, label: 'Locations' },
+            { num: 2, label: 'Vehicle & Goods' },
+            { num: 3, label: 'Payment' }
+          ].map(({ num, label }) => (
+            <div key={num} className="flex flex-col items-center relative z-10">
+              <div 
+                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm transition-colors ${
+                  step >= num ? 'bg-copper-500 text-white shadow-[0_0_15px_rgba(232,99,49,0.4)]' : 'bg-loft-800 text-loft-400'
+                }`}
+              >
+                {num}
+              </div>
+              <span className={`absolute top-12 text-xs font-medium whitespace-nowrap ${step >= num ? 'text-copper-500' : 'text-loft-400'}`}>
+                {label}
+              </span>
             </div>
           ))}
         </div>
@@ -249,7 +257,7 @@ const Booking = () => {
                   )}
                 </div>
 
-                <button type="submit" className="btn-primary w-full mt-6">Continue to Details</button>
+                <button type="submit" className="btn-primary w-full mt-6">Continue to Vehicle & Goods</button>
               </motion.div>
             )}
 
