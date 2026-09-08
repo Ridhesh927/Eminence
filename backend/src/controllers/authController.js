@@ -19,6 +19,15 @@ const generateOtp = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
+// Secure JWT Secret Loader
+const getJwtSecret = () => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret && process.env.NODE_ENV === 'production') {
+    throw new Error('FATAL: JWT_SECRET is not defined in production');
+  }
+  return secret || 'fallback_secret';
+};
+
 const googleLogin = async (req, res) => {
   const { idToken } = req.body;
   
@@ -75,7 +84,7 @@ const googleLogin = async (req, res) => {
         role: 'customer', 
         isProfileComplete: customer.isProfileComplete 
       }, 
-      process.env.JWT_SECRET || 'fallback_secret', 
+      getJwtSecret(), 
       { expiresIn: process.env.JWT_EXPIRE || '7d' }
     );
 
@@ -299,7 +308,7 @@ const phoneVerify = async (req, res) => {
         const jwt = require('jsonwebtoken');
         token = jwt.sign(
           { id: driver.id, role: userRole, isProfileComplete: true },
-          process.env.JWT_SECRET || 'fallback_secret',
+          getJwtSecret(),
           { expiresIn: process.env.JWT_EXPIRE || '7d' }
         );
         userObj = driver.toJSON ? driver.toJSON() : { ...driver };
@@ -326,7 +335,7 @@ const phoneVerify = async (req, res) => {
         const jwt = require('jsonwebtoken');
         token = jwt.sign(
           { id: customer.id, role: userRole, isProfileComplete: customer.isProfileComplete },
-          process.env.JWT_SECRET || 'fallback_secret',
+          getJwtSecret(),
           { expiresIn: process.env.JWT_EXPIRE || '7d' }
         );
         userObj = customer.toJSON ? customer.toJSON() : { ...customer };
@@ -370,7 +379,7 @@ const phoneVerify = async (req, res) => {
     const jwt = require('jsonwebtoken');
     const token = jwt.sign(
       { id: user.id, role: userRole, isProfileComplete: userRole === 'driver' ? true : user.isProfileComplete },
-      process.env.JWT_SECRET || 'fallback_secret',
+      getJwtSecret(),
       { expiresIn: process.env.JWT_EXPIRE || '7d' }
     );
 
