@@ -30,7 +30,7 @@ const OTPVerification = () => {
       const autoVerify = async () => {
         setIsLoading(true);
         try {
-          const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/phone-verify`, {
+          const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/phone-verify`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ phone, code: '123456', role: location.state?.role || 'customer' })
@@ -87,7 +87,7 @@ const OTPVerification = () => {
     setIsLoading(true);
     
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/phone-verify`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/phone-verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, code: otpValue, role: location.state?.role || 'customer' })
@@ -106,7 +106,7 @@ const OTPVerification = () => {
 
         if (pendingName && !data.user.name) {
           try {
-            const updateRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/complete-profile`, {
+            const updateRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/complete-profile`, {
               method: 'POST',
               headers: { 
                 'Content-Type': 'application/json',

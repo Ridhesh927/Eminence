@@ -42,7 +42,7 @@ const CompleteProfileModal = () => {
     try {
       const token = localStorage.getItem('token');
       const res = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/complete-profile`,
+        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/complete-profile`,
         formData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -77,7 +77,7 @@ const CompleteProfileModal = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/send-otp`,
+        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/send-otp`,
         { type },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -98,7 +98,7 @@ const CompleteProfileModal = () => {
     try {
       const token = localStorage.getItem('token');
       const res = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/verify-otp`,
+        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/verify-otp`,
         { type: otpType, code: otpCode },
         { headers: { Authorization: `Bearer ${token}` } }
       );
