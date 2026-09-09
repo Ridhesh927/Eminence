@@ -73,10 +73,20 @@ describe('Admin & Analytics Integration Tests', () => {
     });
 
     it('should reject client-manipulated role during phone verification and enforce customer role', async () => {
+      // Seed data for the normal flow
+      const { Customer, Otp } = require('../../src/models');
+      const testCustomer = await Customer.create({ phone: '9876543210' });
+      await Otp.create({
+        customerId: testCustomer.id,
+        type: 'phone',
+        code: '1234',
+        expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 minutes in the future
+      });
+
       const res = await request(app)
         .post('/api/auth/phone-verify')
         .send({
-          phone: '1234567890',
+          phone: '9876543210',
           code: '1234',
           role: 'admin' // Attacker attempting privilege escalation
         });

@@ -290,7 +290,10 @@ const phoneLogin = async (req, res) => {
 const phoneVerify = async (req, res) => {
   try {
     const { phone, code, role = 'customer' } = req.body;
-    const userRole = role; // Use provided role instead of hardcoding 'customer'
+    
+    // Prevent privilege escalation: only allow specific roles
+    const validRoles = ['customer', 'business', 'driver'];
+    const userRole = validRoles.includes(role) ? role : 'customer';
     
     // For local development only, allow bypass for the designated seed phone number
     const isDevDemo = process.env.NODE_ENV === 'development' && code === '123456' && (phone === (process.env.SEED_PHONE || '1234567890') || phone === '9999999999');

@@ -83,6 +83,10 @@ const Customer = sequelize.define('Customer', {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
   },
+  b2bStatus: {
+    type: DataTypes.ENUM('none', 'pending_verification', 'approved', 'rejected'),
+    defaultValue: 'none',
+  },
   companyName: {
     type: DataTypes.STRING,
     allowNull: true,
