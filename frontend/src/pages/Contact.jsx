@@ -10,19 +10,48 @@ const Contact = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.email || !formData.message) return;
-    
+
+    const payload = {
+      name: formData.name.trim(),
+      email: formData.email.trim().toLowerCase(),
+      message: formData.message.trim(),
+    };
+
+    if (payload.name.length < 2 || payload.name.length > 100) {
+      setStatus('invalid-name');
+      return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
+      setStatus('invalid-email');
+      return;
+    }
+
+    if (
+      payload.message.length < 10 ||
+      payload.message.length > 5000
+    ) {
+      setStatus('invalid-message');
+      return;
+    }
+
     setLoading(true);
     setStatus(null);
+
     try {
-      await api.post('/api/integrations/contact-message', formData);
+      await api.post('/api/integrations/contact-message', payload);
       setStatus('success');
-      setFormData({ name: '', email: '', message: '' });
+      setFormData({
+        name: '',
+        email: '',
+        message: '',
+      });
     } catch (error) {
       console.error(error);
       setStatus('error');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -94,6 +123,21 @@ const Contact = () => {
             {status === 'error' && (
               <div className="mb-6 p-4 rounded-xl bg-red-500/10 text-red-500 text-sm font-medium border border-red-500/20">
                 Failed to send message. Please try again later.
+              </div>
+            )}
+            {status === 'invalid-name' && (
+              <div className="mb-6 p-4 rounded-xl bg-red-500/10 text-red-500 text-sm font-medium border border-red-500/20">
+                Name must be between 2 and 100 characters.
+              </div>
+            )}
+            {status === 'invalid-email' && (
+              <div className="mb-6 p-4 rounded-xl bg-red-500/10 text-red-500 text-sm font-medium border border-red-500/20">
+                Please enter a valid email address.
+              </div>
+            )}
+            {status === 'invalid-message' && (
+              <div className="mb-6 p-4 rounded-xl bg-red-500/10 text-red-500 text-sm font-medium border border-red-500/20">
+                Message must be between 10 and 5000 characters.
               </div>
             )}
             <form className="space-y-4" onSubmit={handleSubmit}>
