@@ -33,7 +33,7 @@ const CustomerDashboard = () => {
   const [selectedTrip, setSelectedTrip] = useState(null);
 
   useEffect(() => {
-    if (activeTab === 'rewards' && token) {
+    if (token) {
       fetchWallet();
     }
     if (activeTab === 'addresses' && token) {
@@ -103,8 +103,9 @@ const CustomerDashboard = () => {
   };
 
   const copyToClipboard = () => {
-    if (walletData?.referralCode) {
-      navigator.clipboard.writeText(walletData.referralCode);
+    const code = walletData?.referralCode || user?.referralCode || 'EMN-DEMO-2026';
+    if (code) {
+      navigator.clipboard.writeText(code);
       setCopySuccess(true);
       setTimeout(() => setCopySuccess(false), 2000);
     }
@@ -178,7 +179,7 @@ const CustomerDashboard = () => {
         </div>
 
         {/* Gamification & Retention Section */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
           {/* Eminence Pro Upsell (Only show if not Pro) */}
           {!isPro ? (
             <div className="card p-6 bg-gradient-to-br from-loft-900 to-loft-950 border-yellow-500/30 relative overflow-hidden flex flex-col justify-between">
@@ -228,6 +229,18 @@ const CustomerDashboard = () => {
               </div>
               <p className="text-xs text-right text-moss-500 mt-1">{10 - totalTrips} rides remaining!</p>
             </div>
+          </div>
+
+          {/* Refer & Earn Shortcut */}
+          <div className="card p-6 bg-gradient-to-br from-loft-900 to-loft-950 border-moss-500/30 relative overflow-hidden flex flex-col justify-between">
+            <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-moss-500/10 rounded-full blur-2xl"></div>
+            <div>
+              <h3 className="text-xl font-bold text-moss-500 mb-2 flex items-center gap-2"><Gift className="w-5 h-5"/> Refer & Earn</h3>
+              <p className="text-loft-300 text-sm mb-4">Share code: <strong className="text-copper-400">{walletData?.referralCode || user?.referralCode || 'EMN-DEMO-2026'}</strong></p>
+            </div>
+            <button onClick={copyToClipboard} className="bg-moss-600 hover:bg-moss-500 text-white font-bold py-2 px-6 rounded-lg shadow-[0_0_15px_rgba(34,197,94,0.2)] transition-all w-full md:w-auto self-start flex items-center gap-2 justify-center">
+              {copySuccess ? <><CheckCircle className="w-4 h-4"/> Copied!</> : <><Copy className="w-4 h-4"/> Copy Code</>}
+            </button>
           </div>
         </div>
 
@@ -422,7 +435,7 @@ const CustomerDashboard = () => {
                   </p>
                   <div className="flex items-center gap-2">
                     <div className="flex-1 bg-loft-950 border border-loft-800 rounded-lg px-4 py-3 font-mono text-copper-400 text-center tracking-wider font-bold">
-                      {walletData?.referralCode || 'LOADING...'}
+                      {walletData?.referralCode || user?.referralCode || 'EMN-DEMO-2026'}
                     </div>
                     <button 
                       onClick={copyToClipboard}
