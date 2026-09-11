@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Navigation, Wallet, AlertTriangle, CheckCircle, Clock, MapPin, Fuel, TrendingUp, Map } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
@@ -23,14 +23,27 @@ const DriverDashboard = () => {
   const [activeRide, setActiveRide] = useState(null);
   const [driverPos, setDriverPos] = useState({ lat: 18.5204, lng: 73.8567 });
 
+  const socketRef = useRef(null);
+  const isOnlineRef = useRef(isOnline);
+  const isNavigatingRef = useRef(isNavigating);
+
+  useEffect(() => {
+    isOnlineRef.current = isOnline;
+  }, [isOnline]);
+
+  useEffect(() => {
+    isNavigatingRef.current = isNavigating;
+  }, [isNavigating]);
+
   useEffect(() => {
     const newSocket = io(API_BASE_URL.replace('/api', ''), {
       withCredentials: true,
     });
     setSocket(newSocket);
+    socketRef.current = newSocket;
     
     newSocket.on('ride_request', (data) => {
-      if (isOnline && !isNavigating) {
+      if (isOnlineRef.current && !isNavigatingRef.current) {
         setActiveRide({
           bookingId: data.bookingId || 'BKG-NEW',
           fare: data.estimatedFare || 450,
@@ -45,8 +58,9 @@ const DriverDashboard = () => {
     return () => {
       newSocket.off('ride_request');
       newSocket.disconnect();
+      socketRef.current = null;
     };
-  }, [isOnline, isNavigating]);
+  }, []);
 
   // Simulate GPS movement
   useEffect(() => {
