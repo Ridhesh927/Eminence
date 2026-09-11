@@ -16,9 +16,9 @@ router.get('/heatmap', (req, res) => {
 });
 
 // Mock inventory scanning route for WMS
-router.post('/scan-inventory', async (req, res) => {
+router.all('/scan-inventory', async (req, res) => {
   try {
-    const { barcode } = req.body;
+    const barcode = req.body.barcode || req.query.barcode || 'MOCK-BOX-001';
     // In a real scenario we'd query the DB:
     // const item = await Inventory.findOne({ where: { barcode }});
     // if (!item) return res.status(404).json({ success: false, message: 'Item not found' });
