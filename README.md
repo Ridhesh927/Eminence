@@ -698,7 +698,7 @@ git push origin feature/your-feature-name
 - **Live Demo:** [Coming Soon]
 - **Project Board:** [GitHub Projects](https://github.com/ridhesh927eminence/projects)
 - **Documentation:** [docs/](docs/)
-- **Bug Tracker:** [Issues](https://github.com/ridhesh927eminence/issues)
+- **Bug Tracker:** [Issues](https://github.com/Ridhesh927/Eminence/issues)
 - **Discussions:** [GitHub Discussions](https://github.com/ridhesh927eminence/discussions)
 
 ---
