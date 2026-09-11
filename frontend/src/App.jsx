@@ -22,24 +22,18 @@ const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AdminLogin = lazy(() => import('./pages/AdminLogin'));
 import CompleteProfileModal from './components/Customer/CompleteProfileModal';
 
-const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated } = useSelector((state) => state.auth);
+const RequireAuth = ({ children, allowedRoles }) => {
+  const { isAuthenticated, user, loading, isLoading } = useSelector((state) => state.auth);
+
+  if (loading || isLoading) {
+    return <div className="min-h-screen flex items-center justify-center text-loft-200">Loading...</div>;
+  }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" />;
   }
 
-  return children;
-};
-
-const AdminRoute = ({ children }) => {
-  const { isAuthenticated, user } = useSelector((state) => state.auth);
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" />;
-  }
-
-  if (user?.role !== 'admin') {
+  if (allowedRoles && !allowedRoles.includes(user?.role)) {
     return <Navigate to="/" />;
   }
 
@@ -76,33 +70,33 @@ function App() {
             <Route path="/booking" element={<Booking />} />
             <Route path="/tracking/:bookingId?" element={<Tracking />} />
             <Route path="/complete-profile" element={
-              <ProtectedRoute>
+              <RequireAuth>
                  <CompleteProfile />
-              </ProtectedRoute>
+              </RequireAuth>
             } />
             
             <Route path="/" element={<Home />} />
             
             {/* Dashboards */}
             <Route path="/customer/dashboard" element={
-              <ProtectedRoute>
+              <RequireAuth allowedRoles={['customer']}>
                 <CustomerDashboard />
-              </ProtectedRoute>
+              </RequireAuth>
             } />
             <Route path="/driver/dashboard" element={
-              <ProtectedRoute>
+              <RequireAuth allowedRoles={['driver']}>
                 <DriverDashboard />
-              </ProtectedRoute>
+              </RequireAuth>
             } />
             <Route path="/business/dashboard" element={
-              <ProtectedRoute>
+              <RequireAuth allowedRoles={['business']}>
                 <BusinessDashboard />
-              </ProtectedRoute>
+              </RequireAuth>
             } />
             <Route path="/admin/dashboard" element={
-              <AdminRoute>
+              <RequireAuth allowedRoles={['admin']}>
                 <AdminDashboard />
-              </AdminRoute>
+              </RequireAuth>
             } />
           </Routes>
         </Suspense>

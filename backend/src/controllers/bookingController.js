@@ -4,16 +4,30 @@ const { findPoolMatch } = require('../services/poolingEngine');
 const crypto = require('crypto');
 
 // Get all bookings
-const getAllBookings = async (_req, res) => {
+const getAllBookings = async (req, res) => {
   try {
-    const bookings = await Booking.findAll({
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = Math.min(parseInt(req.query.limit, 10) || 50, 100);
+    const offset = (page - 1) * limit;
+
+    const { count, rows: bookings } = await Booking.findAndCountAll({
       include: [
         { model: Customer, as: 'customer', attributes: ['id', 'name', 'phone'] },
         { model: Driver, as: 'driver', attributes: ['id', 'name', 'phone', 'licenseNumber'] },
         { model: Vehicle, as: 'vehicle', attributes: ['id', 'registrationNumber', 'type'] }
-      ]
+      ],
+      limit,
+      offset,
+      order: [['createdAt', 'DESC']]
     });
-    res.status(200).json({ success: true, bookings });
+
+    res.status(200).json({ 
+      success: true, 
+      bookings,
+      total: count,
+      page,
+      totalPages: Math.ceil(count / limit)
+    });
   } catch (error) {
     console.error('Error fetching bookings:', error);
     res.status(500).json({ success: false, message: 'Server error' });

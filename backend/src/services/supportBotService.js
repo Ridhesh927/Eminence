@@ -1,9 +1,17 @@
 const { Booking, Driver, Vehicle } = require('../models');
-const Groq = require('groq-sdk');
+let Groq;
+let groq = null;
 
-const groq = process.env.GROQ_API_KEY ? new Groq({
-  apiKey: process.env.GROQ_API_KEY
-}) : null;
+try {
+  Groq = require('groq-sdk');
+  if (process.env.GROQ_API_KEY) {
+    groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+  } else {
+    console.warn('GROQ_API_KEY not found in environment. Support bot will use fallback responses.');
+  }
+} catch (err) {
+  console.warn('Groq SDK initialization warning:', err.message);
+}
 
 /**
  * Handle incoming support messages from customers using Groq LLM
@@ -58,9 +66,9 @@ ${bookingsContext}
 -------------------------
 `;
 
-    // 4. Call Groq LLM
+    // 4. Call Groq LLM (if configured)
     if (!groq) {
-      return "Groq AI is not configured. Please contact human support at support@eminence.com.";
+      return "Hello! I am your Eminence Support Assistant. For immediate assistance with bookings, tracking, or questions, please reach our 24/7 helpline at +1234567890 or email support@eminence.com. 🚚";
     }
     const chatCompletion = await groq.chat.completions.create({
       messages: [

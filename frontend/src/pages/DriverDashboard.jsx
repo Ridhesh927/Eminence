@@ -100,15 +100,26 @@ const DriverDashboard = () => {
   };
 
   const handleAcceptTrip = async () => {
+    if (!activeRide) return;
+
+    setIsLoading(true);
+
     try {
       // Note: Assuming driver ID is managed via token on backend
-      await api.put(`/api/bookings/${activeRide.bookingId}/status`, 
+      const response = await api.put(`/api/bookings/${activeRide.bookingId}/status`, 
         { status: 'driver_assigned' }
       );
+
+      if (!response.data?.success) {
+        throw new Error('Trip assignment failed');
+      }
+
+      setIsNavigating(true);
     } catch (err) {
       console.error('Error accepting trip:', err);
+    } finally {
+      setIsLoading(false);
     }
-    setIsNavigating(true);
   };
 
   const handleDeclineTrip = async () => {
