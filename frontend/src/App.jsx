@@ -46,11 +46,21 @@ const AdminRoute = ({ children }) => {
   return children;
 };
 
+const ProfileModalWrapper = () => {
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
+  
+  if (isAuthenticated && user?.role === 'customer') {
+    return <CompleteProfileModal />;
+  }
+  
+  return null;
+};
+
 function App() {
   return (
     <Router>
       <MainLayout>
-        <CompleteProfileModal />
+        <ProfileModalWrapper />
         <Suspense fallback={<div className="flex h-screen items-center justify-center"><div className="w-12 h-12 border-4 border-copper-500 border-t-transparent rounded-full animate-spin"></div></div>}>
           <Routes>
             <Route path="/login" element={<Login />} />
