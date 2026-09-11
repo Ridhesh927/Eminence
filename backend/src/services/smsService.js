@@ -25,9 +25,21 @@ if (accountSid && accountSid.startsWith('AC') && authToken && authToken !== 'you
  */
 const sendSMS = async (to, body) => {
   if (!client) {
+    if (process.env.NODE_ENV !== 'development') {
+      console.error('Twilio is not configured. Cannot send SMS in non-development environment.');
+      return null;
+    }
+
+    const maskPhone = (phone) => {
+      if (!phone) return phone;
+      const str = String(phone);
+      if (str.length <= 4) return '*'.repeat(str.length);
+      return str.slice(0, -4).replace(/./g, '*') + str.slice(-4);
+    };
+
     console.log(`\n================================`);
-    console.log(`MOCK SMS SENT TO: ${to}`);
-    console.log(`MESSAGE: ${body}`);
+    console.log(`MOCK SMS SENT TO: ${maskPhone(to)}`);
+    console.log(`MOCK SMS SENT`);
     console.log(`================================\n`);
     return null;
   }
