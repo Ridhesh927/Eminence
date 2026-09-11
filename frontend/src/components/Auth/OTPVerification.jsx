@@ -6,7 +6,7 @@ import { useDispatch } from 'react-redux';
 import { loginSuccess } from '../../redux/slices/authSlice';
 
 const OTPVerification = () => {
-  const [otp, setOtp] = useState(['', '', '', '']);
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
   const inputRefs = useRef([]);
   const location = useLocation();
@@ -25,15 +25,15 @@ const OTPVerification = () => {
 
   useEffect(() => {
     if (autoSubmit && !isLoading) {
-      setOtp(['1', '2', '3', '4']);
+      setOtp(['1', '2', '3', '4', '5', '6']);
       // Directly call the backend
       const autoVerify = async () => {
         setIsLoading(true);
         try {
-          const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/phone-verify`, {
+          const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/phone-verify`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phone, code: '1234' })
+            body: JSON.stringify({ phone, code: '123456', role: location.state?.role || 'customer' })
           });
           const data = await response.json();
           setIsLoading(false);
@@ -68,7 +68,7 @@ const OTPVerification = () => {
     setOtp(newOtp);
 
     // Auto-focus next input
-    if (value !== '' && index < 3) {
+    if (value !== '' && index < 5) {
       inputRefs.current[index + 1].focus();
     }
   };
@@ -82,15 +82,15 @@ const OTPVerification = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const otpValue = otp.join('');
-    if (otpValue.length < 4) return;
+    if (otpValue.length < 6) return;
     
     setIsLoading(true);
     
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/phone-verify`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/phone-verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, code: otpValue })
+        body: JSON.stringify({ phone, code: otpValue, role: location.state?.role || 'customer' })
       });
       
       const data = await response.json();
@@ -106,7 +106,7 @@ const OTPVerification = () => {
 
         if (pendingName && !data.user.name) {
           try {
-            const updateRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/complete-profile`, {
+            const updateRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/complete-profile`, {
               method: 'POST',
               headers: { 
                 'Content-Type': 'application/json',
@@ -166,7 +166,7 @@ const OTPVerification = () => {
         <div className="mb-8">
           <h2 className="text-3xl font-serif font-bold text-loft-50 mb-2">Verify Number</h2>
           <p className="text-loft-300">
-            Enter the 4-digit code sent to <br/>
+            Enter the 6-digit code sent to <br/>
             <span className="font-medium text-loft-50">{phone}</span>
           </p>
         </div>
@@ -189,7 +189,7 @@ const OTPVerification = () => {
 
           <button
             type="submit"
-            disabled={isLoading || otp.join('').length < 4}
+            disabled={isLoading || otp.join('').length < 6}
             className="btn-primary w-full"
           >
             {isLoading ? (
