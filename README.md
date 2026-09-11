@@ -699,7 +699,7 @@ git push origin feature/your-feature-name
 - **Project Board:** [GitHub Projects](https://github.com/ridhesh927eminence/projects)
 - **Documentation:** [docs/](docs/)
 - **Bug Tracker:** [Issues](https://github.com/Ridhesh927/Eminence/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/ridhesh927eminence/discussions)
+- **Pull Request:** [GitHub Pull Request](https://github.com/Ridhesh927/Eminence/pulls)
 
 ---
 
