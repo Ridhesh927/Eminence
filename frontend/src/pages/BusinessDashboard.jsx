@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FileText, Truck, Users, CreditCard, HeadphonesIcon, Upload, CheckCircle } from 'lucide-react';
 import axios from 'axios';
@@ -15,6 +15,77 @@ const BusinessDashboard = () => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
       setUploadSuccess(false);
+    }
+  };
+
+  const [contracts, setContracts] = useState([]);
+  const [invoices, setInvoices] = useState([]);
+  const [loadingContracts, setLoadingContracts] = useState(false);
+  const [loadingInvoices, setLoadingInvoices] = useState(false);
+  
+  const [newContract, setNewContract] = useState({
+    vehicleType: '',
+    vehicleCount: 1,
+    startDate: '',
+    endDate: ''
+  });
+  const [requestingContract, setRequestingContract] = useState(false);
+
+  useEffect(() => {
+    if (activeTab === 'contracts') {
+      const fetchContracts = async () => {
+        setLoadingContracts(true);
+        try {
+          const res = await axios.get('http://localhost:5000/api/b2b/contracts', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (res.data.success) {
+            setContracts(res.data.contracts);
+          }
+        } catch (err) {
+          console.error('Error fetching contracts:', err);
+        } finally {
+          setLoadingContracts(false);
+        }
+      };
+      fetchContracts();
+    } else if (activeTab === 'invoices') {
+      const fetchInvoices = async () => {
+        setLoadingInvoices(true);
+        try {
+          const res = await axios.get('http://localhost:5000/api/b2b/invoices', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (res.data.success) {
+            setInvoices(res.data.invoices);
+          }
+        } catch (err) {
+          console.error('Error fetching invoices:', err);
+        } finally {
+          setLoadingInvoices(false);
+        }
+      };
+      fetchInvoices();
+    }
+  }, [activeTab, token]);
+
+  const handleRequestContract = async (e) => {
+    e.preventDefault();
+    setRequestingContract(true);
+    try {
+      const res = await axios.post('http://localhost:5000/api/b2b/contracts', newContract, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.data.success) {
+        setContracts([res.data.contract, ...contracts]);
+        setNewContract({ vehicleType: '', vehicleCount: 1, startDate: '', endDate: '' });
+        alert('Contract requested successfully!');
+      }
+    } catch (err) {
+      console.error('Error requesting contract:', err);
+      alert('Failed to request contract');
+    } finally {
+      setRequestingContract(false);
     }
   };
 
@@ -227,7 +298,124 @@ const BusinessDashboard = () => {
             </motion.div>
           )}
 
-          {activeTab !== 'overview' && activeTab !== 'bulk-load' && (
+          {activeTab === 'contracts' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+              <div className="card p-6 bg-loft-900 border-loft-800">
+                <h3 className="text-xl font-bold text-loft-50 mb-4">Request New Contract</h3>
+                <form onSubmit={handleRequestContract} className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <select 
+                    required
+                    value={newContract.vehicleType}
+                    onChange={(e) => setNewContract({...newContract, vehicleType: e.target.value})}
+                    className="input-field bg-loft-950"
+                  >
+                    <option value="">Select Vehicle Type</option>
+                    <option value="small">Small (Tata Ace)</option>
+                    <option value="medium">Medium (Bolero)</option>
+                    <option value="large">Large (Eicher)</option>
+                  </select>
+                  <input 
+                    type="number" 
+                    min="1"
+                    required
+                    value={newContract.vehicleCount}
+                    onChange={(e) => setNewContract({...newContract, vehicleCount: parseInt(e.target.value)})}
+                    placeholder="Vehicle Count"
+                    className="input-field bg-loft-950"
+                  />
+                  <input 
+                    type="date" 
+                    required
+                    value={newContract.startDate}
+                    onChange={(e) => setNewContract({...newContract, startDate: e.target.value})}
+                    className="input-field bg-loft-950"
+                  />
+                  <input 
+                    type="date" 
+                    required
+                    value={newContract.endDate}
+                    onChange={(e) => setNewContract({...newContract, endDate: e.target.value})}
+                    className="input-field bg-loft-950"
+                  />
+                  <div className="md:col-span-4 flex justify-end">
+                    <button 
+                      type="submit" 
+                      disabled={requestingContract}
+                      className="btn-primary py-2 px-6 disabled:opacity-50"
+                    >
+                      {requestingContract ? 'Requesting...' : 'Submit Request'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <div className="card p-6 bg-loft-900 border-loft-800">
+                <h3 className="text-xl font-bold text-loft-50 mb-4">Contract History</h3>
+                {loadingContracts ? (
+                  <p className="text-loft-400">Loading contracts...</p>
+                ) : contracts.length === 0 ? (
+                  <p className="text-loft-400">No contracts found.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {contracts.map(contract => (
+                      <div key={contract.id} className="p-4 border border-loft-800 rounded-lg flex justify-between items-center bg-loft-950">
+                        <div>
+                          <h4 className="font-bold text-loft-200">Contract #{contract.id.substring(0,8)}</h4>
+                          <p className="text-sm text-loft-400 capitalize">{contract.vehicleType} x {contract.vehicleCount}</p>
+                          <p className="text-sm text-loft-400">{new Date(contract.startDate).toLocaleDateString()} to {new Date(contract.endDate).toLocaleDateString()}</p>
+                        </div>
+                        <div>
+                          <span className={`text-xs px-2 py-1 rounded font-bold uppercase ${contract.status === 'active' ? 'bg-moss-500/20 text-moss-500' : 'bg-copper-500/20 text-copper-500'}`}>
+                            {contract.status}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === 'invoices' && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card p-6 bg-loft-900 border-loft-800">
+              <h3 className="text-xl font-bold text-loft-50 mb-4">Invoices & Billing</h3>
+              {loadingInvoices ? (
+                <p className="text-loft-400">Loading invoices...</p>
+              ) : invoices.length === 0 ? (
+                <p className="text-loft-400">No invoices found.</p>
+              ) : (
+                <div className="space-y-4">
+                  {invoices.map(invoice => (
+                    <div key={invoice.id} className="p-4 border border-loft-800 rounded-lg flex flex-col md:flex-row justify-between md:items-center bg-loft-950 gap-4">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-loft-800 rounded-full flex items-center justify-center">
+                          <FileText className="w-6 h-6 text-copper-500" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold text-loft-200">INV-{invoice.id.substring(0,8).toUpperCase()}</h4>
+                          <p className="text-sm text-loft-400">{invoice.month} {invoice.year}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-6">
+                        <div className="text-right">
+                          <p className="font-bold text-loft-50">₹{invoice.totalAmount}</p>
+                          <span className={`text-xs px-2 py-0.5 rounded font-bold uppercase ${invoice.status === 'paid' ? 'bg-moss-500/20 text-moss-500' : 'bg-red-500/20 text-red-500'}`}>
+                            {invoice.status}
+                          </span>
+                        </div>
+                        <button className="text-sm text-copper-500 hover:text-copper-400 flex items-center gap-1 border border-copper-500/30 px-3 py-1.5 rounded transition-colors">
+                          Download PDF
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          )}
+
+          {activeTab !== 'overview' && activeTab !== 'bulk-load' && activeTab !== 'contracts' && activeTab !== 'invoices' && (
              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card p-12 text-center flex flex-col items-center justify-center border-dashed border-loft-800/80">
               <h3 className="text-xl font-bold text-loft-200 mb-2 capitalize">{activeTab}</h3>
               <p className="text-loft-400 max-w-md">This section is currently under development.</p>
