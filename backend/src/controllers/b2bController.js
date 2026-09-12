@@ -3,9 +3,10 @@ const { Customer, B2BContract, Invoice } = require('../models');
 const registerBusiness = async (req, res) => {
   try {
     const customerId = req.user.id;
-    const { companyName, gstNumber } = req.body;
+    const { companyName, businessName, gstNumber } = req.body;
+    const resolvedCompanyName = companyName || businessName;
 
-    if (!companyName || !gstNumber) {
+    if (!resolvedCompanyName || !gstNumber) {
       return res.status(400).json({ success: false, message: 'Company Name and GST Number are required' });
     }
 
@@ -15,7 +16,7 @@ const registerBusiness = async (req, res) => {
     }
 
     // Set to pending business state. Do NOT set isBusiness to true or grant credit yet.
-    customer.companyName = companyName;
+    customer.companyName = resolvedCompanyName;
     customer.gstNumber = gstNumber;
     customer.b2bStatus = 'pending_verification';
     await customer.save();
