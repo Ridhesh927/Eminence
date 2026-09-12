@@ -19,7 +19,7 @@ const ReviewModal = ({ isOpen, onClose, bookingId, driverId, driverName = "Drive
       // Mock customer ID for now
       const mockCustomerId = 'c1234567-89ab-cdef-0123-456789abcdef';
       
-      await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:3000/api'}/reviews`, {
+      await axios.post(`${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/reviews`, {
         bookingId,
         driverId,
         rating,

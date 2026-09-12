@@ -68,8 +68,8 @@ const bootstrapDatabase = async () => {
 const syncDatabase = async () => {
   try {
     await bootstrapDatabase();
-    // Only use alter in development, don't use force in production!
-    await sequelize.sync({ alter: true });
+    // Sync schema without expensive alter operations on every start
+    await sequelize.sync();
     console.log('Database synced successfully');
 
     // Only run seed data if in development with SQLite or explicitly enabled via DEMO_SEED=true

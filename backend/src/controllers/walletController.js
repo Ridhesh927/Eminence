@@ -1,4 +1,4 @@
-const { Wallet, Transaction, Customer } = require('../models');
+const { Wallet, Transaction, Customer, sequelize } = require('../models');
 
 const getWallet = async (req, res) => {
   try {
@@ -77,48 +77,56 @@ const applyReferralCode = async (req, res) => {
     // Reward amount (can be configured)
     const REWARD_AMOUNT = 100.0;
 
-    // 1. Update current customer wallet
-    let currentWallet = await Wallet.findOne({ where: { customerId: currentCustomer.id } });
-    if (!currentWallet) {
-      currentWallet = await Wallet.create({ customerId: currentCustomer.id, balance: 0 });
+    const transaction = await sequelize.transaction();
+    try {
+      // 1. Update current customer wallet
+      let currentWallet = await Wallet.findOne({ where: { customerId: currentCustomer.id }, transaction });
+      if (!currentWallet) {
+        currentWallet = await Wallet.create({ customerId: currentCustomer.id, balance: 0 }, { transaction });
+      }
+      currentWallet.balance += REWARD_AMOUNT;
+      await currentWallet.save({ transaction });
+
+      await Transaction.create({
+        walletId: currentWallet.id,
+        amount: REWARD_AMOUNT,
+        type: 'CREDIT',
+        description: 'Signup Referral Bonus',
+        referenceId: referrer.id
+      }, { transaction });
+
+      // 2. Update referrer wallet
+      let referrerWallet = await Wallet.findOne({ where: { customerId: referrer.id }, transaction });
+      if (!referrerWallet) {
+        referrerWallet = await Wallet.create({ customerId: referrer.id, balance: 0 }, { transaction });
+      }
+      referrerWallet.balance += REWARD_AMOUNT;
+      await referrerWallet.save({ transaction });
+
+      await Transaction.create({
+        walletId: referrerWallet.id,
+        amount: REWARD_AMOUNT,
+        type: 'CREDIT',
+        description: 'Friend Referral Bonus',
+        referenceId: currentCustomer.id
+      }, { transaction });
+
+      // 3. Mark current customer as referred
+      currentCustomer.referredBy = referralCode;
+      await currentCustomer.save({ transaction });
+
+      await transaction.commit();
+
+      return res.status(200).json({
+        success: true,
+        message: `Referral applied! ₹${REWARD_AMOUNT} added to your wallet.`,
+        newBalance: currentWallet.balance
+      });
+    } catch (error) {
+      await transaction.rollback();
+      console.error('Apply Referral Error:', error);
+      return res.status(500).json({ success: false, message: 'Server error applying referral' });
     }
-    currentWallet.balance += REWARD_AMOUNT;
-    await currentWallet.save();
-
-    await Transaction.create({
-      walletId: currentWallet.id,
-      amount: REWARD_AMOUNT,
-      type: 'CREDIT',
-      description: 'Signup Referral Bonus',
-      referenceId: referrer.id
-    });
-
-    // 2. Update referrer wallet
-    let referrerWallet = await Wallet.findOne({ where: { customerId: referrer.id } });
-    if (!referrerWallet) {
-      referrerWallet = await Wallet.create({ customerId: referrer.id, balance: 0 });
-    }
-    referrerWallet.balance += REWARD_AMOUNT;
-    await referrerWallet.save();
-
-    await Transaction.create({
-      walletId: referrerWallet.id,
-      amount: REWARD_AMOUNT,
-      type: 'CREDIT',
-      description: 'Friend Referral Bonus',
-      referenceId: currentCustomer.id
-    });
-
-    // 3. Mark current customer as referred
-    currentCustomer.referredBy = referralCode;
-    await currentCustomer.save();
-
-    return res.status(200).json({
-      success: true,
-      message: `Referral applied! ₹${REWARD_AMOUNT} added to your wallet.`,
-      newBalance: currentWallet.balance
-    });
-
   } catch (error) {
     console.error('Apply Referral Error:', error);
     return res.status(500).json({ success: false, message: 'Server error applying referral' });

@@ -1,11 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Navigation, Wallet, AlertTriangle, CheckCircle, Clock, MapPin, Fuel, TrendingUp, Map } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../services/api';
 import { io } from 'socket.io-client';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const DriverDashboard = () => {
   const [activeTab, setActiveTab] = useState('today');
@@ -23,14 +23,27 @@ const DriverDashboard = () => {
   const [activeRide, setActiveRide] = useState(null);
   const [driverPos, setDriverPos] = useState({ lat: 18.5204, lng: 73.8567 });
 
+  const socketRef = useRef(null);
+  const isOnlineRef = useRef(isOnline);
+  const isNavigatingRef = useRef(isNavigating);
+
+  useEffect(() => {
+    isOnlineRef.current = isOnline;
+  }, [isOnline]);
+
+  useEffect(() => {
+    isNavigatingRef.current = isNavigating;
+  }, [isNavigating]);
+
   useEffect(() => {
     const newSocket = io(API_BASE_URL.replace('/api', ''), {
       withCredentials: true,
     });
     setSocket(newSocket);
+    socketRef.current = newSocket;
     
     newSocket.on('ride_request', (data) => {
-      if (isOnline && !isNavigating) {
+      if (isOnlineRef.current && !isNavigatingRef.current) {
         setActiveRide({
           bookingId: data.bookingId || 'BKG-NEW',
           fare: data.estimatedFare || 450,
@@ -45,8 +58,9 @@ const DriverDashboard = () => {
     return () => {
       newSocket.off('ride_request');
       newSocket.disconnect();
+      socketRef.current = null;
     };
-  }, [isOnline, isNavigating]);
+  }, []);
 
   // Simulate GPS movement
   useEffect(() => {
@@ -86,15 +100,26 @@ const DriverDashboard = () => {
   };
 
   const handleAcceptTrip = async () => {
+    if (!activeRide) return;
+
+    setIsLoading(true);
+
     try {
       // Note: Assuming driver ID is managed via token on backend
-      await api.put(`/api/bookings/${activeRide.bookingId}/status`, 
+      const response = await api.put(`/api/bookings/${activeRide.bookingId}/status`, 
         { status: 'driver_assigned' }
       );
+
+      if (!response.data?.success) {
+        throw new Error('Trip assignment failed');
+      }
+
+      setIsNavigating(true);
     } catch (err) {
       console.error('Error accepting trip:', err);
+    } finally {
+      setIsLoading(false);
     }
-    setIsNavigating(true);
   };
 
   const handleDeclineTrip = async () => {
@@ -166,7 +191,7 @@ const DriverDashboard = () => {
                   : 'text-loft-400 hover:text-loft-200 hover:bg-loft-900/50 disabled:opacity-50 disabled:cursor-not-allowed'
               }`}
             >
-              {tab === 'today' ? "Active Trip" : tab === 'heatmap' ? 'Surge Map' : tab === 'wms' ? 'WMS Scanner' : tab}
+              {tab === 'today' ? "Active Trip" : tab === 'heatmap' ? 'Heatmap' : tab === 'wms' ? 'WMS Scanner' : tab}
             </button>
           ))}
         </div>
