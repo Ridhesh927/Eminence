@@ -19,6 +19,15 @@ const generateOtp = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
+// Secure JWT Secret Loader
+const getJwtSecret = () => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret && process.env.NODE_ENV === 'production') {
+    throw new Error('FATAL: JWT_SECRET is not defined in production');
+  }
+  return secret || 'fallback_secret';
+};
+
 const googleLogin = async (req, res) => {
   const { idToken } = req.body;
   
@@ -75,7 +84,7 @@ const googleLogin = async (req, res) => {
         role: 'customer', 
         isProfileComplete: customer.isProfileComplete 
       }, 
-      process.env.JWT_SECRET || 'fallback_secret', 
+      getJwtSecret(), 
       { expiresIn: process.env.JWT_EXPIRE || '7d' }
     );
 
@@ -281,7 +290,10 @@ const phoneLogin = async (req, res) => {
 const phoneVerify = async (req, res) => {
   try {
     const { phone, code, role = 'customer' } = req.body;
-    const userRole = role; // Use provided role instead of hardcoding 'customer'
+    
+    // Prevent privilege escalation: only allow specific roles
+    const validRoles = ['customer', 'business', 'driver'];
+    const userRole = validRoles.includes(role) ? role : 'customer';
     
     // For local development only, allow bypass for the designated seed phone number
     const isDevDemo = process.env.NODE_ENV === 'development' && code === '123456' && (phone === (process.env.SEED_PHONE || '1234567890') || phone === '9999999999');
@@ -299,7 +311,7 @@ const phoneVerify = async (req, res) => {
         const jwt = require('jsonwebtoken');
         token = jwt.sign(
           { id: driver.id, role: userRole, isProfileComplete: true },
-          process.env.JWT_SECRET || 'fallback_secret',
+          getJwtSecret(),
           { expiresIn: process.env.JWT_EXPIRE || '7d' }
         );
         userObj = driver.toJSON ? driver.toJSON() : { ...driver };
@@ -326,7 +338,7 @@ const phoneVerify = async (req, res) => {
         const jwt = require('jsonwebtoken');
         token = jwt.sign(
           { id: customer.id, role: userRole, isProfileComplete: customer.isProfileComplete },
-          process.env.JWT_SECRET || 'fallback_secret',
+          getJwtSecret(),
           { expiresIn: process.env.JWT_EXPIRE || '7d' }
         );
         userObj = customer.toJSON ? customer.toJSON() : { ...customer };
@@ -370,7 +382,7 @@ const phoneVerify = async (req, res) => {
     const jwt = require('jsonwebtoken');
     const token = jwt.sign(
       { id: user.id, role: userRole, isProfileComplete: userRole === 'driver' ? true : user.isProfileComplete },
-      process.env.JWT_SECRET || 'fallback_secret',
+      getJwtSecret(),
       { expiresIn: process.env.JWT_EXPIRE || '7d' }
     );
 

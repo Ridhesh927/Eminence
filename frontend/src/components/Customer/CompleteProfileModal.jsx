@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
 import axios from 'axios';
@@ -26,6 +26,14 @@ const CompleteProfileModal = () => {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [isClosed, setIsClosed] = useState(false);
+  const [otpCooldown, setOtpCooldown] = useState(0);
+
+  useEffect(() => {
+    if (otpCooldown > 0) {
+      const timer = setTimeout(() => setOtpCooldown(c => c - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [otpCooldown]);
 
   // If user is not logged in or already complete, or modal is dismissed, don't render
   if (!user || user.isProfileComplete || isClosed) return null;
@@ -42,7 +50,7 @@ const CompleteProfileModal = () => {
     try {
       const token = localStorage.getItem('token');
       const res = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/complete-profile`,
+        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/complete-profile`,
         formData,
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -72,16 +80,18 @@ const CompleteProfileModal = () => {
 
   // internal=true means the caller manages loading state
   const handleSendOtp = async (type, internal = false) => {
+    if (otpCooldown > 0 && !internal) return;
     if (!internal) setLoading(true);
     setError('');
     try {
       const token = localStorage.getItem('token');
       await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/send-otp`,
+        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/send-otp`,
         { type },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setOtpType(type);
+      setOtpCooldown(60);
       setMessage(`OTP sent to your ${type}. Check your backend console for the code.`);
     } catch (err) {
       const msg = err.response?.data?.message || `Error sending ${type} OTP`;
@@ -93,13 +103,25 @@ const CompleteProfileModal = () => {
   };
 
   const handleVerifyOtp = async () => {
+    if (!otpType) {
+      setError('Select an OTP verification method.');
+      return;
+    }
+
+    const code = otpCode.trim();
+
+    if (!/^\d{6}$/.test(code)) {
+      setError('Enter a valid 6-digit OTP.');
+      return;
+    }
+
     setLoading(true);
     setError('');
     try {
       const token = localStorage.getItem('token');
       const res = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/verify-otp`,
-        { type: otpType, code: otpCode },
+        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/verify-otp`,
+        { type: otpType, code },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       dispatch(updateProfileSuccess(res.data.user));

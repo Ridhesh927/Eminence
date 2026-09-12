@@ -25,7 +25,7 @@ const BusinessDashboard = () => {
     formData.append('file', file);
     
     try {
-      await axios.post('http://localhost:3000/api/b2b/batch-bookings', formData, {
+      await axios.post('http://localhost:5000/api/b2b/batch-bookings', formData, {
         headers: { 
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'

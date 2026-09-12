@@ -1,0 +1,2578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eminence Logistics — Manual QA Test Cases</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #121316;
+      --bg-secondary: #18191e;
+      --bg-card: #1c1d22;
+      --bg-header: #1f2026;
+      --border-color: #2a2c33;
+      --border-light: #333640;
+      --text-main: #e4e4e7;
+      --text-muted: #9ca3af;
+      --text-dim: #6b7280;
+      --code-bg: #26272e;
+      --code-text: #f3f4f6;
+      --accent-copper: #b87333;
+      --accent-copper-hover: #cf833c;
+      --accent-green: #10b981;
+      --accent-green-bg: rgba(16, 185, 129, 0.15);
+      --accent-red: #ef4444;
+      --accent-red-bg: rgba(239, 68, 68, 0.15);
+      --accent-blue: #3b82f6;
+      --btn-pill-bg: #272830;
+      --btn-pill-border: #383a45;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      line-height: 1.6;
+      padding-bottom: 80px;
+    }
+
+    /* Top Sticky Control Bar */
+    .top-bar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(24, 25, 30, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 24px;
+    }
+
+    .top-bar-content {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .brand-title-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-badge {
+      background: linear-gradient(135deg, #b87333 0%, #e09f58 100%);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+
+    .app-heading {
+      font-size: 16px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .stats-group {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .stat-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 8px;
+      border-radius: 12px;
+      font-weight: 500;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+    }
+
+    .stat-badge.pass { color: var(--accent-green); }
+    .stat-badge.fail { color: var(--accent-red); }
+    .stat-badge.pending { color: #f59e0b; }
+
+    .progress-track {
+      width: 120px;
+      height: 8px;
+      background: #272830;
+      border-radius: 4px;
+      overflow: hidden;
+      border: 1px solid var(--border-color);
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-copper), var(--accent-green));
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+
+    .actions-group {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .btn:hover {
+      background: var(--btn-pill-bg);
+      border-color: var(--border-light);
+    }
+
+    .btn-copper {
+      background: var(--accent-copper);
+      color: #fff;
+      border-color: var(--accent-copper);
+    }
+
+    .btn-copper:hover {
+      background: var(--accent-copper-hover);
+    }
+
+    /* Main Container */
+    .container {
+      max-width: 1000px;
+      margin: 28px auto 0;
+      padding: 0 20px;
+    }
+
+    /* Setup Card */
+    .setup-box {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-left: 4px solid var(--accent-copper);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 28px;
+    }
+
+    .setup-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+
+    .setup-title {
+      font-size: 13px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #e5e7eb;
+    }
+
+    .setup-body {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .setup-creds {
+      display: flex;
+      gap: 16px;
+      margin-top: 10px;
+      flex-wrap: wrap;
+    }
+
+    .cred-chip {
+      background: var(--code-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      padding: 6px 12px;
+      font-size: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .copy-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .copy-btn:hover {
+      color: #fff;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    /* Filter Bar */
+    .filter-bar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 24px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .search-input {
+      flex: 1;
+      min-width: 220px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 8px 14px;
+      border-radius: 6px;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .search-input:focus {
+      border-color: var(--accent-copper);
+    }
+
+    .filter-pill {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .filter-pill.active {
+      background: var(--accent-copper);
+      color: #fff;
+      border-color: var(--accent-copper);
+    }
+
+    /* Module Section */
+    .module-section {
+      margin-top: 36px;
+      margin-bottom: 32px;
+    }
+
+    .module-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #f3f4f6;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    /* Test Case Card */
+    .test-case {
+      margin-bottom: 28px;
+    }
+
+    .tc-title {
+      font-size: 15px;
+      font-weight: 600;
+      color: #f4f4f5;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .tc-id-tag {
+      color: #e5e7eb;
+    }
+
+    /* Table Styling matching screenshot */
+    .tc-table {
+      width: 100%;
+      border-collapse: collapse;
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      overflow: hidden;
+      font-size: 13.5px;
+    }
+
+    .tc-table th {
+      background-color: var(--bg-header);
+      color: #e4e4e7;
+      text-align: left;
+      font-weight: 600;
+      padding: 9px 14px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .tc-table th:first-child {
+      width: 170px;
+      border-right: 1px solid var(--border-color);
+    }
+
+    .tc-table td {
+      padding: 10px 14px;
+      border-top: 1px solid var(--border-color);
+      vertical-align: top;
+      color: #d4d4d8;
+    }
+
+    .tc-table td:first-child {
+      font-weight: 600;
+      color: #f4f4f5;
+      border-right: 1px solid var(--border-color);
+      width: 170px;
+    }
+
+    .tc-table tr:first-child td {
+      border-top: none;
+    }
+
+    .steps-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .step-item {
+      line-height: 1.5;
+    }
+
+    /* Code Snippets */
+    code {
+      font-family: 'JetBrains Mono', Consolas, Monaco, monospace;
+      background-color: var(--code-bg);
+      color: var(--code-text);
+      border: 1px solid #353842;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 12.5px;
+    }
+
+    /* Status Pill Buttons - Exact screenshot look & feel */
+    .status-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background-color: var(--btn-pill-bg);
+      color: #d1d5db;
+      border: 1px solid var(--btn-pill-border);
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', Consolas, monospace;
+      font-size: 13px;
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.15s ease;
+    }
+
+    .status-pill:hover {
+      background-color: #31333d;
+      border-color: #4b4f5d;
+    }
+
+    .status-pill.active-pass {
+      background-color: var(--accent-green-bg);
+      border-color: var(--accent-green);
+      color: #34d399;
+      font-weight: 600;
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.25);
+    }
+
+    .status-pill.active-fail {
+      background-color: var(--accent-red-bg);
+      border-color: var(--accent-red);
+      color: #f87171;
+      font-weight: 600;
+      box-shadow: 0 0 8px rgba(239, 68, 68, 0.25);
+    }
+
+    /* Summary Table at bottom */
+    .summary-section {
+      margin-top: 48px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .summary-table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      overflow: hidden;
+      margin-top: 16px;
+      font-size: 13.5px;
+    }
+
+    .summary-table th, .summary-table td {
+      padding: 10px 14px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .summary-table th {
+      background: var(--bg-header);
+      color: #e4e4e7;
+    }
+
+    .summary-table tr:last-child td {
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.03);
+      border-bottom: none;
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #1e293b;
+      color: #fff;
+      border: 1px solid #334155;
+      padding: 10px 18px;
+      border-radius: 6px;
+      font-size: 13px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.25s ease;
+      pointer-events: none;
+      z-index: 999;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    @media (max-width: 768px) {
+      .tc-table th:first-child, .tc-table td:first-child {
+        width: 120px;
+      }
+      .top-bar-content {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Sticky Header -->
+  <header class="top-bar">
+    <div class="top-bar-content">
+      <div class="brand-title-group">
+        <span class="brand-badge">Eminence</span>
+        <h1 class="app-heading">Manual QA Test Cases</h1>
+      </div>
+
+      <div class="stats-group">
+        <span class="stat-badge">Total: <strong id="total-count">38</strong></span>
+        <span class="stat-badge pass">Pass: <strong id="pass-count">0</strong></span>
+        <span class="stat-badge fail">Fail: <strong id="fail-count">0</strong></span>
+        <span class="stat-badge pending">Pending: <strong id="pending-count">38</strong></span>
+        <div class="progress-track">
+          <div class="progress-fill" id="progress-bar"></div>
+        </div>
+        <span id="percent-label" style="font-weight: 600; color: #fff;">0%</span>
+      </div>
+
+      <div class="actions-group">
+        <button class="btn" onclick="exportResults()">📋 Export Report</button>
+        <button class="btn" onclick="resetAll()">🔄 Reset</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+    <!-- Setup Details Box -->
+    <div class="setup-box">
+      <div class="setup-header">
+        <span class="setup-title">⚙️ Environment & Setup</span>
+        <span style="font-size: 12px; color: var(--accent-copper); font-weight: 500;">Active Test Environment</span>
+      </div>
+      <div class="setup-body">
+        Ensure <code>npm run dev</code> is running in both <code>backend/</code> (<code>http://localhost:5000</code>) and <code>frontend/</code> (<code>http://localhost:5173</code>).
+      </div>
+      <div class="setup-creds">
+        <div class="cred-chip">
+          <strong>Admin:</strong> <code>admin@eminence.com</code> / <code>adminpassword123</code>
+          <button class="copy-btn" onclick="copyText('admin@eminence.com')">Copy Email</button>
+          <button class="copy-btn" onclick="copyText('adminpassword123')">Copy Pass</button>
+        </div>
+        <div class="cred-chip">
+          <strong>Demo Customer Phone:</strong> <code>1234567890</code>
+          <button class="copy-btn" onclick="copyText('1234567890')">Copy Phone</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter & Search Bar -->
+    <div class="filter-bar">
+      <input type="text" id="search-box" class="search-input" placeholder="🔍 Search test cases by TC-ID, keyword, URL..." oninput="handleSearch()">
+      <button class="filter-pill active" onclick="setFilter('all', this)">All (38)</button>
+      <button class="filter-pill" onclick="setFilter('pending', this)">Pending</button>
+      <button class="filter-pill" onclick="setFilter('pass', this)">Passed</button>
+      <button class="filter-pill" onclick="setFilter('fail', this)">Failed</button>
+    </div>
+
+    <!-- Modules and Test Cases -->
+    <div id="test-cases-container">
+      
+        <section class="module-section" data-module="mod-1">
+          <h2 class="module-title">🔐 MODULE 1: Authentication & Authorization</h2>
+          
+          
+            <article class="test-case" id="TC-001" data-tc-id="TC-001">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-001 — Customer Phone Login (OTP Flow)</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                    <tr>
+                      <td>Precondition</td>
+                      <td>App is running, no user is logged in</td>
+                    </tr>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. Go to <code>http://localhost:5173</code> → Click "Sign In" / "Get Started"</div><div class="step-item">2. Enter phone number <code>1234567890</code></div><div class="step-item">3. Click "Send OTP"</div><div class="step-item">4. Enter any 6-digit OTP (simulation accepts any)</div><div class="step-item">5. Click "Verify"</div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ Redirected to Customer Dashboard. User name "Demo User" visible.</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-001', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-001', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+            <article class="test-case" id="TC-002" data-tc-id="TC-002">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-002 — Admin Login</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                    <tr>
+                      <td>Precondition</td>
+                      <td>App is running</td>
+                    </tr>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. Navigate to <code>/admin/login</code></div><div class="step-item">2. Enter email: <code>admin@eminence.com</code></div><div class="step-item">3. Enter password: <code>adminpassword123</code></div><div class="step-item">4. Click "Login"</div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ Redirected to Admin Dashboard. Overview stats visible.</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-002', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-002', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+            <article class="test-case" id="TC-003" data-tc-id="TC-003">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-003 — Invalid Admin Login</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. Go to Admin login</div><div class="step-item">2. Enter wrong password <code>wrongpassword</code></div><div class="step-item">3. Click "Login"</div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ Error message shown. No redirect.</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-003', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-003', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+            <article class="test-case" id="TC-004" data-tc-id="TC-004">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-004 — Route Guard (Unauthorized Access)</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. While logged out, navigate directly to <code>/dashboard</code> or <code>/admin</code></div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ Redirected to login page. Access denied.</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-004', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-004', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+        </section>
+      
+        <section class="module-section" data-module="mod-2">
+          <h2 class="module-title">📱 MODULE 2: Customer Dashboard & Booking</h2>
+          
+          
+            <article class="test-case" id="TC-010" data-tc-id="TC-010">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-010 — View Customer Dashboard</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                    <tr>
+                      <td>Precondition</td>
+                      <td>Logged in as Demo Customer</td>
+                    </tr>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. Log in with phone <code>1234567890</code></div><div class="step-item">2. Navigate to Dashboard</div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ Booking history visible with 2 seeded rides (Swargate→Hinjewadi, Pune Station→Kothrud).</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-010', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-010', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+            <article class="test-case" id="TC-011" data-tc-id="TC-011">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-011 — Create a Standard Booking</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                    <tr>
+                      <td>Precondition</td>
+                      <td>Logged in as customer</td>
+                    </tr>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. Click "Book a Tempo"</div><div class="step-item">2. Fill in: Pickup: <code>Koregaon Park, Pune</code>, Drop: <code>Viman Nagar, Pune</code></div><div class="step-item">3. Select tempo type: <code>Small</code></div><div class="step-item">4. Enter weight: <code>150</code> kg, Goods: <code>Electronics</code></div><div class="step-item">5. Pick today's date and a time</div><div class="step-item">6. Click "Confirm Booking"</div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ Booking created. Confirmation message shown. Appears in ride history.</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-011', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-011', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+            <article class="test-case" id="TC-012" data-tc-id="TC-012">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-012 — Booking with Multi-Stop Addresses</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. Create a booking</div><div class="step-item">2. Add 2 additional stop addresses</div><div class="step-item">3. Confirm</div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ Booking saved with multiple drop addresses.</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-012', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-012', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+            <article class="test-case" id="TC-013" data-tc-id="TC-013">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-013 — ESG Emissions Badge in Ride History</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                    <tr>
+                      <td>Precondition</td>
+                      <td>TC-011 completed</td>
+                    </tr>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. Go to Customer Dashboard → Ride History</div><div class="step-item">2. Find the newly created booking</div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ Green 🌿 ESG badge visible showing estimated CO2 kg saved.</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-013', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-013', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+            <article class="test-case" id="TC-014" data-tc-id="TC-014">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-014 — Save Address to Address Book</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. Go to Customer Dashboard → "Address Book" tab</div><div class="step-item">2. Click "Add Address"</div><div class="step-item">3. Fill in Label: <code>Home</code>, Street: <code>123 MG Road</code>, City: <code>Pune</code>, Postal: <code>411001</code></div><div class="step-item">4. Save</div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ New address appears in the address book list.</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-014', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-014', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+            <article class="test-case" id="TC-015" data-tc-id="TC-015">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-015 — Wallet Balance View</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. Go to Customer Dashboard → "Wallet" tab</div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ Wallet balance shown. Transaction history visible (if any).</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-015', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-015', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+            <article class="test-case" id="TC-016" data-tc-id="TC-016">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-016 — Referral Code Copy</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. On Customer Dashboard, find the referral section</div><div class="step-item">2. Click "Copy Code" button</div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ "Copied!" feedback shown. Code copied to clipboard.</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-016', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-016', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+        </section>
+      
+        <section class="module-section" data-module="mod-3">
+          <h2 class="module-title">🚚 MODULE 3: Driver Dashboard</h2>
+          
+          
+            <article class="test-case" id="TC-020" data-tc-id="TC-020">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-020 — Driver Dashboard Access</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                    <tr>
+                      <td>Precondition</td>
+                      <td>A driver account exists (seeded: Ramesh Kumar)</td>
+                    </tr>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. Log in as a driver</div><div class="step-item">2. Navigate to Driver Dashboard</div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ Driver dashboard loads with earnings summary and incoming requests panel.</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-020', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-020', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+            <article class="test-case" id="TC-021" data-tc-id="TC-021">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-021 — AI Demand Heatmap</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. On Driver Dashboard, navigate to the "Heatmap" section</div><div class="step-item">2. Call <code>GET http://localhost:5000/api/drivers/heatmap</code></div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ Surge zone data returned with lat/lng coordinates and demand scores.</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-021', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-021', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+            <article class="test-case" id="TC-022" data-tc-id="TC-022">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-022 — Driver Payslip Generation</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. Find a valid Driver ID from admin panel</div><div class="step-item">2. Call <code>GET http://localhost:5000/api/drivers/{driverId}/payslip</code> with a valid token</div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ JSON response with <code>grossEarnings: 15000</code>, <code>platformFee: 2250</code>, <code>tdsTax: 150</code>, <code>netPayout: 12600</code>.</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-022', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-022', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+            <article class="test-case" id="TC-023" data-tc-id="TC-023">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-023 — WMS Barcode Scan (Simulation)</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. POST <code>http://localhost:5000/api/drivers/scan-inventory</code> with body: <code>{ "barcode": "EMN-BOX-001" }</code></div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ Response: <code>{ success: true, item: { barcode: 'EMN-BOX-001', status: 'Loaded' } }</code></td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-023', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-023', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+        </section>
+      
+        <section class="module-section" data-module="mod-4">
+          <h2 class="module-title">🏢 MODULE 4: Admin Dashboard</h2>
+          
+          
+            <article class="test-case" id="TC-030" data-tc-id="TC-030">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-030 — Overview Stats Panel</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                    <tr>
+                      <td>Precondition</td>
+                      <td>Logged in as Admin</td>
+                    </tr>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. Go to Admin Dashboard → Overview tab</div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ Cards showing Total Revenue, Active Drivers, Total Vehicles, Total Customers.</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-030', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-030', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+            <article class="test-case" id="TC-031" data-tc-id="TC-031">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-031 — Revenue Chart (Analytics)</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. Admin Dashboard → Analytics tab</div><div class="step-item">2. Observe Revenue chart</div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ Line/bar chart rendered with 7-day revenue data (mock fallback if no real data).</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-031', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-031', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+            <article class="test-case" id="TC-032" data-tc-id="TC-032">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-032 — Add New Driver</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. Admin Dashboard → Drivers tab</div><div class="step-item">2. Click "Add Driver"</div><div class="step-item">3. Fill: Name: <code>Test Driver</code>, Phone: <code>9999999999</code>, License: <code>MH12XY9999</code></div><div class="step-item">4. Save</div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ New driver appears in the drivers list.</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-032', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-032', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+            <article class="test-case" id="TC-033" data-tc-id="TC-033">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-033 — Add New Vehicle</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. Admin Dashboard → Vehicles tab</div><div class="step-item">2. Click "Add Vehicle"</div><div class="step-item">3. Fill: Registration: <code>MH-01-AA-1111</code>, Type: <code>Large</code>, Capacity: <code>2000</code></div><div class="step-item">4. Save</div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ New vehicle appears in vehicles list.</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-033', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-033', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+            <article class="test-case" id="TC-034" data-tc-id="TC-034">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-034 — Real-Time Fleet Telematics (IoT)</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. Admin Dashboard → Telematics tab</div><div class="step-item">2. Start a telematics session for a vehicle</div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ Live dials for Speed, RPM, Engine Temp, Fuel updating every 2 seconds. <code>healthScore</code> field visible.</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-034', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-034', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+            <article class="test-case" id="TC-035" data-tc-id="TC-035">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-035 — Predictive Maintenance Alert</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. Let the telematics simulator run for ~2 minutes</div><div class="step-item">2. Watch the Alert field on the dashboard</div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ Eventually emits <code>PREDICTIVE_MAINTENANCE_WARNING</code> when healthScore < 50.</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-035', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-035', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+            <article class="test-case" id="TC-036" data-tc-id="TC-036">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-036 — Live Chat Inbox</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. Admin → Live Chat tab</div><div class="step-item">2. Send a message to a customer session</div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ Message appears in real-time via Socket.io.</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-036', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-036', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+            <article class="test-case" id="TC-037" data-tc-id="TC-037">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-037 — View Audit Logs</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. Call <code>GET http://localhost:5000/api/analytics/audit-logs</code> with Admin token</div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ Paginated list of actions performed (e.g., driver creates/updates).</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-037', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-037', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+        </section>
+      
+        <section class="module-section" data-module="mod-5">
+          <h2 class="module-title">🚀 MODULE 5: Next-Gen Enterprise APIs</h2>
+          
+          
+            <article class="test-case" id="TC-040" data-tc-id="TC-040">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-040 — Blockchain Proof of Delivery</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. Get a valid booking ID from the DB</div><div class="step-item">2. POST <code>http://localhost:5000/api/bookings/{id}/complete</code> with Auth token</div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ <code>booking.podHash</code> field populated with a 64-char SHA-256 hex string. <code>booking.status</code> = <code>completed</code>.</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-040', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-040', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+            <article class="test-case" id="TC-041" data-tc-id="TC-041">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-041 — 3PL Failover (No Drivers Available)</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. Set all drivers to <code>inactive</code> in DB</div><div class="step-item">2. Create a new booking via <code>POST /api/bookings</code></div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ <code>booking.is3plOutsourced = true</code>, <code>booking.thirdPartyProvider = 'Delhivery Logistics'</code>, <code>status = driver_assigned</code>.</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-041', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-041', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+            <article class="test-case" id="TC-042" data-tc-id="TC-042">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-042 — ESG Carbon Calculation</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. Create a booking with <code>tempoType: 'large'</code> and <code>totalDistance: 10</code> (if applicable)</div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ <code>booking.esgEmissions</code> is populated with a non-zero float value.</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-042', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-042', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+            <article class="test-case" id="TC-043" data-tc-id="TC-043">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-043 — AI Voice Booking (NLP Endpoint)</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. POST <code>http://localhost:5000/api/bookings/ai-booking</code> with Auth token</div><div class="step-item">Body: <code>{ "transcript": "I need a large tempo to Mumbai tomorrow morning" }</code></div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ <code>{ success: true, booking: { tempoType: 'large', estimatedFare: 1200 } }</code></td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-043', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-043', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+            <article class="test-case" id="TC-044" data-tc-id="TC-044">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-044 — Dynamic Surge Pricing</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. GET <code>http://localhost:5000/api/analytics/surge</code> with Admin token</div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ Response with <code>surgeMultiplier</code>, <code>surgeLabel</code>, <code>activeBookings</code>, <code>availableDrivers</code>, <code>demandRatio</code>.</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-044', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-044', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+        </section>
+      
+        <section class="module-section" data-module="mod-6">
+          <h2 class="module-title">⚙️ MODULE 6: Infrastructure & SLA</h2>
+          
+          
+            <article class="test-case" id="TC-050" data-tc-id="TC-050">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-050 — Health Check Endpoint</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. GET <code>http://localhost:5000/api/health</code> (no auth required)</div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ <code>{ success: true, message: 'EMINENCE API is running', uptimeSeconds: &lt;number&gt;, memoryUsageMb: &lt;number&gt; }</code></td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-050', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-050', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+            <article class="test-case" id="TC-051" data-tc-id="TC-051">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-051 — SLA Monitoring Endpoint</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. GET <code>http://localhost:5000/api/analytics/sla</code> with Admin token</div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ <code>{ sla: { uptimeHours, dbLatencyMs, memoryUsageMb, cacheStats, activeAlerts } }</code></td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-051', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-051', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+            <article class="test-case" id="TC-052" data-tc-id="TC-052">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-052 — Platform White-Label Config</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. GET <code>http://localhost:5000/api/config</code> (no auth)</div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ <code>{ config: { brandName: 'Eminence Logistics', primaryColor: '#b87333' } }</code></td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-052', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-052', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+            <article class="test-case" id="TC-053" data-tc-id="TC-053">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-053 — Update Platform Config</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. PUT <code>http://localhost:5000/api/analytics/platform-config</code> with Admin token</div><div class="step-item">Body: <code>{ "brandName": "Eminence Pro", "primaryColor": "#FF5733" }</code></div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ Config updated. GET <code>/api/config</code> returns new values.</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-053', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-053', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+            <article class="test-case" id="TC-054" data-tc-id="TC-054">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-054 — Export Bookings (Expense Report)</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. GET <code>http://localhost:5000/api/analytics/export-bookings</code> with Admin token</div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ Array of bookings with <code>{ id, date, pickup, drop, fare, status, esgEmissions, podHash }</code>.</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-054', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-054', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+        </section>
+      
+        <section class="module-section" data-module="mod-7">
+          <h2 class="module-title">⭐ MODULE 7: Reviews & Ratings</h2>
+          
+          
+            <article class="test-case" id="TC-060" data-tc-id="TC-060">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-060 — Submit a Driver Review</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                    <tr>
+                      <td>Precondition</td>
+                      <td>Valid <code>driverId</code> and <code>customerId</code> available</td>
+                    </tr>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. POST <code>http://localhost:5000/api/reviews</code></div><div class="step-item">Body: <code>{ "driverId": "&lt;id&gt;", "customerId": "&lt;id&gt;", "rating": 5, "comment": "Excellent service!" }</code></div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ Review created. Driver's average rating updated in DB.</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-060', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-060', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+            <article class="test-case" id="TC-061" data-tc-id="TC-061">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-061 — Get Driver Reviews</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. GET <code>http://localhost:5000/api/reviews/driver/&lt;driverId&gt;</code></div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ List of reviews for that driver returned.</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-061', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-061', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+        </section>
+      
+        <section class="module-section" data-module="mod-8">
+          <h2 class="module-title">🏦 MODULE 8: B2B & Payments</h2>
+          
+          
+            <article class="test-case" id="TC-070" data-tc-id="TC-070">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-070 — B2B Business Registration</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                    <tr>
+                      <td>Precondition</td>
+                      <td>Logged in as customer</td>
+                    </tr>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. POST <code>http://localhost:5000/api/b2b/register</code> with Auth token</div><div class="step-item">Body: <code>{ "businessName": "Acme Corp", "gstNumber": "29ABCDE1234F1Z5" }</code></div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ Business registered. Can now access postpaid/credit features.</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-070', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-070', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+            <article class="test-case" id="TC-071" data-tc-id="TC-071">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-071 — B2B Contract Request</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. POST <code>http://localhost:5000/api/b2b/contracts</code> with Auth token</div><div class="step-item">Body: <code>{ "vehicleType": "large", "vehicleCount": 2, "startDate": "2026-09-10", "endDate": "2026-10-10" }</code></div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ Contract created with <code>status: 'pending'</code>.</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-071', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-071', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+            <article class="test-case" id="TC-072" data-tc-id="TC-072">
+              <div class="tc-title">
+                <span class="tc-id-tag">TC-072 — View Invoices</span>
+              </div>
+              
+              <table class="tc-table">
+                <thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Details</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  
+                  <tr>
+                    <td>Steps</td>
+                    <td>
+                      <div class="steps-list">
+                        <div class="step-item">1. GET <code>http://localhost:5000/api/b2b/invoices</code> with Auth token</div>
+                      </div>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>Expected Result</td>
+                    <td>✅ List of invoices returned (empty array if none yet).</td>
+                  </tr>
+                  <tr>
+                    <td>Status</td>
+                    <td>
+                      <div class="status-group">
+                        <button class="status-pill" data-type="pass" onclick="toggleStatus('TC-072', 'pass')">
+                          <span class="status-icon">[ ]</span> Pass
+                        </button>
+                        <button class="status-pill" data-type="fail" onclick="toggleStatus('TC-072', 'fail')">
+                          <span class="status-icon">[ ]</span> Fail
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </article>
+          
+        </section>
+      
+    </div>
+
+    <!-- Summary Section -->
+    <section class="summary-section">
+      <h2 class="module-title">📋 TEST SUMMARY</h2>
+      <table class="summary-table">
+        <thead>
+          <tr>
+            <th>Module</th>
+            <th>Total TCs</th>
+            <th>Pass</th>
+            <th>Fail</th>
+            <th>Pending</th>
+          </tr>
+        </thead>
+        <tbody id="summary-table-body">
+          
+            <tr data-summary-module="mod-1">
+              <td>MODULE 1: Authentication & Authorization</td>
+              <td>4</td>
+              <td class="pass-val">0</td>
+              <td class="fail-val">0</td>
+              <td class="pending-val">4</td>
+            </tr>
+          
+            <tr data-summary-module="mod-2">
+              <td>MODULE 2: Customer Dashboard & Booking</td>
+              <td>7</td>
+              <td class="pass-val">0</td>
+              <td class="fail-val">0</td>
+              <td class="pending-val">7</td>
+            </tr>
+          
+            <tr data-summary-module="mod-3">
+              <td>MODULE 3: Driver Dashboard</td>
+              <td>4</td>
+              <td class="pass-val">0</td>
+              <td class="fail-val">0</td>
+              <td class="pending-val">4</td>
+            </tr>
+          
+            <tr data-summary-module="mod-4">
+              <td>MODULE 4: Admin Dashboard</td>
+              <td>8</td>
+              <td class="pass-val">0</td>
+              <td class="fail-val">0</td>
+              <td class="pending-val">8</td>
+            </tr>
+          
+            <tr data-summary-module="mod-5">
+              <td>MODULE 5: Next-Gen Enterprise APIs</td>
+              <td>5</td>
+              <td class="pass-val">0</td>
+              <td class="fail-val">0</td>
+              <td class="pending-val">5</td>
+            </tr>
+          
+            <tr data-summary-module="mod-6">
+              <td>MODULE 6: Infrastructure & SLA</td>
+              <td>5</td>
+              <td class="pass-val">0</td>
+              <td class="fail-val">0</td>
+              <td class="pending-val">5</td>
+            </tr>
+          
+            <tr data-summary-module="mod-7">
+              <td>MODULE 7: Reviews & Ratings</td>
+              <td>2</td>
+              <td class="pass-val">0</td>
+              <td class="fail-val">0</td>
+              <td class="pending-val">2</td>
+            </tr>
+          
+            <tr data-summary-module="mod-8">
+              <td>MODULE 8: B2B & Payments</td>
+              <td>3</td>
+              <td class="pass-val">0</td>
+              <td class="fail-val">0</td>
+              <td class="pending-val">3</td>
+            </tr>
+          
+          <tr style="border-top: 2px solid var(--border-light);">
+            <td><strong>TOTAL</strong></td>
+            <td><strong id="summary-total-cases">38</strong></td>
+            <td><strong id="summary-total-pass" style="color: var(--accent-green);">0</strong></td>
+            <td><strong id="summary-total-fail" style="color: var(--accent-red);">0</strong></td>
+            <td><strong id="summary-total-pending" style="color: #f59e0b;">38</strong></td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Bug Report Template Box -->
+    <section class="summary-section" style="margin-top: 32px;">
+      <h2 class="module-title">🐛 Bug Report Template</h2>
+      <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 6px; padding: 16px; position: relative;">
+        <button class="btn" style="position: absolute; top: 12px; right: 12px;" onclick="copyBugTemplate()">Copy Template</button>
+        <pre style="font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: #d4d4d8; line-height: 1.6; margin: 0;" id="bug-template-text">Bug ID: BUG-XXX
+TC Reference: TC-0XX
+Severity: Critical / High / Medium / Low
+Summary: [One-line description]
+Steps to Reproduce:
+  1.
+  2.
+  3.
+Expected: 
+Actual: 
+Screenshot/Log: [Attach if available]</pre>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast">Action completed!</div>
+
+  <script>
+    const STORAGE_KEY = 'eminence_qa_test_results_v1';
+    let currentFilter = 'all';
+    let searchKeyword = '';
+
+    // Load saved results
+    function getResults() {
+      try {
+        return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+      } catch {
+        return {};
+      }
+    }
+
+    function saveResults(results) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(results));
+      renderStatus();
+    }
+
+    function toggleStatus(tcId, type) {
+      const results = getResults();
+      if (results[tcId] === type) {
+        delete results[tcId]; // toggle off
+      } else {
+        results[tcId] = type;
+      }
+      saveResults(results);
+    }
+
+    function resetAll() {
+      if (confirm('Are you sure you want to reset all test statuses?')) {
+        localStorage.removeItem(STORAGE_KEY);
+        renderStatus();
+        showToast('All test case statuses reset.');
+      }
+    }
+
+    function renderStatus() {
+      const results = getResults();
+      const allTcCards = document.querySelectorAll('.test-case');
+      let passCount = 0;
+      let failCount = 0;
+
+      // Module breakdown counters
+      const moduleStats = {};
+      document.querySelectorAll('.module-section').forEach(mod => {
+        const modId = mod.getAttribute('data-module');
+        moduleStats[modId] = { total: 0, pass: 0, fail: 0 };
+      });
+
+      allTcCards.forEach(card => {
+        const tcId = card.getAttribute('data-tc-id');
+        const parentModule = card.closest('.module-section').getAttribute('data-module');
+        moduleStats[parentModule].total++;
+
+        const passBtn = card.querySelector('button[data-type="pass"]');
+        const failBtn = card.querySelector('button[data-type="fail"]');
+        const status = results[tcId];
+
+        // Reset
+        passBtn.classList.remove('active-pass');
+        failBtn.classList.remove('active-fail');
+        passBtn.querySelector('.status-icon').textContent = '[ ]';
+        failBtn.querySelector('.status-icon').textContent = '[ ]';
+
+        if (status === 'pass') {
+          passCount++;
+          moduleStats[parentModule].pass++;
+          passBtn.classList.add('active-pass');
+          passBtn.querySelector('.status-icon').textContent = '[✓]';
+        } else if (status === 'fail') {
+          failCount++;
+          moduleStats[parentModule].fail++;
+          failBtn.classList.add('active-fail');
+          failBtn.querySelector('.status-icon').textContent = '[✕]';
+        }
+
+        // Apply filters
+        applyVisibility(card, status);
+      });
+
+      const total = allTcCards.length;
+      const pending = total - (passCount + failCount);
+      const percent = total > 0 ? Math.round((passCount / total) * 100) : 0;
+
+      // Update Header
+      document.getElementById('pass-count').textContent = passCount;
+      document.getElementById('fail-count').textContent = failCount;
+      document.getElementById('pending-count').textContent = pending;
+      document.getElementById('progress-bar').style.width = percent + '%';
+      document.getElementById('percent-label').textContent = percent + '%';
+
+      // Update Summary Table
+      for (const [modId, stats] of Object.entries(moduleStats)) {
+        const row = document.querySelector(`tr[data-summary-module="${modId}"]`);
+        if (row) {
+          row.querySelector('.pass-val').textContent = stats.pass;
+          row.querySelector('.fail-val').textContent = stats.fail;
+          row.querySelector('.pending-val').textContent = stats.total - (stats.pass + stats.fail);
+        }
+      }
+
+      document.getElementById('summary-total-pass').textContent = passCount;
+      document.getElementById('summary-total-fail').textContent = failCount;
+      document.getElementById('summary-total-pending').textContent = pending;
+    }
+
+    function applyVisibility(card, status) {
+      let matchesFilter = true;
+      if (currentFilter === 'pass' && status !== 'pass') matchesFilter = false;
+      if (currentFilter === 'fail' && status !== 'fail') matchesFilter = false;
+      if (currentFilter === 'pending' && status !== undefined) matchesFilter = false;
+
+      let matchesSearch = true;
+      if (searchKeyword) {
+        const text = card.textContent.toLowerCase();
+        matchesSearch = text.includes(searchKeyword.toLowerCase());
+      }
+
+      if (matchesFilter && matchesSearch) {
+        card.style.display = 'block';
+      } else {
+        card.style.display = 'none';
+      }
+    }
+
+    function setFilter(filter, el) {
+      currentFilter = filter;
+      document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+      el.classList.add('active');
+      renderStatus();
+    }
+
+    function handleSearch() {
+      searchKeyword = document.getElementById('search-box').value.trim();
+      renderStatus();
+    }
+
+    function copyText(str) {
+      navigator.clipboard.writeText(str).then(() => {
+        showToast('Copied to clipboard: ' + str);
+      });
+    }
+
+    function copyBugTemplate() {
+      const text = document.getElementById('bug-template-text').textContent;
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('Bug template copied to clipboard!');
+      });
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2500);
+    }
+
+    function exportResults() {
+      const results = getResults();
+      const allTcCards = document.querySelectorAll('.test-case');
+      let report = '# Eminence Logistics — QA Execution Report\n\n';
+      report += `Date: ${new Date().toLocaleString()}\n\n`;
+
+      allTcCards.forEach(card => {
+        const tcId = card.getAttribute('data-tc-id');
+        const title = card.querySelector('.tc-title').textContent.trim();
+        const status = results[tcId] ? results[tcId].toUpperCase() : 'PENDING';
+        report += `- [${status === 'PASS' ? 'x' : ' '}] **${title}**: ${status}\n`;
+      });
+
+      navigator.clipboard.writeText(report).then(() => {
+        showToast('QA Execution report copied to clipboard!');
+      });
+    }
+
+    // Initial render
+    document.addEventListener('DOMContentLoaded', renderStatus);
+  </script>
+</body>
+</html>

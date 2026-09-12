@@ -22,6 +22,7 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({ email: '', password: '' });
   const [activeTab, setActiveTab] = useState('customer'); // 'customer', 'driver', 'admin'
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -34,7 +35,7 @@ const Login = () => {
     setIsLoading(true);
     setError('');
     try {
-      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/phone-login`, {
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/phone-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone })
@@ -53,8 +54,9 @@ const Login = () => {
     if (!email || !password) return;
     setIsLoading(true);
     setError('');
+    setFieldErrors({ email: '', password: '' });
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/admin/login`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/admin/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
@@ -73,7 +75,11 @@ const Login = () => {
         }));
         navigate('/admin/dashboard');
       } else {
-        setError(data.message || 'Invalid credentials');
+        if (data.field) {
+          setFieldErrors((prev) => ({ ...prev, [data.field]: data.message }));
+        } else {
+          setError(data.message || 'Invalid credentials');
+        }
       }
     } catch (err) {
       console.error('Admin login error:', err);
@@ -86,7 +92,7 @@ const Login = () => {
     const demoPhone = import.meta.env.VITE_DEMO_PHONE || '9999999999';
     setIsLoading(true);
     try {
-      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/phone-login`, {
+      await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/phone-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: demoPhone, role: activeTab })
@@ -105,7 +111,7 @@ const Login = () => {
       setIsLoading(true);
       const result = await signInWithPopup(auth, googleProvider);
       const idToken = await result.user.getIdToken();
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:3000'}/api/auth/google-login`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/google-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken })
@@ -156,7 +162,7 @@ const Login = () => {
           {['customer', 'business', 'driver', 'admin'].map((role) => (
             <button
               key={role}
-              onClick={() => { setActiveTab(role); setError(''); }}
+              onClick={() => { setActiveTab(role); setError(''); setFieldErrors({ email: '', password: '' }); }}
               className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all capitalize ${
                 activeTab === role 
                   ? role === 'admin'
@@ -203,12 +209,20 @@ const Login = () => {
                       type="email"
                       required
                       autoComplete="email"
-                      className="input-field pl-12"
+                      className={`input-field pl-12 ${fieldErrors.email ? 'border-red-500 ring-1 ring-red-500' : ''}`}
                       placeholder="admin@eminence.com"
                       value={email}
-                      onChange={(e) => setEmail(e.target.value)}
+                      onChange={(e) => {
+                        setEmail(e.target.value);
+                        if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: '' }));
+                      }}
                     />
                   </div>
+                  {fieldErrors.email && (
+                    <p className="mt-2 text-sm text-red-500 flex items-center">
+                      <span className="mr-1">❌</span> {fieldErrors.email}
+                    </p>
+                  )}
                 </div>
 
                 <div>
@@ -222,12 +236,20 @@ const Login = () => {
                       type="password"
                       required
                       autoComplete="current-password"
-                      className="input-field pl-12"
+                      className={`input-field pl-12 ${fieldErrors.password ? 'border-red-500 ring-1 ring-red-500' : ''}`}
                       placeholder="••••••••"
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: '' }));
+                      }}
                     />
                   </div>
+                  {fieldErrors.password && (
+                    <p className="mt-2 text-sm text-red-500 flex items-center">
+                      <span className="mr-1">❌</span> {fieldErrors.password}
+                    </p>
+                  )}
                 </div>
 
                 <button

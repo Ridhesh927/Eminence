@@ -14,18 +14,15 @@ const registerBusiness = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Customer not found' });
     }
 
-    // Set to business and grant initial credit limit (mocking approval process for now)
-    customer.isBusiness = true;
+    // Set to pending business state. Do NOT set isBusiness to true or grant credit yet.
     customer.companyName = companyName;
     customer.gstNumber = gstNumber;
-    customer.billingMode = 'postpaid';
-    customer.creditLimit = 50000.00; // 50,000 INR limit
-    customer.creditUsed = 0.00;
+    customer.b2bStatus = 'pending_verification';
     await customer.save();
 
     return res.status(200).json({
       success: true,
-      message: 'Successfully upgraded to Corporate Account',
+      message: 'Corporate Account request submitted. Pending admin verification.',
       data: customer
     });
   } catch (error) {

@@ -12,8 +12,8 @@ const CustomerDashboard = () => {
   const [isAddAddressOpen, setIsAddAddressOpen] = useState(false);
   const [walletData, setWalletData] = useState(null);
   const [copySuccess, setCopySuccess] = useState(false);
-  const [isPro] = useState(user?.isPro || false); // Mock state for Demo
-  const [totalTrips] = useState(user?.totalTrips || 7); // Mock Gamification state
+  const isPro = Boolean(user?.isPro);
+  const totalTrips = user?.totalTrips ?? 0;
   const [downloadingInvoice, setDownloadingInvoice] = useState(null);
   
   // Addresses State
