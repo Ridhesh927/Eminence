@@ -21,19 +21,36 @@ const auditLogger = (resourceType) => async (req, res, next) => {
         const user = req.user || {};
         const action = `${req.method}_${resourceType || req.path.replace(/\//g, '_').toUpperCase()}`.replace(/^_/, '');
         
-        await AuditLog.create({
-          action,
-          performedBy: user.id || user.email || 'ANONYMOUS',
-          performedByRole: user.role || 'unknown',
-          resourceType,
-          resourceId: req.params.id || (body && body.id) || null,
-          ipAddress: req.ip || req.headers['x-forwarded-for'] || 'unknown',
-          metadata: {
-            path: req.path,
-            body: req.body
+          const sensitiveFields = [
+            'password',
+            'otp',
+            'token',
+            'accessToken',
+            'refreshToken',
+            'secret'
+          ];
+          
+          const sanitizedBody = { ...req.body };
+          
+          for (const field of sensitiveFields) {
+            if (field in sanitizedBody) {
+              sanitizedBody[field] = '[REDACTED]';
+            }
           }
-        });
-      } catch (err) {
+
+          await AuditLog.create({
+            action,
+            performedBy: user.id || user.email || 'ANONYMOUS',
+            performedByRole: user.role || 'unknown',
+            resourceType,
+            resourceId: req.params.id || (body && body.id) || null,
+            ipAddress: req.ip || req.headers['x-forwarded-for'] || 'unknown',
+            metadata: {
+              path: req.path,
+              body: sanitizedBody
+            }
+          });
+        } catch (err) {
         // Never let audit logging break the main request
         console.error('[AuditLog] Failed to log action:', err.message);
       }
