@@ -110,6 +110,10 @@ const initSocket = (httpServer) => {
 
     // Admin joins telemetry room
     socket.on('join_admin_telemetry', () => {
+      if (socket.user?.role !== 'admin') {
+        return socket.emit('error', { message: 'Admin access required' });
+      }
+      
       socket.join('admin_telemetry');
       console.log(`[Socket] Admin ${socket.id} joined admin_telemetry`);
       
@@ -119,6 +123,10 @@ const initSocket = (httpServer) => {
     });
 
     socket.on('leave_admin_telemetry', () => {
+      if (socket.user?.role !== 'admin') {
+        return socket.emit('error', { message: 'Admin access required' });
+      }
+
       socket.leave('admin_telemetry');
       console.log(`[Socket] Admin ${socket.id} left admin_telemetry`);
       const { stopTelemetrySimulation } = require('./services/telematicsSimulator');

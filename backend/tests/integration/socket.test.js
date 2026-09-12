@@ -291,4 +291,43 @@ describe('Socket.io Authentication & Room Access Control Tests', () => {
       });
     });
   });
+
+  describe('Admin Telemetry Access Control', () => {
+    it('should reject non-admin from joining admin telemetry', (done) => {
+      const client = ioClient(serverAddress, {
+        transports: ['websocket'],
+        auth: { token: customerToken }
+      });
+
+      client.on('connect', () => {
+        client.emit('join_admin_telemetry');
+      });
+
+      client.on('error', (err) => {
+        expect(err.message).toMatch(/Admin access required/i);
+        client.disconnect();
+        done();
+      });
+    });
+
+    it('should allow admin to join admin telemetry', (done) => {
+      // Just wait a moment to ensure no error is emitted and it stays connected
+      const client = ioClient(serverAddress, {
+        transports: ['websocket'],
+        auth: { token: adminToken }
+      });
+
+      client.on('connect', () => {
+        client.emit('join_admin_telemetry');
+        setTimeout(() => {
+          client.disconnect();
+          done();
+        }, 100);
+      });
+
+      client.on('error', (err) => {
+        done(err);
+      });
+    });
+  });
 });
