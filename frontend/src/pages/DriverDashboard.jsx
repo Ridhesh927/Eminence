@@ -18,10 +18,11 @@ const DriverDashboard = () => {
   const [scanResult, setScanResult] = useState(null);
   const [isScanning, setIsScanning] = useState(false);
 
-  // Navigation State
   const [isNavigating, setIsNavigating] = useState(false);
   const [activeRide, setActiveRide] = useState(null);
   const [driverPos, setDriverPos] = useState({ lat: 18.5204, lng: 73.8567 });
+  const [podHash, setPodHash] = useState(null);
+  const [showPod, setShowPod] = useState(false);
 
   const socketRef = useRef(null);
   const isOnlineRef = useRef(isOnline);
@@ -133,8 +134,20 @@ const DriverDashboard = () => {
     setActiveRide(null);
   };
 
-  const handleFinishTrip = () => {
-    setIsNavigating(false);
+  const handleFinishTrip = async () => {
+    if (!activeRide) return;
+    setIsLoading(true);
+    try {
+      const response = await api.post(`/api/bookings/${activeRide.bookingId}/complete`);
+      if (response.data?.success) {
+        setPodHash(response.data.booking.podHash);
+        setShowPod(true);
+      }
+    } catch (err) {
+      console.error('Error completing trip:', err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -318,7 +331,7 @@ const DriverDashboard = () => {
                         </div>
                         <div className="pt-4 border-t border-loft-800">
                           <button onClick={handleFinishTrip} className="w-full bg-moss-500 hover:bg-moss-400 text-white font-bold py-4 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.3)] transition-colors">
-                            Complete Trip & Collect Fare
+                            Complete Trip & Sign PoD
                           </button>
                         </div>
                       </div>
@@ -505,6 +518,48 @@ const DriverDashboard = () => {
         </div>
 
       </div>
+
+      {/* PoD Certificate Modal */}
+      <AnimatePresence>
+        {showPod && (
+          <motion.div 
+            initial={{ opacity: 0 }} 
+            animate={{ opacity: 1 }} 
+            exit={{ opacity: 0 }} 
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+          >
+            <motion.div 
+              initial={{ scale: 0.9, y: 20 }} 
+              animate={{ scale: 1, y: 0 }} 
+              className="bg-loft-900 border border-moss-500/50 rounded-2xl p-8 max-w-lg w-full shadow-[0_0_50px_rgba(16,185,129,0.2)] text-center relative overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 w-full h-2 bg-moss-500"></div>
+              <div className="w-20 h-20 bg-moss-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                <CheckCircle className="w-10 h-10 text-moss-400" />
+              </div>
+              <h2 className="text-3xl font-bold text-moss-400 mb-2">Blockchain Verified</h2>
+              <p className="text-loft-300 mb-6">Delivery completed and cryptographically secured on the ledger.</p>
+              
+              <div className="bg-loft-950 p-4 rounded-xl border border-loft-800 mb-8 break-all">
+                <p className="text-xs text-loft-500 mb-1 uppercase tracking-wider font-bold">PoD Hash (SHA-256)</p>
+                <p className="text-sm text-moss-300 font-mono">{podHash}</p>
+              </div>
+              
+              <button 
+                onClick={() => {
+                  setShowPod(false);
+                  setIsNavigating(false);
+                  setActiveRide(null);
+                }}
+                className="btn-primary w-full py-4 text-lg shadow-[0_0_20px_rgba(16,185,129,0.4)]"
+                style={{ backgroundColor: '#10b981', borderColor: '#10b981' }}
+              >
+                Close & Return Home
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
