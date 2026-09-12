@@ -75,6 +75,7 @@ describe('Admin & Analytics Integration Tests', () => {
     it('should reject client-manipulated role during phone verification and enforce customer role', async () => {
       // Seed data for the normal flow
       const { Customer, Otp } = require('../../src/models');
+      await Customer.destroy({ where: { phone: '9876543210' } });
       const testCustomer = await Customer.create({ phone: '9876543210' });
       await Otp.create({
         customerId: testCustomer.id,
