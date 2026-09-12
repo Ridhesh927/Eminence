@@ -1,4 +1,5 @@
 const { Server } = require('socket.io');
+const jwt = require('jsonwebtoken');
 
 let io;
 
@@ -11,13 +12,93 @@ const initSocket = (httpServer) => {
     }
   });
 
+  // Socket.io JWT Authentication Middleware
+  io.use((socket, next) => {
+    if (socket.user) return next();
+    const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(' ')[1];
+
+    if (!token) {
+      if (process.env.NODE_ENV === 'development') {
+        socket.user = { id: 'dev-user', role: 'customer' };
+        return next();
+      }
+      return next(new Error('Authentication error: Token required'));
+    }
+
+    try {
+      const jwtSecret =
+        process.env.JWT_SECRET || (['development', 'test'].includes(process.env.NODE_ENV) ? 'fallback_secret' : null);
+
+      if (!jwtSecret) {
+        return next(new Error('Server misconfigured: JWT_SECRET is required'));
+      }
+
+      const decoded = jwt.verify(token, jwtSecret);
+      socket.user = decoded;
+      next();
+    } catch (err) {
+      if (process.env.NODE_ENV === 'development') {
+        socket.user = { id: 'dev-user', role: 'customer' };
+        return next();
+      }
+      return next(new Error('Authentication error: Invalid or expired token'));
+    }
+  });
+
   io.on('connection', (socket) => {
     console.log(`[Socket] Client connected: ${socket.id}`);
 
-    // Driver joins their own room or a trip room
-    socket.on('join_trip', (bookingId) => {
-      socket.join(`trip_${bookingId}`);
-      console.log(`[Socket] Client ${socket.id} joined trip_${bookingId}`);
+    // Driver or Customer joins their trip room with authorization checks
+    socket.on('join_trip', async (bookingId) => {
+      if (!socket.user) {
+        return socket.emit('error', { message: 'Unauthorized: Authentication required' });
+      }
+
+      if (!bookingId) {
+        return socket.emit('error', { message: 'Booking ID required' });
+      }
+
+      // Admin has global visibility across all trips
+      if (socket.user.role === 'admin') {
+        socket.join(`trip_${bookingId}`);
+        console.log(`[Socket] Admin ${socket.id} joined trip_${bookingId}`);
+        return socket.emit('joined_trip', { bookingId });
+      }
+
+      // Local development bypass
+      if (process.env.NODE_ENV === 'development' && socket.user.id === 'dev-user') {
+        socket.join(`trip_${bookingId}`);
+        console.log(`[Socket] Dev user ${socket.id} joined trip_${bookingId}`);
+        return socket.emit('joined_trip', { bookingId });
+      }
+
+      try {
+        const { Booking } = require('./models');
+        let booking;
+        try {
+          booking = await Booking.findByPk(bookingId);
+        } catch (dbErr) {
+          return socket.emit('error', { message: 'Unauthorized: Booking not found' });
+        }
+
+        if (!booking) {
+          return socket.emit('error', { message: 'Unauthorized: Booking not found' });
+        }
+
+        const isCustomer = booking.customerId && booking.customerId === socket.user.id;
+        const isDriver = booking.driverId && booking.driverId === socket.user.id;
+
+        if (!isCustomer && !isDriver) {
+          return socket.emit('error', { message: 'Unauthorized: Cannot join trip room for another user' });
+        }
+
+        socket.join(`trip_${bookingId}`);
+        console.log(`[Socket] Client ${socket.id} (${socket.user.role}) joined trip_${bookingId}`);
+        socket.emit('joined_trip', { bookingId });
+      } catch (err) {
+        console.error(`[Socket] Error verifying access for trip_${bookingId}:`, err);
+        return socket.emit('error', { message: 'Unauthorized: Unable to verify trip access' });
+      }
     });
 
     // Driver sends location update
@@ -29,6 +110,10 @@ const initSocket = (httpServer) => {
 
     // Admin joins telemetry room
     socket.on('join_admin_telemetry', () => {
+      if (socket.user?.role !== 'admin') {
+        return socket.emit('error', { message: 'Admin access required' });
+      }
+      
       socket.join('admin_telemetry');
       console.log(`[Socket] Admin ${socket.id} joined admin_telemetry`);
       
@@ -38,6 +123,10 @@ const initSocket = (httpServer) => {
     });
 
     socket.on('leave_admin_telemetry', () => {
+      if (socket.user?.role !== 'admin') {
+        return socket.emit('error', { message: 'Admin access required' });
+      }
+
       socket.leave('admin_telemetry');
       console.log(`[Socket] Admin ${socket.id} left admin_telemetry`);
       const { stopTelemetrySimulation } = require('./services/telematicsSimulator');

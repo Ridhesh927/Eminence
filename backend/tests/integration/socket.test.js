@@ -3,6 +3,7 @@ const ioClient = require('socket.io-client');
 const jwt = require('jsonwebtoken');
 const app = require('../../src/app');
 const { initSocket } = require('../../src/socket');
+const { Booking } = require('../../src/models');
 
 describe('Socket.io Authentication & Room Access Control Tests', () => {
   let server;
@@ -11,10 +12,23 @@ describe('Socket.io Authentication & Room Access Control Tests', () => {
   let adminToken;
   let customerToken;
   let otherCustomerToken;
+  let driverToken;
 
   beforeAll((done) => {
     server = http.createServer(app);
     io = initSocket(server);
+
+    // Mock Booking lookup for deterministic trip authorization tests
+    jest.spyOn(Booking, 'findByPk').mockImplementation(async (id) => {
+      if (id === '11111111-1111-1111-1111-111111111111') {
+        return {
+          id: '11111111-1111-1111-1111-111111111111',
+          customerId: 'customer-1',
+          driverId: 'driver-1'
+        };
+      }
+      return null;
+    });
 
     // Setup the chat handlers as in server.js
     const activeChats = {};
@@ -75,12 +89,17 @@ describe('Socket.io Authentication & Room Access Control Tests', () => {
         { id: 'customer-2', role: 'customer' },
         process.env.JWT_SECRET || 'fallback_secret'
       );
+      driverToken = jwt.sign(
+        { id: 'driver-1', role: 'driver' },
+        process.env.JWT_SECRET || 'fallback_secret'
+      );
 
       done();
     });
   });
 
   afterAll((done) => {
+    jest.restoreAllMocks();
     io.close();
     server.close(done);
   });
@@ -165,6 +184,150 @@ describe('Socket.io Authentication & Room Access Control Tests', () => {
       expect(Array.isArray(list)).toBe(true);
       client.disconnect();
       done();
+    });
+  });
+
+  describe('Trip Room (join_trip) Access Control & IDOR Prevention', () => {
+    it('should reject client when trying to join a non-existent trip room', (done) => {
+      const client = ioClient(serverAddress, {
+        transports: ['websocket'],
+        auth: { token: customerToken }
+      });
+
+      client.on('connect', () => {
+        client.emit('join_trip', '99999999-9999-9999-9999-999999999999');
+      });
+
+      client.on('error', (err) => {
+        expect(err.message).toMatch(/Booking not found/i);
+        client.disconnect();
+        done();
+      });
+    });
+
+    it('should reject client attempting to join arbitrary non-UUID booking ID (e.g. BOOKING-123)', (done) => {
+      const client = ioClient(serverAddress, {
+        transports: ['websocket'],
+        auth: { token: customerToken }
+      });
+
+      client.on('connect', () => {
+        client.emit('join_trip', 'BOOKING-123');
+      });
+
+      client.on('error', (err) => {
+        expect(err.message).toMatch(/Booking not found/i);
+        client.disconnect();
+        done();
+      });
+    });
+
+    it('should reject unauthorized customer trying to join another user\'s trip room (IDOR)', (done) => {
+      // otherCustomerToken is customer-2; the trip belongs to customer-1
+      const client = ioClient(serverAddress, {
+        transports: ['websocket'],
+        auth: { token: otherCustomerToken }
+      });
+
+      client.on('connect', () => {
+        client.emit('join_trip', '11111111-1111-1111-1111-111111111111');
+      });
+
+      client.on('error', (err) => {
+        expect(err.message).toMatch(/Cannot join trip room for another user/i);
+        client.disconnect();
+        done();
+      });
+    });
+
+    it('should allow authorized customer to join their own trip room', (done) => {
+      const client = ioClient(serverAddress, {
+        transports: ['websocket'],
+        auth: { token: customerToken }
+      });
+
+      client.on('connect', () => {
+        client.emit('join_trip', '11111111-1111-1111-1111-111111111111');
+      });
+
+      client.on('joined_trip', (data) => {
+        expect(data.bookingId).toBe('11111111-1111-1111-1111-111111111111');
+        client.disconnect();
+        done();
+      });
+    });
+
+    it('should allow authorized driver to join the assigned trip room', (done) => {
+      const client = ioClient(serverAddress, {
+        transports: ['websocket'],
+        auth: { token: driverToken }
+      });
+
+      client.on('connect', () => {
+        client.emit('join_trip', '11111111-1111-1111-1111-111111111111');
+      });
+
+      client.on('joined_trip', (data) => {
+        expect(data.bookingId).toBe('11111111-1111-1111-1111-111111111111');
+        client.disconnect();
+        done();
+      });
+    });
+
+    it('should allow admin to join any trip room', (done) => {
+      const client = ioClient(serverAddress, {
+        transports: ['websocket'],
+        auth: { token: adminToken }
+      });
+
+      client.on('connect', () => {
+        client.emit('join_trip', '11111111-1111-1111-1111-111111111111');
+      });
+
+      client.on('joined_trip', (data) => {
+        expect(data.bookingId).toBe('11111111-1111-1111-1111-111111111111');
+        client.disconnect();
+        done();
+      });
+    });
+  });
+
+  describe('Admin Telemetry Access Control', () => {
+    it('should reject non-admin from joining admin telemetry', (done) => {
+      const client = ioClient(serverAddress, {
+        transports: ['websocket'],
+        auth: { token: customerToken }
+      });
+
+      client.on('connect', () => {
+        client.emit('join_admin_telemetry');
+      });
+
+      client.on('error', (err) => {
+        expect(err.message).toMatch(/Admin access required/i);
+        client.disconnect();
+        done();
+      });
+    });
+
+    it('should allow admin to join admin telemetry', (done) => {
+      // Just wait a moment to ensure no error is emitted and it stays connected
+      const client = ioClient(serverAddress, {
+        transports: ['websocket'],
+        auth: { token: adminToken }
+      });
+
+      client.on('connect', () => {
+        client.emit('join_admin_telemetry');
+        setTimeout(() => {
+          client.disconnect();
+          done();
+        }, 100);
+      });
+
+      client.on('error', (err) => {
+        done(err);
+      });
     });
   });
 });
