@@ -23,6 +23,7 @@ const socketMessageTimestamps = new Map();
 
 // Socket.io JWT Authentication Middleware
 io.use((socket, next) => {
+  if (socket.user) return next();
   const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(' ')[1];
   
   if (!token) {

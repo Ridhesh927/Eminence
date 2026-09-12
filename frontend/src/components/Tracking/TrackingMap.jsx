@@ -27,8 +27,10 @@ const TrackingMap = ({ bookingId, initialLat = 18.5204, initialLng = 73.8567 }) 
 
   useEffect(() => {
     // Initialize socket connection
+    const token = localStorage.getItem('token');
     const socket = io(import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000', {
       withCredentials: true,
+      auth: { token }
     });
 
     socket.on('connect', () => {
