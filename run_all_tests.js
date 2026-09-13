@@ -187,7 +187,7 @@ async function main() {
 
     results.push(
       runStage(
-        'Mobile: Full QA Integration Test Suite (27 Test Cases)',
+        'Mobile: Full QA Integration Test Suite (31 Test Cases)',
         'npm',
         ['test'],
         MOBILE_DIR

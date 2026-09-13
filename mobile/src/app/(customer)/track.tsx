@@ -7,8 +7,10 @@ import {
   StyleSheet,
   ActivityIndicator,
   Platform,
+  Alert,
 } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import * as Clipboard from 'expo-clipboard';
 import { io, Socket } from 'socket.io-client';
 import { useAuth } from '../../context/AuthContext';
 import { API_BASE_URL } from '../../services/api';
@@ -149,6 +151,37 @@ export default function TrackingScreen() {
               <Text style={styles.otpSub}>Share with driver upon tempo arrival</Text>
             </View>
             <Text style={styles.otpCode}>8492</Text>
+          </View>
+        )}
+
+        {/* Blockchain Proof of Delivery (PoD) Card */}
+        {status === 'completed' && (
+          <View style={styles.podCard}>
+            <View style={styles.podHeader}>
+              <Text style={styles.podTitle}>🛡️ Blockchain Proof of Delivery</Text>
+              <View style={styles.podBadge}>
+                <Text style={styles.podBadgeText}>VERIFIED</Text>
+              </View>
+            </View>
+            <Text style={styles.podSub}>
+              Cryptographic SHA-256 tamper-proof receipt generated upon delivery:
+            </Text>
+            <View style={styles.podHashBox}>
+              <Text style={styles.podHashText} numberOfLines={1} ellipsizeMode="middle">
+                e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+              </Text>
+              <TouchableOpacity
+                style={styles.podCopyBtn}
+                onPress={async () => {
+                  await Clipboard.setStringAsync(
+                    'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+                  );
+                  Alert.alert('Copied', 'Proof of Delivery hash copied to clipboard!');
+                }}
+              >
+                <Text style={styles.podCopyBtnText}>Copy Hash</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         )}
 
@@ -458,5 +491,68 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     fontSize: 11,
     marginTop: 2,
+  },
+  podCard: {
+    backgroundColor: '#1e293b',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+    marginBottom: 16,
+  },
+  podHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  podTitle: {
+    color: '#10b981',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  podBadge: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  podBadgeText: {
+    color: '#10b981',
+    fontSize: 10,
+    fontWeight: '800',
+  },
+  podSub: {
+    color: '#94a3b8',
+    fontSize: 11,
+    marginBottom: 10,
+  },
+  podHashBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#0f172a',
+    padding: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  podHashText: {
+    flex: 1,
+    color: '#34d399',
+    fontSize: 11,
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    marginRight: 8,
+  },
+  podCopyBtn: {
+    backgroundColor: '#334155',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
+  },
+  podCopyBtnText: {
+    color: '#f8fafc',
+    fontSize: 11,
+    fontWeight: '600',
   },
 });

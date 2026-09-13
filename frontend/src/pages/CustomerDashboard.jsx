@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import api from '../services/api';
 import { updateProfileSuccess } from '../redux/slices/authSlice';
 import { useDispatch } from 'react-redux';
+import ReviewModal from '../components/Customer/ReviewModal';
 const CustomerDashboard = () => {
   const { user, token } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
@@ -15,6 +16,9 @@ const CustomerDashboard = () => {
   const isPro = Boolean(user?.isPro);
   const totalTrips = user?.totalTrips ?? 0;
   const [downloadingInvoice, setDownloadingInvoice] = useState(null);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [reviewTrip, setReviewTrip] = useState(null);
+  const [reviewedBookings, setReviewedBookings] = useState({});
   
   // Addresses State
   const [addresses, setAddresses] = useState([]);
@@ -297,12 +301,31 @@ const CustomerDashboard = () => {
                     </div>
                     <div className="flex items-center justify-between md:flex-col md:items-end gap-2">
                       <span className="text-xl font-bold text-loft-100">{booking.amount}</span>
-                      <button 
-                        onClick={() => setSelectedTrip(booking)}
-                        className="btn-secondary py-1.5 px-3 text-xs"
-                      >
-                        View Details
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {booking.status === 'Completed' && (
+                          reviewedBookings[booking.id] ? (
+                            <span className="text-xs font-semibold text-moss-400 bg-moss-900/30 px-2 py-1 rounded border border-moss-800">
+                              ★ {reviewedBookings[booking.id]}.0 Rated
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setReviewTrip(booking);
+                                setIsReviewModalOpen(true);
+                              }}
+                              className="btn-secondary py-1.5 px-2.5 text-xs text-amber-400 border-amber-500/30 hover:border-amber-500/60"
+                            >
+                              ⭐ Rate Driver
+                            </button>
+                          )
+                        )}
+                        <button 
+                          onClick={() => setSelectedTrip(booking)}
+                          className="btn-secondary py-1.5 px-3 text-xs"
+                        >
+                          View Details
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -721,6 +744,21 @@ const CustomerDashboard = () => {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Review Modal */}
+      {reviewTrip && (
+        <ReviewModal
+          isOpen={isReviewModalOpen}
+          onClose={() => {
+            setIsReviewModalOpen(false);
+            setReviewedBookings((prev) => ({ ...prev, [reviewTrip.id]: 5 }));
+            setReviewTrip(null);
+          }}
+          bookingId={reviewTrip.id}
+          driverId={reviewTrip.driverId || 'd1234567-89ab-cdef-0123-456789abcdef'}
+          driverName={reviewTrip.driverName || 'Ramesh Kumar'}
+        />
+      )}
 
     </div>
   );

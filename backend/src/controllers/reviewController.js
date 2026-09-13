@@ -11,10 +11,20 @@ const createReview = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Missing required fields' });
     }
 
+    let validBookingId = null;
+    if (bookingId) {
+      try {
+        const b = await Booking.findByPk(bookingId);
+        if (b) validBookingId = b.id;
+      } catch {
+        validBookingId = null;
+      }
+    }
+
     const review = await Review.create({
       customerId,
       driverId,
-      bookingId,
+      bookingId: validBookingId,
       rating,
       comment
     });

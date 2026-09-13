@@ -1,7 +1,7 @@
 const { execSync } = require('child_process');
 
 console.log('================================================================');
-console.log('🚀 EXPO MOBILE APP: RUNNING COMPLETE MONOREPO TEST SUITE (27 TESTS)');
+console.log('🚀 EXPO MOBILE APP: RUNNING COMPLETE MONOREPO TEST SUITE (31 TESTS)');
 console.log('Target Backend: http://localhost:3000');
 console.log('================================================================\n');
 
@@ -10,6 +10,7 @@ const suites = [
   { name: 'Phase 2: Customer Workflows & Tracking', path: 'tests/phase2_customer_tests.js' },
   { name: 'Phase 3: Driver Companion & Operations', path: 'tests/phase3_driver_tests.js' },
   { name: 'Phase 4: Admin, Telematics & Enterprise', path: 'tests/phase4_admin_tests.js' },
+  { name: 'Phase 5: B2B Enterprise & Reviews System', path: 'tests/phase5_b2b_review_tests.js' },
 ];
 
 let failed = false;
@@ -31,7 +32,7 @@ if (failed) {
   process.exit(1);
 } else {
   console.log('\n================================================================');
-  console.log('🏆 ALL 27 MOBILE TESTS IN PHASES 1-4 PASSED SUCCESSFULLY!');
+  console.log('🏆 ALL 31 MOBILE TESTS IN PHASES 1-5 PASSED SUCCESSFULLY!');
   console.log('================================================================\n');
   process.exit(0);
 }

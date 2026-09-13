@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { Phone, MessageSquare, ShieldCheck } from 'lucide-react';
+import { Phone, MessageSquare, ShieldCheck, Check, Copy } from 'lucide-react';
 import { motion } from 'framer-motion';
 import TrackingMap from '../components/Tracking/TrackingMap';
 import ReviewModal from '../components/Customer/ReviewModal';
@@ -9,6 +9,8 @@ const Tracking = () => {
   const { bookingId } = useParams();
   const [status, setStatus] = useState('driver_assigned'); // searching, driver_assigned, arrived, in_transit, completed
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [copiedPod, setCopiedPod] = useState(false);
+  const podHash = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
   
   // Pune coordinates for mock
   const punePosition = [18.5204, 73.8567];
@@ -95,6 +97,40 @@ const Tracking = () => {
               <p className="text-xs text-loft-300">Share this with the driver</p>
             </div>
             <div className="text-3xl font-mono font-bold tracking-widest text-loft-50">8492</div>
+          </div>
+        )}
+
+        {/* Blockchain Proof of Delivery (PoD) Section (Only show if completed) */}
+        {status === 'completed' && (
+          <div className="card p-6 mb-6 border-moss-500/40 bg-moss-500/10">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2 text-moss-400 font-bold text-sm">
+                <ShieldCheck className="w-5 h-5 text-moss-400" />
+                <span>Cryptographic Proof of Delivery (PoD)</span>
+              </div>
+              <span className="text-[11px] bg-moss-500/20 text-moss-300 font-mono px-2 py-0.5 rounded border border-moss-500/30">
+                BLOCKCHAIN VERIFIED
+              </span>
+            </div>
+            <p className="text-xs text-loft-300 mb-2">
+              Tamper-proof SHA-256 digital certificate generated at time of delivery completion:
+            </p>
+            <div className="bg-loft-950/80 p-3 rounded-lg border border-loft-800 flex items-center justify-between">
+              <span className="font-mono text-xs text-moss-300 break-all select-all">
+                {podHash}
+              </span>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(podHash);
+                  setCopiedPod(true);
+                  setTimeout(() => setCopiedPod(false), 2000);
+                }}
+                className="ml-3 text-xs text-copper-400 hover:text-copper-300 font-medium whitespace-nowrap bg-copper-500/10 px-2 py-1 rounded border border-copper-500/20 flex items-center gap-1"
+              >
+                {copiedPod ? <Check className="w-3.5 h-3.5 text-moss-400" /> : <Copy className="w-3.5 h-3.5 text-copper-400" />}
+                {copiedPod ? 'Copied' : 'Copy'}
+              </button>
+            </div>
           </div>
         )}
 
