@@ -181,6 +181,20 @@ async function runPhase2Tests() {
     const targetBookingId = standardBookingId || 'BKG-DEMO-7829';
     let locationReceived = false;
 
+    // Get a driver token for the location emitter — auth guard (H7) requires role:driver
+    let driverToken = customerToken;
+    try {
+      await axios.post(`${BASE_URL}/api/auth/phone-login`, { phone: '9999999999', role: 'driver' });
+      const verifyRes = await axios.post(`${BASE_URL}/api/auth/phone-verify`, {
+        phone: '9999999999',
+        code: '123456',
+        role: 'driver',
+      });
+      driverToken = verifyRes.data.token;
+    } catch (e) {
+      console.warn('Driver auth fallback failed, using customer token (will fail if auth guard H7 is active)', e.message);
+    }
+
     await new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         if (!locationReceived) {
@@ -197,10 +211,10 @@ async function runPhase2Tests() {
       customerSocket.on('connect', () => {
         customerSocket.emit('join_trip', targetBookingId);
 
-        // 2. Driver sends telemetry update after joining
+        // 2. Driver socket (with role:driver JWT) sends telemetry update
         setTimeout(() => {
           const driverSocket = io(BASE_URL, {
-            auth: { token: customerToken }, // Dev mode allows
+            auth: { token: driverToken }, // Must have role:driver to pass auth guard H7
             transports: ['websocket'],
           });
 

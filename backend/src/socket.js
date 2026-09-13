@@ -6,7 +6,10 @@ let io;
 const initSocket = (httpServer) => {
   io = new Server(httpServer, {
     cors: {
-      origin: process.env.FRONTEND_URL || '*',
+      // Use CORS_ORIGIN (same env var as app.js) — falls back to localhost dev origins only
+      origin: process.env.CORS_ORIGIN
+        ? process.env.CORS_ORIGIN.split(',')
+        : ['http://localhost:3000', 'http://localhost:5173'],
       methods: ['GET', 'POST'],
       credentials: true
     }
@@ -101,8 +104,11 @@ const initSocket = (httpServer) => {
       }
     });
 
-    // Driver sends location update
+    // Driver sends location update — only drivers or admins are authorised
     socket.on('driver:location_update', (data) => {
+      if (!socket.user || (socket.user.role !== 'driver' && socket.user.role !== 'admin')) {
+        return socket.emit('error', { message: 'Unauthorized: Driver role required to send location updates' });
+      }
       const { bookingId, lat, lng } = data;
       // Broadcast to customer in the same trip room
       io.to(`trip_${bookingId}`).emit('trip:location_update', { lat, lng });

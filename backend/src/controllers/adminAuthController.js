@@ -22,13 +22,13 @@ const adminLogin = async (req, res) => {
     const admin = await Admin.findOne({ where: { email } });
 
     if (!admin) {
-      return res.status(401).json({ success: false, field: 'email', message: 'Invalid email id' });
+      return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
 
     const isMatch = await bcrypt.compare(password, admin.password);
 
     if (!isMatch) {
-      return res.status(401).json({ success: false, field: 'password', message: 'Invalid password' });
+      return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
 
     const token = jwt.sign(

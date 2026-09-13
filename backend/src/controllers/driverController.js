@@ -14,7 +14,11 @@ const getAllDrivers = async (_req, res) => {
 // Create a driver
 const createDriver = async (req, res) => {
   try {
-    const driver = await Driver.create(req.body);
+    const { name, phone, email, licenseNumber } = req.body;
+    if (!name || !phone || !licenseNumber) {
+      return res.status(400).json({ success: false, message: 'Missing required fields: name, phone, licenseNumber' });
+    }
+    const driver = await Driver.create({ name, phone, email, licenseNumber });
     res.status(201).json({ success: true, driver });
   } catch (error) {
     console.error('Error creating driver:', error);

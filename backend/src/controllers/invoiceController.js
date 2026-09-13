@@ -1,6 +1,6 @@
 const PDFDocument = require('pdfkit');
 
-const generateInvoice = (_req, res) => {
+const generateInvoice = (req, res) => {
   try {
     const { bookingId } = req.params;
     

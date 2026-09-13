@@ -1,12 +1,5 @@
 const twilio = require('twilio');
-const dotenv = require('dotenv');
-const path = require('path');
-
-// Load environment variables (.env.local first, overriding any parent process variables)
-dotenv.config({ path: path.resolve(__dirname, '../../.env.local'), override: true });
-dotenv.config({ path: path.resolve(__dirname, '../../.env'), override: true });
-const process = require('node:process');
-dotenv.config();
+// Note: dotenv is loaded once in server.js — no need to re-load here
 
 let client;
 const accountSid = process.env.TWILIO_ACCOUNT_SID;

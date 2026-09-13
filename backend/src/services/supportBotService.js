@@ -40,7 +40,13 @@ async function handleSupportMessage(customerId, text) {
       bookings.forEach((b, index) => {
         const shortId = b?.id ? String(b.id).substring(0, 8).toUpperCase() : 'N/A';
         bookingsContext += `[Booking ${index + 1}] ID: ${shortId}, From: ${b.pickupAddress || 'N/A'}, To: ${b.dropAddress || 'N/A'}, Status: ${b.status}, Fare: ₹${b.estimatedFare || 0}, Goods: ${b.goodsType || 'N/A'}, Vehicle Type: ${b.tempoType || 'N/A'}\n`;
-        if (b.driver) bookingsContext += `  Driver: ${b.driver.name} (Phone: ${b.driver.phone})\n`;
+        if (b.driver) {
+          // Mask driver phone to prevent PII leakage to the LLM / Groq logs
+          const maskedPhone = b.driver.phone
+            ? `****${String(b.driver.phone).slice(-4)}`
+            : 'N/A';
+          bookingsContext += `  Driver: ${b.driver.name} (Phone: ${maskedPhone})\n`;
+        }
         if (b.vehicle) bookingsContext += `  Vehicle Reg: ${b.vehicle.registrationNumber}\n`;
       });
     }

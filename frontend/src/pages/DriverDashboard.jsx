@@ -2,12 +2,14 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Navigation, Wallet, AlertTriangle, CheckCircle, Clock, MapPin, Fuel, TrendingUp, Map } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { useSelector } from 'react-redux';
 import api from '../services/api';
 import { io } from 'socket.io-client';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const DriverDashboard = () => {
+  const { user, token } = useSelector((state) => state.auth);
   const [activeTab, setActiveTab] = useState('today');
   const [isOnline, setIsOnline] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -38,6 +40,7 @@ const DriverDashboard = () => {
 
   useEffect(() => {
     const newSocket = io(API_BASE_URL.replace('/api', ''), {
+      auth: { token }, // Pass JWT so server can verify identity in production
       withCredentials: true,
     });
     setSocket(newSocket);
@@ -61,7 +64,7 @@ const DriverDashboard = () => {
       newSocket.disconnect();
       socketRef.current = null;
     };
-  }, []);
+  }, [token]);
 
   // Simulate GPS movement
   useEffect(() => {
@@ -94,10 +97,14 @@ const DriverDashboard = () => {
 
   const toggleAvailability = async () => {
     setIsLoading(true);
-    setTimeout(() => {
-      setIsOnline(!isOnline);
+    try {
+      const res = await api.put(`/api/drivers/${user?.id}/toggle-availability`);
+      setIsOnline(res.data.status === 'active');
+    } catch (err) {
+      console.error('Toggle availability error:', err);
+    } finally {
       setIsLoading(false);
-    }, 500);
+    }
   };
 
   const handleAcceptTrip = async () => {

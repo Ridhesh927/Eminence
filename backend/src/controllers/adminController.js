@@ -441,7 +441,8 @@ const getDriverUtilization = async (req, res) => {
     const onTripDrivers = await Driver.count({ where: { status: 'on_trip' } });
     const utilizationRate = totalDrivers > 0 ? ((onTripDrivers / totalDrivers) * 100).toFixed(1) : 0;
 
-    // Peak hours simulation (real implementation would query Booking.time)
+    // TODO: Replace with real query: GROUP bookings by HOUR(time), ORDER BY count DESC
+    // STUB: Static peak hours data — does not reflect real booking patterns
     const peakHours = [
       { hour: '08:00', bookings: 12 }, { hour: '09:00', bookings: 18 },
       { hour: '10:00', bookings: 22 }, { hour: '11:00', bookings: 15 },
@@ -530,9 +531,17 @@ const getPlatformConfig = async (req, res) => {
 
 const updatePlatformConfig = async (req, res) => {
   try {
+    // Allowlist to prevent mass-assignment of internal DB columns
+    const ALLOWED_CONFIG_FIELDS = [
+      'companyName', 'primaryColor', 'logoUrl', 'supportEmail',
+      'supportPhone', 'currency', 'gstPercent', 'tagline', 'footerText'
+    ];
+    const updates = Object.fromEntries(
+      Object.entries(req.body).filter(([k]) => ALLOWED_CONFIG_FIELDS.includes(k))
+    );
     let config = await PlatformConfig.findOne();
     if (!config) config = await PlatformConfig.create({});
-    await config.update(req.body);
+    await config.update(updates);
     cache.del('platform:config');
     res.status(200).json({ success: true, config });
   } catch (error) {

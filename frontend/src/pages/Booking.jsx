@@ -20,7 +20,7 @@ const Booking = () => {
 
   // Gamification States
   const [hasInsurance, setHasInsurance] = useState(false);
-  const [isPro] = useState(user?.isPro || true); // Mocking true for Demo purposes
+  const [isPro] = useState(user?.isPro || false); // Only actual Pro subscribers get the discount
   
   const [formData, setFormData] = useState({
     pickup: '',
@@ -114,16 +114,37 @@ const Booking = () => {
   const handleNext = () => setStep(step + 1);
   const handleBack = () => setStep(step - 1);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
-    
-    // Mock API call to create booking
-    setTimeout(() => {
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const res = await axios.post(
+        `${API_BASE_URL}/api/bookings`,
+        {
+          pickupAddress: formData.pickup,
+          dropAddress: formData.drops.join(' → '),
+          date: formData.date,
+          time: formData.time,
+          goodsType: formData.goodsType,
+          weight: formData.weight,
+          tempoType: formData.tempoType,
+          bookingMode: formData.bookingMode,
+          isRoundTrip: formData.isRoundTrip,
+          estimatedFare: calculateFare(),
+          paymentMethod: formData.paymentMethod,
+          phone: formData.phone || user?.phone,
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const bookingId = res.data?.booking?.id || 'pending';
+      navigate(`/tracking/${bookingId}`);
+    } catch (err) {
+      console.error('Booking submission error:', err);
+      alert(err.response?.data?.message || 'Booking failed. Please try again.');
+    } finally {
       setIsSubmitting(false);
-      // Redirect to Tracking page with mock booking ID
-      navigate('/tracking/BKG-7829-XT');
-    }, 1500);
+    }
   };
 
   return (
