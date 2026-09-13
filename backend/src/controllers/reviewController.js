@@ -1,10 +1,11 @@
 const { Review, Booking, Driver } = require('../models');
+const { fn, col } = require('sequelize');
 
 const createReview = async (req, res) => {
   try {
     const { bookingId, driverId, rating, comment } = req.body;
     
-    // Simple mock auth for this example
+    // Authenticated user ID takes strict precedence
     const customerId = req.user ? req.user.id : req.body.customerId;
 
     if (!customerId || !driverId || !rating) {
@@ -25,13 +26,17 @@ const createReview = async (req, res) => {
       customerId,
       driverId,
       bookingId: validBookingId,
-      rating,
+      rating: Number(rating),
       comment
     });
 
-    // Update driver's average rating
-    const allReviews = await Review.findAll({ where: { driverId } });
-    const avgRating = allReviews.reduce((sum, r) => sum + r.rating, 0) / allReviews.length;
+    // Update driver's average rating using SQL aggregate (avoids N+1 in-memory calculation)
+    const avgData = await Review.findOne({
+      attributes: [[fn('AVG', col('rating')), 'avgRating']],
+      where: { driverId },
+      raw: true
+    });
+    const avgRating = avgData && avgData.avgRating ? parseFloat(Number(avgData.avgRating).toFixed(2)) : Number(rating);
     
     await Driver.update({ rating: avgRating }, { where: { id: driverId } });
 

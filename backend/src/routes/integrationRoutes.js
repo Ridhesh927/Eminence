@@ -1,16 +1,18 @@
 const express = require('express');
 const { createOrder, verifyPayment, razorpayWebhook } = require('../controllers/paymentController');
 const { generateInvoice } = require('../controllers/invoiceController');
+const { sendEmail } = require('../services/emailService');
+const { apiLimiter, authLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
-// Razorpay
-router.post('/payment/create-order', createOrder);
-router.post('/payment/verify', verifyPayment);
+// Razorpay Payment Endpoints with rate limiting
+router.post('/payment/create-order', authLimiter, createOrder);
+router.post('/payment/verify', authLimiter, verifyPayment);
 router.post('/razorpay-webhook', razorpayWebhook);
 
 // Invoices
-router.get('/invoice/:bookingId', generateInvoice);
+router.get('/invoice/:bookingId', apiLimiter, generateInvoice);
 
 // WhatsApp Webhooks
 router.get('/whatsapp-webhook', (req, res) => {
@@ -54,8 +56,6 @@ router.post('/whatsapp-webhook', (req, res) => {
   }
 });
 
-const { sendEmail } = require('../services/emailService');
-
 const escapeHtml = (value) => String(value)
   .replace(/&/g, '&amp;')
   .replace(/</g, '&lt;')
@@ -63,7 +63,7 @@ const escapeHtml = (value) => String(value)
   .replace(/"/g, '&quot;')
   .replace(/'/g, '&#39;');
 
-router.post('/contact-message', async (req, res) => {
+router.post('/contact-message', authLimiter, async (req, res) => {
   try {
     const { name, email, message } = req.body;
     

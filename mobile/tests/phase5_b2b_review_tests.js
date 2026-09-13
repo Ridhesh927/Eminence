@@ -83,13 +83,17 @@ async function runPhase5Tests() {
   // TC-025: Customer Driver Review & Rating Submission
   // ----------------------------------------------------
   try {
-    const reviewRes = await axios.post(`${BASE_URL}/api/reviews`, {
-      bookingId: testBookingId,
-      customerId: customerId || crypto.randomUUID(),
-      driverId,
-      rating: 5,
-      comment: 'Prompt delivery, careful loading, and great service!'
-    });
+    const reviewRes = await axios.post(
+      `${BASE_URL}/api/reviews`,
+      {
+        bookingId: testBookingId,
+        customerId: customerId || crypto.randomUUID(),
+        driverId,
+        rating: 5,
+        comment: 'Prompt delivery, careful loading, and great service!'
+      },
+      { headers: authHeaders }
+    );
 
     const success = reviewRes.data?.success === true && reviewRes.data?.review?.rating === 5;
     logTest(

@@ -29,6 +29,41 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const decodeBase64 = (str: string): string => {
+  if (typeof atob === 'function') {
+    return atob(str);
+  }
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+  let output = '';
+  const cleanStr = String(str).replace(/=+$/, '');
+  for (
+    let bc = 0, bs = 0, buffer: any, idx = 0;
+    (buffer = cleanStr.charAt(idx++));
+    ~chars.indexOf(buffer) && ((bs = bc % 4 ? bs * 64 + chars.indexOf(buffer) : chars.indexOf(buffer)), bc++ % 4)
+      ? (output += String.fromCharCode(255 & (bs >> ((-2 * bc) & 6))))
+      : 0
+  ) {}
+  return output;
+};
+
+const isTokenExpired = (jwtToken: string): boolean => {
+  try {
+    const parts = jwtToken.split('.');
+    if (parts.length < 2) return true;
+    let base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    while (base64.length % 4) {
+      base64 += '=';
+    }
+    const decodedStr = decodeBase64(base64);
+    if (!decodedStr) return false;
+    const { exp } = JSON.parse(decodedStr);
+    if (!exp) return false;
+    return Date.now() >= exp * 1000;
+  } catch {
+    return false;
+  }
+};
+
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
@@ -50,8 +85,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
 
         if (storedToken && storedUser) {
-          setToken(storedToken);
-          setUser(JSON.parse(storedUser));
+          if (isTokenExpired(storedToken)) {
+            console.log('[Auth] Stored session has expired. Clearing local credentials.');
+            if (Platform.OS !== 'web') {
+              await SecureStore.deleteItemAsync('userToken');
+              await SecureStore.deleteItemAsync('userData');
+            } else {
+              localStorage.removeItem('userToken');
+              localStorage.removeItem('userData');
+            }
+          } else {
+            setToken(storedToken);
+            setUser(JSON.parse(storedUser));
+          }
         }
       } catch (e) {
         console.warn('Failed to load stored auth session:', e);

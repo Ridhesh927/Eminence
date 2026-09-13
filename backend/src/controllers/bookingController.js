@@ -2,16 +2,21 @@ const { Booking, Customer, Driver, Vehicle } = require('../models');
 const { optimizeRoute } = require('../services/routeOptimizer');
 const { findPoolMatch } = require('../services/poolingEngine');
 const crypto = require('crypto');
-const jwt = require('jsonwebtoken');
 
-// Get all bookings
+// Get all bookings (role-aware: customers only see their own bookings)
 const getAllBookings = async (req, res) => {
   try {
     const page = parseInt(req.query.page, 10) || 1;
     const limit = Math.min(parseInt(req.query.limit, 10) || 50, 100);
     const offset = (page - 1) * limit;
 
+    const whereClause = {};
+    if (req.user && req.user.role === 'customer') {
+      whereClause.customerId = req.user.id;
+    }
+
     const { count, rows: bookings } = await Booking.findAndCountAll({
+      where: whereClause,
       include: [
         { model: Customer, as: 'customer', attributes: ['id', 'name', 'phone'] },
         { model: Driver, as: 'driver', attributes: ['id', 'name', 'phone', 'licenseNumber'] },
@@ -38,14 +43,7 @@ const getAllBookings = async (req, res) => {
 // Create a booking
 const createBooking = async (req, res) => {
   try {
-    let customerId = req.user?.id || req.body.customerId;
-    if (!customerId && req.headers.authorization?.startsWith('Bearer ')) {
-      try {
-        const token = req.headers.authorization.split(' ')[1];
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
-        customerId = decoded.id;
-      } catch (_jwtErr) {}
-    }
+    const customerId = req.user?.id || req.body.customerId;
     const bookingData = { ...req.body, customerId };
 
     // 1. ESG Carbon Footprint Calculation
@@ -58,17 +56,18 @@ const createBooking = async (req, res) => {
 
     // Multi-stop Optimization (TSP)
     if (req.body.drops && Array.isArray(req.body.drops)) {
-      // Create mock waypoint objects from addresses
+      const baseLat = 18.5204;
+      const baseLng = 73.8567;
       const waypoints = req.body.drops.map((address, idx) => ({
         id: `stop_${idx}`,
         address,
-        // Adding dummy lat/lng just to pass into the TSP
-        lat: 18.5 + (Math.random() * 0.1),
-        lng: 73.8 + (Math.random() * 0.1)
+        // Deterministic geographic offset based on stop index
+        lat: baseLat + ((idx + 1) * 0.015),
+        lng: baseLng + ((idx + 1) * 0.012)
       }));
       
       const optimized = optimizeRoute(
-        { lat: 18.5204, lng: 73.8567 }, // mock starting point
+        { lat: baseLat, lng: baseLng }, // starting point
         waypoints
       );
       

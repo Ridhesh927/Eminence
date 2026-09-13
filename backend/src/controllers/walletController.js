@@ -1,4 +1,5 @@
 const { Wallet, Transaction, Customer, sequelize } = require('../models');
+const crypto = require('crypto');
 
 const getWallet = async (req, res) => {
   try {
@@ -28,7 +29,7 @@ const getWallet = async (req, res) => {
     
     // Make sure customer has a referral code
     if (!customer.referralCode) {
-      customer.referralCode = `EMINENCE-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+      customer.referralCode = `EMINENCE-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
       await customer.save();
     }
 

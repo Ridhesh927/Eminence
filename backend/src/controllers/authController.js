@@ -27,6 +27,9 @@ const getJwtSecret = () => {
   if (!secret && process.env.NODE_ENV === 'production') {
     throw new Error('FATAL: JWT_SECRET is not defined in production');
   }
+  if (!secret) {
+    console.warn('[SECURITY WARNING] JWT_SECRET is not set in environment; falling back to default secret.');
+  }
   return secret || 'fallback_secret';
 };
 
@@ -331,7 +334,6 @@ const phoneVerify = async (req, res) => {
             console.warn('Demo consent log skipped:', e.message);
           }
         }
-        const jwt = require('jsonwebtoken');
         token = jwt.sign(
           { id: driver.id, role: userRole, isProfileComplete: true },
           getJwtSecret(),
@@ -378,7 +380,6 @@ const phoneVerify = async (req, res) => {
           await customer.save();
         }
         
-        const jwt = require('jsonwebtoken');
         token = jwt.sign(
           { id: customer.id, role: userRole, isProfileComplete: customer.isProfileComplete },
           getJwtSecret(),
@@ -450,7 +451,6 @@ const phoneVerify = async (req, res) => {
     
     await otpRecord.destroy();
 
-    const jwt = require('jsonwebtoken');
     const token = jwt.sign(
       { id: user.id, role: userRole, isProfileComplete: userRole === 'driver' ? true : user.isProfileComplete },
       getJwtSecret(),

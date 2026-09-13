@@ -4,6 +4,10 @@ const driverController = require('../controllers/driverController');
 const { getSurgeHeatmap } = require('../services/aiForecasting');
 const protect = require('../middleware/authMiddleware');
 const adminOnly = require('../middleware/adminMiddleware');
+const { apiLimiter } = require('../middleware/rateLimiter');
+
+// Rate limit all driver endpoints
+router.use(apiLimiter);
 
 // Add heatmap route
 router.get('/heatmap', (req, res) => {
@@ -17,14 +21,8 @@ router.get('/heatmap', (req, res) => {
 
 // Mock inventory scanning route for WMS
 router.all('/scan-inventory', async (req, res) => {
-
   try {
     const barcode = req.body.barcode || req.query.barcode || 'MOCK-BOX-001';
-    // In a real scenario we'd query the DB:
-    // const item = await Inventory.findOne({ where: { barcode }});
-    // if (!item) return res.status(404).json({ success: false, message: 'Item not found' });
-    // await item.update({ status: 'Loaded' });
-
     res.status(200).json({ 
       success: true, 
       message: 'Item scanned successfully',
@@ -38,9 +36,6 @@ router.all('/scan-inventory', async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error scanning barcode' });
   }
 });
-const { apiLimiter } = require('../middleware/rateLimiter');
-
-router.use(apiLimiter);
 
 router.get('/', driverController.getAllDrivers);
 router.post('/', driverController.createDriver);

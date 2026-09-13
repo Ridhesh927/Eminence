@@ -9,8 +9,29 @@ dotenv.config({ path: path.resolve(__dirname, '../.env'), override: true });
 
 const app = express();
 
-// Middleware
-app.use(cors());
+// Middleware - Secure Origin-Restricted CORS
+const allowedOrigins = process.env.CORS_ORIGIN
+  ? process.env.CORS_ORIGIN.split(',').map(s => s.trim())
+  : [
+      'http://localhost:3000',
+      'http://localhost:5000',
+      'http://localhost:5173',
+      'http://localhost:8081',
+      'http://127.0.0.1:3000',
+      'http://127.0.0.1:5000',
+      'http://127.0.0.1:5173',
+      'http://127.0.0.1:8081'
+    ];
+
+app.use(cors({
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+      return callback(null, true);
+    }
+    return callback(new Error('CORS blocked: Origin not allowed'));
+  },
+  credentials: true
+}));
 app.use(express.json({
   verify: (req, res, buf) => {
     if (req.originalUrl.includes('webhook')) {
