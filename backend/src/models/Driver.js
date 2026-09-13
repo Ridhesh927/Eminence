@@ -44,6 +44,19 @@ const Driver = sequelize.define('Driver', {
   currentLng: {
     type: DataTypes.DECIMAL(11, 8),
     allowNull: true,
+  },
+  // Terms & Conditions Consent Tracking
+  termsAccepted: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
+  termsAcceptedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  termsVersion: {
+    type: DataTypes.STRING,
+    allowNull: true,
   }
 }, {
   timestamps: true,

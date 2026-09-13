@@ -12,6 +12,8 @@ export interface User {
   isProfileComplete?: boolean;
   isEmailVerified?: boolean;
   isPhoneVerified?: boolean;
+  termsAccepted?: boolean;
+  termsVersion?: string;
 }
 
 interface AuthContextType {
@@ -19,7 +21,8 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   sendOtp: (phone: string, role?: string) => Promise<{ success: boolean; message: string }>;
-  verifyOtp: (phone: string, code: string, role?: string) => Promise<{ success: boolean; user?: User; message?: string }>;
+  verifyOtp: (phone: string, code: string, role?: string, acceptedTerms?: boolean) => Promise<{ success: boolean; user?: User; message?: string }>;
+  acceptTerms: (version?: string) => Promise<{ success: boolean; message?: string }>;
   adminLogin: (email: string, password: string) => Promise<{ success: boolean; user?: User; message?: string }>;
   logout: () => Promise<void>;
 }
@@ -87,9 +90,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const verifyOtp = async (phone: string, code: string, role: string = 'customer') => {
+  const verifyOtp = async (phone: string, code: string, role: string = 'customer', acceptedTerms: boolean = false) => {
     try {
-      const res = await api.post('/api/auth/phone-verify', { phone, code, role });
+      const res = await api.post('/api/auth/phone-verify', { phone, code, role, acceptedTerms });
       if (res.data.success && res.data.token) {
         await saveAuthSession(res.data.token, res.data.user);
         return { success: true, user: res.data.user };
@@ -97,6 +100,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       return { success: false, message: res.data.message || 'Verification failed' };
     } catch (err: any) {
       const msg = err.response?.data?.message || err.message || 'Verification error';
+      return { success: false, message: msg };
+    }
+  };
+
+  const acceptTerms = async (version: string = 'v1.0') => {
+    try {
+      const res = await api.post('/api/auth/accept-terms', { version });
+      if (res.data.success) {
+        if (user) {
+          const updatedUser: User = { ...user, termsAccepted: true, termsVersion: version };
+          await saveAuthSession(token || '', updatedUser);
+        }
+        return { success: true, message: res.data.message };
+      }
+      return { success: false, message: res.data.message || 'Failed to accept terms' };
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.message || 'Failed to record terms acceptance';
       return { success: false, message: msg };
     }
   };
@@ -139,6 +159,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isLoading,
         sendOtp,
         verifyOtp,
+        acceptTerms,
         adminLogin,
         logout,
       }}

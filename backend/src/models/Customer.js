@@ -106,6 +106,19 @@ const Customer = sequelize.define('Customer', {
   creditUsed: {
     type: DataTypes.DECIMAL(10, 2),
     defaultValue: 0.00,
+  },
+  // Terms & Conditions Consent Tracking
+  termsAccepted: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
+  termsAcceptedAt: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  termsVersion: {
+    type: DataTypes.STRING,
+    allowNull: true,
   }
 }, {
   timestamps: true,

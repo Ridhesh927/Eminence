@@ -12,8 +12,9 @@ function RootNavigationLayout() {
     if (isLoading) return;
 
     const inAuthGroup = segments[0] === '(auth)';
+    const inLegalGroup = segments[0] === '(legal)';
 
-    if (!user && !inAuthGroup) {
+    if (!user && !inAuthGroup && !inLegalGroup) {
       // TC-004: Route Guard (Unauthorized Access) -> Redirect to login
       router.replace('/(auth)/login');
     } else if (user && inAuthGroup) {
@@ -47,6 +48,7 @@ function RootNavigationLayout() {
         }}
       >
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack.Screen name="(legal)" options={{ headerShown: false }} />
         <Stack.Screen name="(customer)" options={{ headerShown: false }} />
         <Stack.Screen name="(driver)" options={{ headerShown: false }} />
         <Stack.Screen name="(admin)" options={{ headerShown: false }} />

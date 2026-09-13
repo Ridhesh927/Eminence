@@ -33,7 +33,12 @@ const OTPVerification = () => {
           const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/phone-verify`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phone, code: '123456', role: location.state?.role || 'customer' })
+            body: JSON.stringify({ 
+              phone, 
+              code: '123456', 
+              role: location.state?.role || 'customer',
+              acceptedTerms: !!location.state?.acceptedTerms 
+            })
           });
           const data = await response.json();
           setIsLoading(false);
@@ -90,7 +95,12 @@ const OTPVerification = () => {
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/phone-verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone, code: otpValue, role: location.state?.role || 'customer' })
+        body: JSON.stringify({ 
+          phone, 
+          code: otpValue, 
+          role: location.state?.role || 'customer',
+          acceptedTerms: !!location.state?.acceptedTerms 
+        })
       });
       
       const data = await response.json();

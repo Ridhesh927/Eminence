@@ -5,6 +5,7 @@ import axios from 'axios';
 import { updateProfileSuccess } from '../../redux/slices/authSlice';
 import { MapPin, Phone, Building2, Map, FileText, CheckCircle2, User, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import TermsModal from '../Common/TermsModal';
 
 const CompleteProfileModal = () => {
   const { user } = useSelector((state) => state.auth);
@@ -20,6 +21,8 @@ const CompleteProfileModal = () => {
     governmentId: user?.governmentId || ''
   });
 
+  const [termsAccepted, setTermsAccepted] = useState(Boolean(user?.termsAccepted));
+  const [showTermsModal, setShowTermsModal] = useState(false);
   const [otpType, setOtpType] = useState(null); // 'phone'
   const [otpCode, setOtpCode] = useState('');
   const [loading, setLoading] = useState(false);
@@ -49,6 +52,19 @@ const CompleteProfileModal = () => {
     setMessage('');
     try {
       const token = localStorage.getItem('token');
+      
+      if (termsAccepted && !user?.termsAccepted) {
+        try {
+          await axios.post(
+            `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/accept-terms`,
+            { version: 'v1.0' },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+        } catch (e) {
+          console.warn('Accept terms in profile completion note:', e.message);
+        }
+      }
+
       const res = await axios.post(
         `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/complete-profile`,
         formData,
@@ -288,10 +304,34 @@ const CompleteProfileModal = () => {
                   ></textarea>
                 </div>
 
+                {/* Terms Acceptance if not already accepted */}
+                {!user?.termsAccepted && (
+                  <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <input
+                      id="profile-terms"
+                      type="checkbox"
+                      checked={termsAccepted}
+                      onChange={(e) => setTermsAccepted(e.target.checked)}
+                      className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                    />
+                    <label htmlFor="profile-terms" className="text-xs text-gray-600 leading-relaxed cursor-pointer select-none">
+                      I accept the{' '}
+                      <button
+                        type="button"
+                        onClick={() => setShowTermsModal(true)}
+                        className="text-primary font-semibold underline underline-offset-2 hover:opacity-80"
+                      >
+                        Terms & Conditions
+                      </button>{' '}
+                      and consent to digital freight documentation & tracking.
+                    </label>
+                  </div>
+                )}
+
                 <button
                   type="submit"
-                  disabled={loading}
-                  className="w-full btn-primary py-4 text-lg mt-4 shadow-lg hover:shadow-xl transition-all"
+                  disabled={loading || (!user?.termsAccepted && !termsAccepted)}
+                  className="w-full btn-primary py-4 text-lg mt-4 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? 'Saving...' : 'Save & Continue'}
                 </button>
@@ -335,6 +375,12 @@ const CompleteProfileModal = () => {
             )}
           </div>
         </motion.div>
+
+        <TermsModal
+          isOpen={showTermsModal}
+          onClose={() => setShowTermsModal(false)}
+          onAccept={() => setTermsAccepted(true)}
+        />
       </AnimatePresence>
     </div>
   );

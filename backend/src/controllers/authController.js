@@ -1,8 +1,10 @@
 const admin = require('../config/firebaseAdmin');
 const jwt = require('jsonwebtoken');
-const { Customer, Otp } = require('../models');
+const { Customer, Otp, UserConsent, Driver } = require('../models');
 const { sendEmail } = require('../services/emailService');
 const smsService = require('../services/smsService');
+
+const CURRENT_TERMS_VERSION = 'v1.0';
 
 // Helper to check if profile is complete
 const checkAndSetProfileComplete = async (customer) => {
@@ -289,11 +291,13 @@ const phoneLogin = async (req, res) => {
 
 const phoneVerify = async (req, res) => {
   try {
-    const { phone, code, role = 'customer' } = req.body;
+    const { phone, code, role = 'customer', acceptedTerms = false } = req.body;
     
     // Prevent privilege escalation: only allow specific roles
     const validRoles = ['customer', 'business', 'driver'];
     const userRole = validRoles.includes(role) ? role : 'customer';
+    const ipAddress = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+    const userAgent = req.headers['user-agent'] || 'Unknown Client';
     
     // For local development only, allow bypass for the designated seed phone number
     const isDevDemo = process.env.NODE_ENV === 'development' && code === '123456' && (phone === (process.env.SEED_PHONE || '1234567890') || phone === '9999999999');
@@ -307,6 +311,25 @@ const phoneVerify = async (req, res) => {
         let driver = await Driver.findOne({ where: { phone } });
         if (!driver) {
           driver = await Driver.create({ phone, name: 'Demo Driver', licenseNumber: 'DL-' + Math.floor(Math.random()*10000) });
+        }
+        if (acceptedTerms) {
+          driver.termsAccepted = true;
+          driver.termsAcceptedAt = new Date();
+          driver.termsVersion = CURRENT_TERMS_VERSION;
+          await driver.save();
+          try {
+            await UserConsent.create({
+              userId: driver.id,
+              userType: 'driver',
+              termsVersion: CURRENT_TERMS_VERSION,
+              accepted: true,
+              ipAddress: String(ipAddress),
+              userAgent: String(userAgent),
+              acceptedAt: new Date()
+            });
+          } catch (e) {
+            console.warn('Demo consent log skipped:', e.message);
+          }
         }
         const jwt = require('jsonwebtoken');
         token = jwt.sign(
@@ -327,6 +350,26 @@ const phoneVerify = async (req, res) => {
         } else {
           customer.isPhoneVerified = true;
           await customer.save();
+        }
+        
+        if (acceptedTerms) {
+          customer.termsAccepted = true;
+          customer.termsAcceptedAt = new Date();
+          customer.termsVersion = CURRENT_TERMS_VERSION;
+          await customer.save();
+          try {
+            await UserConsent.create({
+              userId: customer.id,
+              userType: 'customer',
+              termsVersion: CURRENT_TERMS_VERSION,
+              accepted: true,
+              ipAddress: String(ipAddress),
+              userAgent: String(userAgent),
+              acceptedAt: new Date()
+            });
+          } catch (e) {
+            console.warn('Demo consent log skipped:', e.message);
+          }
         }
         
         // inline checkAndSetProfileComplete since we modify it
@@ -369,11 +412,39 @@ const phoneVerify = async (req, res) => {
 
     if (userRole !== 'driver') {
       user.isPhoneVerified = true;
+      if (acceptedTerms) {
+        user.termsAccepted = true;
+        user.termsAcceptedAt = new Date();
+        user.termsVersion = CURRENT_TERMS_VERSION;
+      }
       await user.save();
       
       if (user.name && user.email && user.phone && user.isEmailVerified && user.isPhoneVerified && user.city && user.state && user.address && user.governmentId) {
           user.isProfileComplete = true;
           await user.save();
+      }
+    } else {
+      if (acceptedTerms) {
+        user.termsAccepted = true;
+        user.termsAcceptedAt = new Date();
+        user.termsVersion = CURRENT_TERMS_VERSION;
+        await user.save();
+      }
+    }
+
+    if (acceptedTerms) {
+      try {
+        await UserConsent.create({
+          userId: user.id,
+          userType: userRole === 'driver' ? 'driver' : 'customer',
+          termsVersion: CURRENT_TERMS_VERSION,
+          accepted: true,
+          ipAddress: String(ipAddress),
+          userAgent: String(userAgent),
+          acceptedAt: new Date()
+        });
+      } catch (err) {
+        console.warn('Consent recording note:', err.message);
       }
     }
     
@@ -396,11 +467,110 @@ const phoneVerify = async (req, res) => {
   }
 };
 
+const getTerms = async (req, res) => {
+  try {
+    return res.status(200).json({
+      success: true,
+      terms: {
+        version: CURRENT_TERMS_VERSION,
+        effectiveDate: '2026-09-01',
+        title: 'EMINENCE Logistics Platform - Terms & Conditions',
+        summary: 'By accessing or using the EMINENCE platform across Web and Mobile applications, you agree to be bound by these Terms and Conditions.',
+        sections: [
+          {
+            id: 'carrier-liability',
+            title: '1. Carrier Liability & Cargo Declaration',
+            content: 'Consignors and shippers must accurately declare consignment contents, declared value, weight, and special handling instructions. EMINENCE provides transit tracking and intermediary brokerage; carriers and drivers maintain statutory road carriage liability. Hazardous, illicit, or undeclared perishable materials are strictly prohibited.'
+          },
+          {
+            id: 'cancellation-demurrage',
+            title: '2. Booking, Cancellation & Demurrage',
+            content: 'Bookings cancelled within 30 minutes of scheduled pickup incur zero cancellation fees. Cancellations made after driver assignment or arrival at the pickup location may be subject to a nominal mobilization fee. Standard free loading and unloading window is 60 minutes per stop, after which standardized demurrage and waiting fees apply.'
+          },
+          {
+            id: 'telematics-privacy',
+            title: '3. Telematics, Geolocation & Data Privacy',
+            content: 'Real-time GPS tracking and geofencing are activated during active trips to provide transit visibility, safety verification, and proof of delivery. Personal and corporate data is encrypted and handled in strict compliance with applicable data protection laws.'
+          },
+          {
+            id: 'driver-conduct',
+            title: '4. Driver & Fleet Code of Conduct',
+            content: 'All drivers must hold valid commercial driving licenses, vehicle fitness certificates, and transit insurance. Zero tolerance is enforced for impaired driving, reckless operation, or unauthorized route deviations. Digital Proof of Delivery (e-POD) with consignee OTP or signature is mandatory upon drop-off.'
+          },
+          {
+            id: 'billing-compliance',
+            title: '5. Billing, Tax Invoices & Dispute Resolution',
+            content: 'All tariffs, toll charges, waiting fees, and applicable GST are detailed in automated digital invoices. Business accounts under postpaid credit agree to settle invoices within agreed net payment terms. Disputed charges must be raised within 7 calendar days of trip completion via the support desk.'
+          }
+        ]
+      }
+    });
+  } catch (error) {
+    console.error('Get Terms Error:', error);
+    return res.status(500).json({ success: false, message: 'Server error retrieving terms' });
+  }
+};
+
+const acceptTerms = async (req, res) => {
+  try {
+    const { version = CURRENT_TERMS_VERSION } = req.body;
+    const userId = req.user.id;
+    const userRole = req.user.role;
+    const ipAddress = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+    const userAgent = req.headers['user-agent'] || 'Unknown Client';
+
+    const userType = userRole === 'driver' ? 'driver' : 'customer';
+
+    const consent = await UserConsent.create({
+      userId,
+      userType,
+      termsVersion: version,
+      accepted: true,
+      ipAddress: String(ipAddress),
+      userAgent: String(userAgent),
+      acceptedAt: new Date()
+    });
+
+    if (userType === 'driver') {
+      const driver = await Driver.findByPk(userId);
+      if (driver) {
+        driver.termsAccepted = true;
+        driver.termsAcceptedAt = new Date();
+        driver.termsVersion = version;
+        await driver.save();
+      }
+    } else {
+      const customer = await Customer.findByPk(userId);
+      if (customer) {
+        customer.termsAccepted = true;
+        customer.termsAcceptedAt = new Date();
+        customer.termsVersion = version;
+        await customer.save();
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Terms and conditions accepted successfully',
+      consent: {
+        id: consent.id,
+        termsVersion: consent.termsVersion,
+        acceptedAt: consent.acceptedAt
+      }
+    });
+  } catch (error) {
+    console.error('Accept Terms Error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to record terms acceptance' });
+  }
+};
+
 module.exports = {
   googleLogin,
   updateProfile,
   sendOtp,
   verifyOtp,
   phoneLogin,
-  phoneVerify
+  phoneVerify,
+  getTerms,
+  acceptTerms
 };

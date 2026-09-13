@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
+import TermsModal from '../../components/TermsModal';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -21,6 +22,8 @@ export default function LoginScreen() {
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState<'phone' | 'otp'>('phone');
   const [role, setRole] = useState<'customer' | 'driver'>('customer');
+  const [termsAccepted, setTermsAccepted] = useState(true);
+  const [showTermsModal, setShowTermsModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
@@ -28,6 +31,10 @@ export default function LoginScreen() {
   const handleSendOtp = async () => {
     if (!phone || phone.trim().length < 10) {
       setErrorMessage('Please enter a valid 10-digit phone number');
+      return;
+    }
+    if (!termsAccepted) {
+      setErrorMessage('Please accept the Terms & Conditions to proceed');
       return;
     }
     setLoading(true);
@@ -53,7 +60,7 @@ export default function LoginScreen() {
     setLoading(true);
     setErrorMessage('');
 
-    const res = await verifyOtp(phone.trim(), otp.trim(), role);
+    const res = await verifyOtp(phone.trim(), otp.trim(), role, termsAccepted);
     setLoading(false);
 
     if (res.success) {
@@ -170,6 +177,29 @@ export default function LoginScreen() {
                 <Text style={styles.demoFillText}>✨ Use Demo Customer (1234567890)</Text>
               </TouchableOpacity>
 
+              {/* Terms Agreement */}
+              <View style={styles.termsRow}>
+                <TouchableOpacity
+                  onPress={() => setTermsAccepted(!termsAccepted)}
+                  style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}
+                  activeOpacity={0.8}
+                >
+                  {termsAccepted && <Text style={styles.checkmark}>✓</Text>}
+                </TouchableOpacity>
+                <View style={styles.termsTextContainer}>
+                  <Text style={styles.termsText}>
+                    I accept the{' '}
+                    <Text
+                      style={styles.termsLink}
+                      onPress={() => setShowTermsModal(true)}
+                    >
+                      Terms & Conditions
+                    </Text>
+                    {' '}and telematics privacy rules.
+                  </Text>
+                </View>
+              </View>
+
               <TouchableOpacity
                 style={styles.primaryBtn}
                 onPress={handleSendOtp}
@@ -240,6 +270,12 @@ export default function LoginScreen() {
           >
             <Text style={styles.adminLinkText}>🔐 Admin / Enterprise Login</Text>
           </TouchableOpacity>
+
+          <TermsModal
+            visible={showTermsModal}
+            onClose={() => setShowTermsModal(false)}
+            onAccept={() => setTermsAccepted(true)}
+          />
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -472,5 +508,43 @@ const styles = StyleSheet.create({
     color: '#cbd5e1',
     fontSize: 14,
     fontWeight: '600',
+  },
+  termsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 12,
+    gap: 10,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: '#475569',
+    backgroundColor: '#0f172a',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxChecked: {
+    backgroundColor: '#3b82f6',
+    borderColor: '#3b82f6',
+  },
+  checkmark: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  termsTextContainer: {
+    flex: 1,
+  },
+  termsText: {
+    color: '#94a3b8',
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  termsLink: {
+    color: '#3b82f6',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
   },
 });

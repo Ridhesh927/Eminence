@@ -15,8 +15,13 @@ const Address = require('./Address');
 const Inventory = require('./Inventory');
 const AuditLog = require('./AuditLog');
 const PlatformConfig = require('./PlatformConfig');
+const UserConsent = require('./UserConsent');
 
 // Define Relationships
+Customer.hasMany(UserConsent, { foreignKey: 'userId', as: 'consents', constraints: false });
+UserConsent.belongsTo(Customer, { foreignKey: 'userId', as: 'customer', constraints: false });
+Driver.hasMany(UserConsent, { foreignKey: 'userId', as: 'consents', constraints: false });
+UserConsent.belongsTo(Driver, { foreignKey: 'userId', as: 'driver', constraints: false });
 Customer.hasMany(Otp, { foreignKey: 'customerId', as: 'otps' });
 Otp.belongsTo(Customer, { foreignKey: 'customerId', as: 'customer' });
 
@@ -85,7 +90,10 @@ const bootstrapDatabase = async () => {
           ADD COLUMN IF NOT EXISTS "gstNumber" VARCHAR(255),
           ADD COLUMN IF NOT EXISTS "billingMode" "enum_Customers_billingMode" DEFAULT 'prepaid',
           ADD COLUMN IF NOT EXISTS "creditLimit" DECIMAL(10,2) DEFAULT 0.00,
-          ADD COLUMN IF NOT EXISTS "creditUsed" DECIMAL(10,2) DEFAULT 0.00;
+          ADD COLUMN IF NOT EXISTS "creditUsed" DECIMAL(10,2) DEFAULT 0.00,
+          ADD COLUMN IF NOT EXISTS "termsAccepted" BOOLEAN DEFAULT false,
+          ADD COLUMN IF NOT EXISTS "termsAcceptedAt" TIMESTAMP WITH TIME ZONE,
+          ADD COLUMN IF NOT EXISTS "termsVersion" VARCHAR(255);
       `);
 
       await sequelize.query(`
@@ -107,7 +115,10 @@ const bootstrapDatabase = async () => {
 
       await sequelize.query(`
         ALTER TABLE "Drivers"
-          ADD COLUMN IF NOT EXISTS "isAvailable" BOOLEAN DEFAULT true;
+          ADD COLUMN IF NOT EXISTS "isAvailable" BOOLEAN DEFAULT true,
+          ADD COLUMN IF NOT EXISTS "termsAccepted" BOOLEAN DEFAULT false,
+          ADD COLUMN IF NOT EXISTS "termsAcceptedAt" TIMESTAMP WITH TIME ZONE,
+          ADD COLUMN IF NOT EXISTS "termsVersion" VARCHAR(255);
       `);
     }
   } catch (e) {
@@ -259,5 +270,6 @@ module.exports = {
   Address,
   Inventory,
   AuditLog,
-  PlatformConfig
+  PlatformConfig,
+  UserConsent
 };

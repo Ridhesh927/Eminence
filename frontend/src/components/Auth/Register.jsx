@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Phone, User } from 'lucide-react';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../../config/firebase';
+import TermsModal from '../Common/TermsModal';
 
 const GoogleIcon = () => (
   <svg className="w-5 h-5 mr-3" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -16,6 +17,8 @@ const GoogleIcon = () => (
 
 const Register = () => {
   const [formData, setFormData] = useState({ name: '', phone: '', email: '' });
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [isTermsOpen, setIsTermsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('customer');
   const navigate = useNavigate();
@@ -26,7 +29,7 @@ const Register = () => {
 
   const handlePhoneSubmit = async (e) => {
     e.preventDefault();
-    if (formData.phone.length < 10 || !formData.name) return;
+    if (formData.phone.length < 10 || !formData.name || !termsAccepted) return;
     
     setIsLoading(true);
     try {
@@ -40,7 +43,15 @@ const Register = () => {
       localStorage.setItem('pendingName', formData.name);
       
       setIsLoading(false);
-      navigate('/otp', { state: { phone: formData.phone, isNewUser: true, name: formData.name, role: activeTab } });
+      navigate('/otp', { 
+        state: { 
+          phone: formData.phone, 
+          isNewUser: true, 
+          name: formData.name, 
+          role: activeTab,
+          acceptedTerms: true
+        } 
+      });
     } catch (error) {
       console.error('Registration phone submit error:', error);
       setIsLoading(false);
@@ -158,10 +169,32 @@ const Register = () => {
             </div>
           </div>
 
+          {/* Terms & Conditions Agreement Checkbox */}
+          <div className="flex items-start gap-3 pt-1">
+            <input
+              id="terms-checkbox"
+              type="checkbox"
+              checked={termsAccepted}
+              onChange={(e) => setTermsAccepted(e.target.checked)}
+              className="mt-1 h-4 w-4 rounded border-loft-700 bg-loft-950 text-copper-500 focus:ring-copper-500 focus:ring-offset-loft-900 cursor-pointer"
+            />
+            <label htmlFor="terms-checkbox" className="text-xs text-loft-300 leading-relaxed cursor-pointer select-none">
+              I have read and agree to the{' '}
+              <button
+                type="button"
+                onClick={() => setIsTermsOpen(true)}
+                className="text-copper-400 hover:text-copper-300 font-semibold underline underline-offset-2 focus:outline-none"
+              >
+                Terms & Conditions
+              </button>{' '}
+              and consent to GPS telematics and logistics data processing.
+            </label>
+          </div>
+
           <button
             type="submit"
-            disabled={isLoading || formData.phone.length < 10 || !formData.name}
-            className="btn-primary w-full mt-2"
+            disabled={isLoading || formData.phone.length < 10 || !formData.name || !termsAccepted}
+            className="btn-primary w-full mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? (
               <span className="flex items-center">
@@ -178,6 +211,12 @@ const Register = () => {
             )}
           </button>
         </form>
+
+        <TermsModal
+          isOpen={isTermsOpen}
+          onClose={() => setIsTermsOpen(false)}
+          onAccept={() => setTermsAccepted(true)}
+        />
 
         <div className="mt-8 text-center text-sm text-loft-300">
           Already have an account?{' '}

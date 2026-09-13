@@ -122,6 +122,28 @@ async function runPhase1Tests() {
     logTest('TC-004', 'Route Guard & Middleware', false, err.message);
   }
 
+  // ----------------------------------------------------
+  // TC-005: Terms & Conditions Public Fetch & Acceptance
+  // ----------------------------------------------------
+  try {
+    const termsRes = await axios.get(`${BASE_URL}/api/auth/terms`);
+    const termsOk = termsRes.data.success === true && termsRes.data.terms?.version === 'v1.0';
+
+    let acceptOk = false;
+    if (customerToken) {
+      const acceptRes = await axios.post(
+        `${BASE_URL}/api/auth/accept-terms`,
+        { version: 'v1.0' },
+        { headers: { Authorization: `Bearer ${customerToken}` } }
+      );
+      acceptOk = acceptRes.data.success === true && acceptRes.data.consent?.termsVersion === 'v1.0';
+    }
+
+    logTest('TC-005', 'Terms & Conditions Fetch & Consent Audit', termsOk && acceptOk, `Version: ${termsRes.data.terms?.version}`);
+  } catch (err) {
+    logTest('TC-005', 'Terms & Conditions Fetch & Consent Audit', false, err.response?.data?.message || err.message);
+  }
+
   console.log('\n====================================================');
   console.log(`SUMMARY: ${passCount} Passed, ${failCount} Failed`);
   console.log('====================================================');

@@ -20,6 +20,7 @@ const DriverDashboard = lazy(() => import('./pages/DriverDashboard'));
 const BusinessDashboard = lazy(() => import('./pages/BusinessDashboard'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AdminLogin = lazy(() => import('./pages/AdminLogin'));
+const Terms = lazy(() => import('./pages/Terms'));
 import CompleteProfileModal from './components/Customer/CompleteProfileModal';
 
 const RequireAuth = ({ children, allowedRoles }) => {
@@ -67,6 +68,7 @@ function App() {
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
+            <Route path="/terms" element={<Terms />} />
             <Route path="/booking" element={<Booking />} />
             <Route path="/tracking/:bookingId?" element={<Tracking />} />
             <Route path="/complete-profile" element={

@@ -12,8 +12,9 @@
  *   node run_all_tests.js --fast   (skips long jest run, runs healthcheck + types + mobile QA)
  */
 
-const { spawnSync } = require('child_process');
+const { spawnSync, spawn } = require('child_process');
 const path = require('path');
+const http = require('http');
 
 const ROOT_DIR = __dirname;
 const BACKEND_DIR = path.join(ROOT_DIR, 'backend');
@@ -61,6 +62,38 @@ function runStage(title, command, args, cwd) {
 
   console.log(`${colors.green}[PASS] ${title} passed (${durationSec}s).${colors.reset}\n`);
   return { title, success: true, durationSec };
+}
+
+function waitForServer(url, timeoutMs = 15000) {
+  const start = Date.now();
+  return new Promise((resolve, reject) => {
+    const check = () => {
+      const req = http.get(url, (res) => {
+        if (res.statusCode >= 200 && res.statusCode < 400) {
+          resolve();
+        } else {
+          retry();
+        }
+      });
+      req.on('error', () => {
+        retry();
+      });
+      req.setTimeout(2000, () => {
+        req.destroy();
+        retry();
+      });
+    };
+
+    const retry = () => {
+      if (Date.now() - start > timeoutMs) {
+        reject(new Error(`Timed out waiting for ${url}`));
+      } else {
+        setTimeout(check, 500);
+      }
+    };
+
+    check();
+  });
 }
 
 async function main() {
@@ -137,14 +170,42 @@ async function main() {
     process.exit(1);
   }
 
-  results.push(
-    runStage(
-      'Mobile: Full QA Integration Test Suite (27 Test Cases)',
-      'npm',
-      ['test'],
-      MOBILE_DIR
-    )
-  );
+  let backendProc = null;
+  try {
+    try {
+      await waitForServer('http://localhost:3000/api/health', 1000);
+    } catch {
+      console.log(`${colors.cyan}[INFO] Spawning backend instance on port 3000 for Mobile QA tests...${colors.reset}`);
+      backendProc = spawn('node', ['src/server.js'], {
+        cwd: BACKEND_DIR,
+        env: { ...process.env, PORT: '3000', DEMO_SEED: 'true', NODE_ENV: 'development' },
+        stdio: 'ignore'
+      });
+      await waitForServer('http://localhost:3000/api/health', 15000);
+      console.log(`${colors.green}[INFO] Backend instance ready on port 3000.${colors.reset}\n`);
+    }
+
+    results.push(
+      runStage(
+        'Mobile: Full QA Integration Test Suite (27 Test Cases)',
+        'npm',
+        ['test'],
+        MOBILE_DIR
+      )
+    );
+  } finally {
+    if (backendProc && backendProc.pid) {
+      try {
+        if (process.platform === 'win32') {
+          spawnSync('taskkill', ['/pid', backendProc.pid.toString(), '/f', '/t']);
+        } else {
+          backendProc.kill('SIGTERM');
+        }
+      } catch (e) {
+        console.warn('Backend cleanup note:', e.message);
+      }
+    }
+  }
 
   // SUMMARY & SCORECARD
   const allPassed = results.every(r => r.success);
