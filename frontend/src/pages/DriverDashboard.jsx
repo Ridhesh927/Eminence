@@ -20,7 +20,7 @@ const DriverDashboard = () => {
 
   const [isNavigating, setIsNavigating] = useState(false);
   const [activeRide, setActiveRide] = useState(null);
-  const [driverPos, setDriverPos] = useState({ lat: 18.5204, lng: 73.8567 });
+  const [_driverPos, setDriverPos] = useState({ lat: 18.5204, lng: 73.8567 });
   const [podHash, setPodHash] = useState(null);
   const [showPod, setShowPod] = useState(false);
 
@@ -435,7 +435,7 @@ const DriverDashboard = () => {
                         const res = await api.post('/api/drivers/scan-inventory', { barcode: 'MOCK-BOX-001' });
                         setIsScanning(false);
                         setScanResult(res.data.item);
-                      } catch (err) {
+                      } catch {
                         setIsScanning(false);
                       }
                     }, 2000);

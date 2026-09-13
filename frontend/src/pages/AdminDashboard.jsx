@@ -64,7 +64,7 @@ const AdminDashboard = () => {
   const [customers, setCustomers] = useState([]);
   const [drivers, setDrivers] = useState([]);
   const [vehicles, setVehicles] = useState([]);
-  const [contracts, setContracts] = useState([]);
+  const [contracts, _setContracts] = useState([]);
   const [loading, setLoading] = useState(false);
 
   // Chat Inbox states
@@ -122,6 +122,7 @@ const AdminDashboard = () => {
     } else if (activeTab === 'contracts') {
       fetchContracts();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   // Selected chat ref to prevent stale closures in socket callbacks
@@ -181,6 +182,7 @@ const AdminDashboard = () => {
       socket.disconnect();
       socketRef.current = null;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab]);
 
   // Telematics Socket Connection
@@ -424,7 +426,7 @@ const AdminDashboard = () => {
         method = 'put';
       }
 
-      const res = await axios[method](endpoint, payload, getHeaders());
+      await axios[method](endpoint, payload, getHeaders());
       
       setIsModalOpen(false);
       if (modalType === 'customer') fetchCustomers();

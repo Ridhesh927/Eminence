@@ -12,9 +12,11 @@ let client;
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 
+const isTestEnv = process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined;
+
 if (accountSid && accountSid.startsWith('AC') && authToken && authToken !== 'your_auth_token_here') {
   client = twilio(accountSid, authToken);
-} else {
+} else if (!isTestEnv) {
   console.warn("Twilio credentials not configured or using placeholders. SMS sending will be mocked in console.");
 }
 

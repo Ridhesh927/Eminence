@@ -63,6 +63,7 @@ const OTPVerification = () => {
       };
       autoVerify();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoSubmit]); // run only once when autoSubmit mounts
 
   const handleChange = (index, value) => {

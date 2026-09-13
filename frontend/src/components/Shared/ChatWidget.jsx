@@ -60,7 +60,7 @@ const ChatWidget = () => {
     return () => {
       if (socket) socket.disconnect();
     };
-  }, [isAuthenticated, user, isOpen]);
+  }, [isAuthenticated, user, token, isOpen]);
 
   if (!isAuthenticated || !user || user.role === 'admin') return null;
 

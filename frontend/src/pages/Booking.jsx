@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Calendar, Clock, Truck, Box, ShieldCheck, Tag, Package, Shield, Crown } from 'lucide-react';
+import { MapPin, Calendar, Clock, Box, ShieldCheck, Tag, Shield, Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
@@ -99,7 +99,7 @@ const Booking = () => {
   const handleApplyPromo = async () => {
     if (!promoCode) return;
     try {
-      const res = await axios.post(
+      await axios.post(
         'http://localhost:5000/api/wallet/referral',
         { referralCode: promoCode },
         { headers: { Authorization: `Bearer ${token}` } }

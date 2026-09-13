@@ -39,6 +39,7 @@ const CustomerDashboard = () => {
     if (activeTab === 'addresses' && token) {
       fetchAddresses();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, token]);
 
   const fetchAddresses = async () => {
