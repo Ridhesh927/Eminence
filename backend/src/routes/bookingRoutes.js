@@ -18,7 +18,7 @@ const aiBookingLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-router.post('/', bookingController.createBooking);
+router.post('/', bookingsLimiter, bookingController.createBooking);
 router.get('/', bookingsLimiter, protect, bookingController.getAllBookings);
 router.put('/:id/status', bookingsLimiter, protect, bookingController.updateBookingStatus);
 router.post('/:id/complete', bookingsLimiter, protect, bookingController.completeBooking);
