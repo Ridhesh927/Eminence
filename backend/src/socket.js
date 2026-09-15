@@ -6,10 +6,8 @@ let io;
 const initSocket = (httpServer) => {
   io = new Server(httpServer, {
     cors: {
-      // Use CORS_ORIGIN (same env var as app.js) — falls back to localhost dev origins only
-      origin: process.env.CORS_ORIGIN
-        ? process.env.CORS_ORIGIN.split(',')
-        : ['http://localhost:3000', 'http://localhost:5173'],
+      // Use explicit array to avoid wildcard CORS issues with credentials
+      origin: ['http://localhost:5173', 'http://localhost:3000'],
       methods: ['GET', 'POST'],
       credentials: true
     }
