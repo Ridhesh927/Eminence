@@ -20,20 +20,34 @@ const findPoolMatch = async (newBookingData) => {
     // and verify the total volume/weight constraint.
 
     // Here we simulate the pooling check
+    const { Op } = require('sequelize');
     const activePools = await Booking.findAll({
       where: {
         bookingMode: 'shared',
-        status: 'pending' // or driver_assigned
+        status: {
+          [Op.in]: ['pending', 'driver_assigned']
+        }
       },
       limit: 10
     });
 
     for (let pool of activePools) {
-      // Simulate checking if the new pickup/dropoff is along the pool's route
-      // and if (pool.currentWeight + newBooking.weight <= MAX_CAPACITY)
-      
-      // Simple mock logic: if the date matches and it's a shared booking, we pool it!
-      if (pool.date === newBookingData.date) {
+      // 1. Compare route geometry (simplified as exact address match for MVP)
+      const isSameRoute = 
+        pool.pickupAddress === newBookingData.pickupAddress && 
+        pool.dropAddress === newBookingData.dropAddress;
+
+      // 2. Check remaining capacity
+      // Determine max capacity based on tempoType
+      let maxCapacity = 500; // default
+      if (pool.tempoType === 'small') maxCapacity = 500;
+      else if (pool.tempoType === 'medium') maxCapacity = 1000;
+      else if (pool.tempoType === 'large') maxCapacity = 2000;
+
+      const isCapacityAvailable = (pool.weight + newBookingData.weight) <= maxCapacity;
+
+      // 3. Match if date, route, and capacity constraints are all satisfied
+      if (pool.date === newBookingData.date && isSameRoute && isCapacityAvailable) {
         return pool.id;
       }
     }
