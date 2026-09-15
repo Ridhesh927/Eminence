@@ -16,6 +16,6 @@ module.exports = {
   },
 
   down: (queryInterface, _Sequelize) => {
-    return queryInterface.bulkDelete('Customers', null, {});
+    return queryInterface.bulkDelete('Customers', { email: 'demo@example.com' }, {});
   }
 };
