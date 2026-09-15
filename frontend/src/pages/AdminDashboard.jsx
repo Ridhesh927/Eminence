@@ -190,6 +190,7 @@ const AdminDashboard = () => {
     if (activeTab !== 'telematics') return;
     
     const telemetrySocket = io(API_BASE_URL.replace('/api', ''), {
+      auth: { token },
       withCredentials: true,
     });
     
@@ -199,11 +200,16 @@ const AdminDashboard = () => {
       setTelemetry(data);
     });
 
+    telemetrySocket.on('connect_error', (err) => {
+      console.error('Telematics socket connection error:', err.message);
+      // Optional: set a state variable to display error UI if necessary
+    });
+
     return () => {
       telemetrySocket.emit('leave_admin_telemetry');
       telemetrySocket.disconnect();
     };
-  }, [activeTab]);
+  }, [activeTab, token]);
 
   const selectChatRoom = (chat) => {
     const prevId = selectedChat?.customerId;
