@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { ArrowRight, Phone, Mail, Lock, ShieldAlert } from 'lucide-react';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../../config/firebase';
@@ -26,6 +26,13 @@ const Login = () => {
   const [activeTab, setActiveTab] = useState('customer'); // 'customer', 'driver', 'admin'
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
+
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      navigate(`/${user.role || 'customer'}/dashboard`);
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const isAdmin = activeTab === 'admin';
 
@@ -73,7 +80,6 @@ const Login = () => {
           token: data.token,
           isProfileComplete: true
         }));
-        navigate('/admin/dashboard');
       } else {
         if (data.field) {
           setFieldErrors((prev) => ({ ...prev, [data.field]: data.message }));
@@ -129,9 +135,6 @@ const Login = () => {
           token: data.token,
           isProfileComplete: data.user.isProfileComplete
         }));
-        
-        // Always route to dashboard; the CompleteProfileModal will handle the rest
-        navigate(`/${data.user.role || 'customer'}/dashboard`);
       } else {
         setError(data.message || 'Google Login failed on server');
       }
