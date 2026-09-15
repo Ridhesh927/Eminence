@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { Package, CheckCircle, Wallet, MapPin, Plus, Gift, Copy, Crown, Target, Star, Leaf, Truck } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -13,6 +13,15 @@ const CustomerDashboard = () => {
   const [isAddAddressOpen, setIsAddAddressOpen] = useState(false);
   const [walletData, setWalletData] = useState(null);
   const [copySuccess, setCopySuccess] = useState(false);
+  const copyTimeoutRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) {
+        clearTimeout(copyTimeoutRef.current);
+      }
+    };
+  }, []);
   const isPro = Boolean(user?.isPro);
   const totalTrips = user?.totalTrips ?? 0;
   const [downloadingInvoice, setDownloadingInvoice] = useState(null);
@@ -107,12 +116,23 @@ const CustomerDashboard = () => {
     }
   };
 
-  const copyToClipboard = () => {
+  const copyToClipboard = async () => {
     const code = walletData?.referralCode || user?.referralCode || 'EMN-DEMO-2026';
     if (code) {
-      navigator.clipboard.writeText(code);
-      setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 2000);
+      try {
+        await navigator.clipboard.writeText(code);
+        setCopySuccess(true);
+        
+        if (copyTimeoutRef.current) {
+          clearTimeout(copyTimeoutRef.current);
+        }
+        
+        copyTimeoutRef.current = setTimeout(() => {
+          setCopySuccess(false);
+        }, 2000);
+      } catch (error) {
+        console.error('Clipboard copy failed:', error);
+      }
     }
   };
 
