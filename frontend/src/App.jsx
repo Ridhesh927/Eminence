@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useSelector } from 'react-redux';
 import MainLayout from './components/Shared/MainLayout';
 import { lazy, Suspense } from 'react';
+import ErrorBoundary from './components/Shared/ErrorBoundary';
 
 const Home = lazy(() => import('./pages/Home'));
 const Services = lazy(() => import('./pages/Services'));
@@ -56,8 +57,9 @@ function App() {
     <Router>
       <MainLayout>
         <ProfileModalWrapper />
-        <Suspense fallback={<div className="flex h-screen items-center justify-center"><div className="w-12 h-12 border-4 border-copper-500 border-t-transparent rounded-full animate-spin"></div></div>}>
-          <Routes>
+        <ErrorBoundary>
+          <Suspense fallback={<div className="flex h-screen items-center justify-center"><div className="w-12 h-12 border-4 border-copper-500 border-t-transparent rounded-full animate-spin"></div></div>}>
+            <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/admin-login" element={<Navigate to="/admin/login" replace />} />
             <Route path="/admin/login" element={<AdminLogin />} />
@@ -102,6 +104,7 @@ function App() {
             } />
           </Routes>
         </Suspense>
+        </ErrorBoundary>
       </MainLayout>
     </Router>
   );
