@@ -66,23 +66,35 @@ const DriverDashboard = () => {
     };
   }, [token]);
 
-  // Simulate GPS movement
+  // Watch real GPS position
   useEffect(() => {
-    if (isNavigating && activeRide && socket) {
-      const interval = setInterval(() => {
-        setDriverPos(prev => {
-          const newPos = { lat: prev.lat + 0.001, lng: prev.lng + 0.001 };
-          socket.emit('driver:location_update', {
-            bookingId: activeRide.bookingId,
-            lat: newPos.lat,
-            lng: newPos.lng
-          });
-          return newPos;
-        });
-      }, 2000);
-      return () => clearInterval(interval);
+    if (!isNavigating || !activeRide || !socketRef.current) {
+      return;
     }
-  }, [isNavigating, activeRide, socket]);
+
+    const watchId = navigator.geolocation.watchPosition(
+      ({ coords }) => {
+        setDriverPos({ lat: coords.latitude, lng: coords.longitude });
+        socketRef.current.emit('driver:location_update', {
+          bookingId: activeRide.bookingId,
+          lat: coords.latitude,
+          lng: coords.longitude,
+        });
+      },
+      (error) => {
+        console.error('Location error:', error);
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 5000,
+        timeout: 10000,
+      }
+    );
+
+    return () => {
+      navigator.geolocation.clearWatch(watchId);
+    };
+  }, [isNavigating, activeRide]);
 
   // Mock Earnings Data
   const weeklyEarnings = [
