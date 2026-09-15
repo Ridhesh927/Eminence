@@ -25,8 +25,8 @@ async function handleSupportMessage(customerId, text) {
     const bookings = await Booking.findAll({
       where: { customerId },
       include: [
-        { model: Driver, as: 'driver', attributes: ['name', 'phone'] },
-        { model: Vehicle, as: 'vehicle', attributes: ['registrationNumber', 'type'] }
+        { model: Driver, as: 'driver', attributes: ['name'] },
+        { model: Vehicle, as: 'vehicle', attributes: ['type'] }
       ],
       order: [['createdAt', 'DESC']],
       limit: 5
@@ -39,15 +39,14 @@ async function handleSupportMessage(customerId, text) {
     } else {
       bookings.forEach((b, index) => {
         const shortId = b?.id ? String(b.id).substring(0, 8).toUpperCase() : 'N/A';
-        bookingsContext += `[Booking ${index + 1}] ID: ${shortId}, From: ${b.pickupAddress || 'N/A'}, To: ${b.dropAddress || 'N/A'}, Status: ${b.status}, Fare: ₹${b.estimatedFare || 0}, Goods: ${b.goodsType || 'N/A'}, Vehicle Type: ${b.tempoType || 'N/A'}\n`;
+        // Redact exact addresses and do not expose driver phone or vehicle registration
+        bookingsContext += `[Booking ${index + 1}] ID: ${shortId}, Status: ${b.status}, Fare: ₹${b.estimatedFare || 0}, Goods: ${b.goodsType || 'N/A'}, Vehicle Type: ${b.tempoType || 'N/A'}\n`;
         if (b.driver) {
-          // Mask driver phone to prevent PII leakage to the LLM / Groq logs
-          const maskedPhone = b.driver.phone
-            ? `****${String(b.driver.phone).slice(-4)}`
-            : 'N/A';
-          bookingsContext += `  Driver: ${b.driver.name} (Phone: ${maskedPhone})\n`;
+          bookingsContext += `  Driver: ${b.driver.name}\n`;
         }
-        if (b.vehicle) bookingsContext += `  Vehicle Reg: ${b.vehicle.registrationNumber}\n`;
+        if (b.vehicle) {
+          bookingsContext += `  Vehicle: ${b.vehicle.type}\n`;
+        }
       });
     }
 
