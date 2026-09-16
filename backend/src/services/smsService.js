@@ -34,7 +34,7 @@ const sendSMS = async (to, body) => {
 
     console.log(`\n================================`);
     console.log(`MOCK SMS SENT TO: ${maskPhone(to)}`);
-    console.log(`MOCK SMS SENT`);
+    console.log(`BODY: ${body}`);
     console.log(`================================\n`);
     return null;
   }
