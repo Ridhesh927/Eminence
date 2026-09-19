@@ -22,6 +22,22 @@ const Otp = sequelize.define('Otp', {
   expiresAt: {
     type: DataTypes.DATE,
     allowNull: false,
+  },
+  attempts: {
+    type: DataTypes.INTEGER,
+    defaultValue: 0,
+  },
+  lockoutUntil: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  lastAttemptIp: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  lastAttemptUserAgent: {
+    type: DataTypes.STRING,
+    allowNull: true,
   }
 }, {
   timestamps: true,

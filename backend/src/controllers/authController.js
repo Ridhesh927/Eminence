@@ -1,5 +1,6 @@
 const admin = require('../config/firebaseAdmin');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const { Customer, Otp, UserConsent, Driver } = require('../models');
 const { sendEmail } = require('../services/emailService');
 const smsService = require('../services/smsService');
@@ -18,7 +19,7 @@ const checkAndSetProfileComplete = async (customer) => {
 
 // Generate 6 digit OTP
 const generateOtp = () => {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return crypto.randomInt(100000, 1000000).toString();
 };
 
 // Secure JWT Secret Loader
@@ -174,14 +175,18 @@ const sendOtp = async (req, res) => {
     const code = generateOtp();
     const expiresAt = new Date(Date.now() + 10 * 60000); // 10 minutes
 
+    const otpHash = crypto.createHash('sha256').update(code).digest('hex');
+
     // Delete existing OTP of same type for user
     await Otp.destroy({ where: { customerId, type } });
 
     await Otp.create({
       customerId,
       type,
-      code,
-      expiresAt
+      code: otpHash,
+      expiresAt,
+      attempts: 0,
+      lockoutUntil: null
     });
 
     if (type === 'email') {
@@ -204,14 +209,34 @@ const verifyOtp = async (req, res) => {
     const { type, code } = req.body;
     const customerId = req.user.id;
 
-    const otpRecord = await Otp.findOne({ where: { customerId, type, code } });
+    const otpRecord = await Otp.findOne({ 
+      where: { customerId, type }, 
+      order: [['createdAt', 'DESC']] 
+    });
 
     if (!otpRecord) {
       return res.status(400).json({ success: false, message: 'Invalid OTP' });
     }
 
+    if (otpRecord.lockoutUntil && new Date() < otpRecord.lockoutUntil) {
+      return res.status(429).json({ success: false, message: 'Too many attempts. Try again later.' });
+    }
+
     if (new Date() > otpRecord.expiresAt) {
       return res.status(400).json({ success: false, message: 'OTP has expired' });
+    }
+
+    const inputHash = crypto.createHash('sha256').update(String(code)).digest('hex');
+    if (!crypto.timingSafeEqual(Buffer.from(inputHash), Buffer.from(otpRecord.code))) {
+      otpRecord.attempts += 1;
+      otpRecord.lastAttemptIp = String(req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1');
+      otpRecord.lastAttemptUserAgent = String(req.headers['user-agent'] || 'Unknown Client');
+      
+      if (otpRecord.attempts >= 5) {
+        otpRecord.lockoutUntil = new Date(Date.now() + 15 * 60000); // 15 min lockout
+      }
+      await otpRecord.save();
+      return res.status(400).json({ success: false, message: 'Invalid OTP' });
     }
 
     // OTP is valid
@@ -273,13 +298,17 @@ const phoneLogin = async (req, res) => {
     const code = generateOtp();
     const expiresAt = new Date(Date.now() + 10 * 60000); // 10 minutes
 
+    const otpHash = crypto.createHash('sha256').update(code).digest('hex');
+
     const { Otp } = require('../models');
     await Otp.destroy({ where: { customerId: userId, type: 'phone' } });
     await Otp.create({
       customerId: userId,
       type: 'phone',
-      code,
-      expiresAt
+      code: otpHash,
+      expiresAt,
+      attempts: 0,
+      lockoutUntil: null
     });
 
     const smsService = require('../services/smsService');
@@ -406,10 +435,31 @@ const phoneVerify = async (req, res) => {
     if (!user) return res.status(404).json({ success: false, message: 'User not found' });
 
     const { Otp } = require('../models');
-    const otpRecord = await Otp.findOne({ where: { customerId: user.id, type: 'phone', code } });
+    const otpRecord = await Otp.findOne({ 
+      where: { customerId: user.id, type: 'phone' }, 
+      order: [['createdAt', 'DESC']] 
+    });
     
     if (!otpRecord) return res.status(400).json({ success: false, message: 'Invalid OTP' });
+
+    if (otpRecord.lockoutUntil && new Date() < otpRecord.lockoutUntil) {
+      return res.status(429).json({ success: false, message: 'Too many attempts. Try again later.' });
+    }
+    
     if (new Date() > otpRecord.expiresAt) return res.status(400).json({ success: false, message: 'OTP has expired' });
+
+    const inputHash = crypto.createHash('sha256').update(String(code)).digest('hex');
+    if (!crypto.timingSafeEqual(Buffer.from(inputHash), Buffer.from(otpRecord.code))) {
+      otpRecord.attempts += 1;
+      otpRecord.lastAttemptIp = String(ipAddress);
+      otpRecord.lastAttemptUserAgent = String(userAgent);
+      
+      if (otpRecord.attempts >= 5) {
+        otpRecord.lockoutUntil = new Date(Date.now() + 15 * 60000); // 15 min lockout
+      }
+      await otpRecord.save();
+      return res.status(400).json({ success: false, message: 'Invalid OTP' });
+    }
 
     if (userRole !== 'driver') {
       user.isPhoneVerified = true;
