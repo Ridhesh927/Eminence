@@ -49,7 +49,7 @@ const optimizeRoute = (startPoint, waypoints) => {
       if (hasCoordinates(unvisited[i]) && hasCoordinates(currentPos)) {
         dist = calculateDistance(currentPos, unvisited[i]);
       } else {
-        dist = Math.random() * 20; // Simulated 0-20km distance
+        throw new Error("Cannot optimize route: missing or invalid geocoded coordinates.");
       }
 
       if (dist < minDistance) {
