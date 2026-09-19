@@ -102,10 +102,12 @@ const Customer = sequelize.define('Customer', {
   creditLimit: {
     type: DataTypes.DECIMAL(10, 2),
     defaultValue: 0.00,
+    validate: { min: 0 }
   },
   creditUsed: {
     type: DataTypes.DECIMAL(10, 2),
     defaultValue: 0.00,
+    validate: { min: 0 }
   },
   // Terms & Conditions Consent Tracking
   termsAccepted: {
