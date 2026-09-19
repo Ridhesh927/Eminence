@@ -160,7 +160,11 @@ const createCustomer = async (req, res) => {
 const updateCustomer = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, phone, city, state, address, isEmailVerified, isPhoneVerified, isProfileComplete } = req.body;
+    const { 
+      name, email, phone, city, state, address, 
+      isEmailVerified, isPhoneVerified, isProfileComplete,
+      b2bStatus, isBusiness, billingMode, creditLimit
+    } = req.body;
     const customer = await Customer.findByPk(id);
     if (!customer) {
       return res.status(404).json({ success: false, message: 'Customer not found' });
@@ -174,7 +178,11 @@ const updateCustomer = async (req, res) => {
       address,
       isEmailVerified,
       isPhoneVerified,
-      isProfileComplete
+      isProfileComplete,
+      ...(b2bStatus !== undefined && { b2bStatus }),
+      ...(isBusiness !== undefined && { isBusiness }),
+      ...(billingMode !== undefined && { billingMode }),
+      ...(creditLimit !== undefined && { creditLimit })
     });
     res.status(200).json({ success: true, customer });
   } catch (error) {
