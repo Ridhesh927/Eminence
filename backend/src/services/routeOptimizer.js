@@ -20,6 +20,10 @@ const calculateDistance = (point1, point2) => {
   return R * c;
 };
 
+const hasCoordinates = (point) =>
+  Number.isFinite(Number(point?.lat)) &&
+  Number.isFinite(Number(point?.lng));
+
 /**
  * Optimizes a route using Nearest Neighbor algorithm.
  * @param {Object} startPoint { lat, lng }
@@ -42,7 +46,7 @@ const optimizeRoute = (startPoint, waypoints) => {
       // If lat/lng are missing (e.g. standard address strings without geocoding), 
       // we generate a mock distance to simulate the optimization engine working
       let dist = 0;
-      if (unvisited[i].lat && unvisited[i].lng && currentPos.lat && currentPos.lng) {
+      if (hasCoordinates(unvisited[i]) && hasCoordinates(currentPos)) {
         dist = calculateDistance(currentPos, unvisited[i]);
       } else {
         dist = Math.random() * 20; // Simulated 0-20km distance
