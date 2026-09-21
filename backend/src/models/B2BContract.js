@@ -19,10 +19,12 @@ const B2BContract = sequelize.define('B2BContract', {
     type: DataTypes.INTEGER,
     allowNull: false,
     defaultValue: 1,
+    validate: { min: 1 }
   },
   dailyRate: {
     type: DataTypes.DECIMAL(10, 2),
     allowNull: true,
+    validate: { min: 0 }
   },
   volumeCommitment: {
     type: DataTypes.INTEGER,
@@ -34,6 +36,7 @@ const B2BContract = sequelize.define('B2BContract', {
     type: DataTypes.DECIMAL(5, 2),
     allowNull: true,
     defaultValue: 0.00,
+    validate: { min: 0, max: 100 }
   },
   startDate: {
     type: DataTypes.DATEONLY,
@@ -49,6 +52,13 @@ const B2BContract = sequelize.define('B2BContract', {
   }
 }, {
   timestamps: true,
+  validate: {
+    startDateBeforeEndDate() {
+      if (this.startDate && this.endDate && new Date(this.startDate) > new Date(this.endDate)) {
+        throw new Error('startDate must be before or equal to endDate');
+      }
+    }
+  }
 });
 
 module.exports = B2BContract;

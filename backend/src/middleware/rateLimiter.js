@@ -35,8 +35,44 @@ const otpLimiter = rateLimit({
   }
 });
 
+const bookingsLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: 'Too many booking requests, please try again after 15 minutes'
+  }
+});
+
+const aiBookingLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // limit each IP to 10 requests per windowMs
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: 'Too many AI booking requests, please try again after 15 minutes'
+  }
+});
+
+const addressRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 50,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: 'Too many address requests, please try again after 15 minutes'
+  }
+});
+
 module.exports = {
   apiLimiter,
   authLimiter,
-  otpLimiter
+  otpLimiter,
+  bookingsLimiter,
+  aiBookingLimiter,
+  addressRateLimiter
 };

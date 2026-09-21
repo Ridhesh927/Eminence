@@ -8,11 +8,26 @@ const razorpay = new Razorpay({
 
 const createOrder = async (req, res) => {
   try {
-    const { amount, receipt } = req.body;
+    const { bookingId, receipt } = req.body;
+    if (!bookingId) {
+      return res.status(400).json({ success: false, message: 'Booking ID is required' });
+    }
+    
+    const { Booking } = require('../models');
+    const booking = await Booking.findByPk(bookingId);
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+    
+    const amount = booking.estimatedFare;
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ success: false, message: 'Invalid booking amount' });
+    }
+
     const options = {
-      amount: amount * 100, // amount in smallest currency unit
+      amount: Math.round(amount * 100), // amount in smallest currency unit
       currency: "INR",
-      receipt: receipt
+      receipt: receipt || bookingId
     };
     
     // Fallback logic if keys are mock

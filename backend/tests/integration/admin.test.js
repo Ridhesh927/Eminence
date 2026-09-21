@@ -80,7 +80,7 @@ describe('Admin & Analytics Integration Tests', () => {
       await Otp.create({
         customerId: testCustomer.id,
         type: 'phone',
-        code: '1234',
+        code: require('crypto').createHash('sha256').update('1234').digest('hex'),
         expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 minutes in the future
       });
 
