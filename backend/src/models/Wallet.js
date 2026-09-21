@@ -12,8 +12,9 @@ const Wallet = sequelize.define('Wallet', {
     allowNull: false,
   },
   balance: {
-    type: DataTypes.FLOAT,
-    defaultValue: 0.0,
+    type: DataTypes.DECIMAL(12, 2),
+    allowNull: false,
+    defaultValue: 0.00,
   },
   currency: {
     type: DataTypes.STRING,
