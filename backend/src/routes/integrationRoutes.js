@@ -2,7 +2,7 @@ const express = require('express');
 const { createOrder, verifyPayment, razorpayWebhook } = require('../controllers/paymentController');
 const { generateInvoice } = require('../controllers/invoiceController');
 const { sendEmail } = require('../services/emailService');
-const { apiLimiter, authLimiter } = require('../middleware/rateLimiter');
+const { apiLimiter, authLimiter, contactLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
@@ -56,40 +56,38 @@ router.post('/whatsapp-webhook', (req, res) => {
   }
 });
 
-const escapeHtml = (value) => String(value)
-  .replace(/&/g, '&amp;')
-  .replace(/</g, '&lt;')
-  .replace(/>/g, '&gt;')
-  .replace(/"/g, '&quot;')
-  .replace(/'/g, '&#39;');
+const { z } = require('zod');
 
-router.post('/contact-message', authLimiter, async (req, res) => {
+// Reject unexpected fields as well as malformed or oversized contact data.
+const contactSchema = z.strictObject({
+  name: z.string().trim().min(2).max(100),
+  email: z.string().email().max(254),
+  message: z.string().trim().min(10).max(5000),
+});
+
+const validateContactMessage = (req, res, next) => {
+  const result = contactSchema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ error: 'Invalid contact message.' });
+  }
+  req.body = result.data;
+  next();
+};
+
+router.post('/contact-message', contactLimiter, validateContactMessage, async (req, res) => {
   try {
     const { name, email, message } = req.body;
-    
-    if (!name || !email || !message) {
-      return res.status(400).json({ error: 'All fields are required' });
-    }
 
     const subject = `New Contact Form Submission from ${name}`;
     const text = `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`;
-    const safeName = escapeHtml(name);
-    const safeEmail = escapeHtml(email);
-    const safeMessage = escapeHtml(message).replace(/\n/g, '<br/>');
-    const html = `
-      <h3>New Contact Message</h3>
-      <p><strong>Name:</strong> ${safeName}</p>
-      <p><strong>Email:</strong> ${safeEmail}</p>
-      <p><strong>Message:</strong><br/>${safeMessage}</p>
-    `;
 
-    // Send to support email
-    await sendEmail('eminence.support.helpline@gmail.com', subject, text, html);
-    
+    // Send to support email (plain text only to prevent HTML injection/XSS alerts)
+    await sendEmail('eminence.support.helpline@gmail.com', subject, text);
+
     // Optionally send an auto-reply to the user
     await sendEmail(
-      email, 
-      'We received your message!', 
+      email,
+      'We received your message!',
       'Thank you for reaching out. We will get back to you shortly.',
       '<p>Thank you for reaching out. We will get back to you shortly.</p>'
     );
