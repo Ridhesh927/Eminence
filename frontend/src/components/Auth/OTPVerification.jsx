@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
 import { useDispatch } from 'react-redux';
 import { loginSuccess } from '../../redux/slices/authSlice';
+import api from '../../services/api';
 
 const OTPVerification = () => {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -30,17 +31,13 @@ const OTPVerification = () => {
       const autoVerify = async () => {
         setIsLoading(true);
         try {
-          const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/phone-verify`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              phone, 
-              code: '123456', 
-              role: location.state?.role || 'customer',
-              acceptedTerms: !!location.state?.acceptedTerms 
-            })
+          const response = await api.post('/api/auth/phone-verify', { 
+            phone, 
+            code: '123456', 
+            role: location.state?.role || 'customer',
+            acceptedTerms: !!location.state?.acceptedTerms 
           });
-          const data = await response.json();
+          const data = response.data;
           setIsLoading(false);
           
           if (data.success) {
@@ -93,18 +90,14 @@ const OTPVerification = () => {
     setIsLoading(true);
     
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/phone-verify`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          phone, 
-          code: otpValue, 
-          role: location.state?.role || 'customer',
-          acceptedTerms: !!location.state?.acceptedTerms 
-        })
+      const response = await api.post('/api/auth/phone-verify', { 
+        phone, 
+        code: otpValue, 
+        role: location.state?.role || 'customer',
+        acceptedTerms: !!location.state?.acceptedTerms 
       });
       
-      const data = await response.json();
+      const data = response.data;
       setIsLoading(false);
       
       if (data.success) {
@@ -117,15 +110,12 @@ const OTPVerification = () => {
 
         if (pendingName && !data.user.name) {
           try {
-            const updateRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/complete-profile`, {
-              method: 'POST',
+            const updateRes = await api.post('/api/auth/complete-profile', { name: pendingName }, {
               headers: { 
-                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${data.token}`
-              },
-              body: JSON.stringify({ name: pendingName })
+              }
             });
-            const updateData = await updateRes.json();
+            const updateData = updateRes.data;
             if (updateData.success) {
               displayName = updateData.user.name;
               profileCompleteVal = updateData.user.isProfileComplete;
@@ -148,12 +138,15 @@ const OTPVerification = () => {
         const userRole = data.user.role || 'customer';
         navigate(`/${userRole}/dashboard`);
       } else {
-        alert(data.message || 'Invalid OTP');
       }
-    } catch (error) {
-      console.error('OTP verify error:', error);
+    } catch (err) {
+      console.error(err);
       setIsLoading(false);
-      alert('Error verifying OTP');
+      if (err.response && err.response.data && err.response.data.message) {
+        alert(err.response.data.message);
+      } else {
+        alert('Error verifying OTP. Please try again.');
+      }
     }
   };
 
