@@ -136,10 +136,7 @@ const syncDatabase = async () => {
     await sequelize.sync();
     console.log('Database synced successfully');
 
-    // Only run seed data if in development with SQLite or explicitly enabled via DEMO_SEED=true
-    const isSqlite = sequelize.getDialect() === 'sqlite';
-    const isDev = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
-    const shouldSeed = process.env.DEMO_SEED === 'true' || (isDev && isSqlite);
+    const shouldSeed = process.env.NODE_ENV === 'development' && process.env.DEMO_SEED === 'true';
 
     if (!shouldSeed) {
       console.log('Skipping demo seed data (non-demo / live environment)');
@@ -234,7 +231,7 @@ const syncDatabase = async () => {
       }
 
       // Seed default admin in development
-      if (process.env.NODE_ENV === 'development' || process.env.DEMO_SEED === 'true') {
+      if (process.env.NODE_ENV === 'development' && process.env.DEMO_SEED === 'true') {
         const adminCount = await Admin.count();
         if (adminCount === 0) {
           const bcrypt = require('bcrypt');
