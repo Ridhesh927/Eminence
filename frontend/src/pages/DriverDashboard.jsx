@@ -143,14 +143,18 @@ const DriverDashboard = () => {
   };
 
   const handleDeclineTrip = async () => {
+    if (!activeRide) return;
+    setIsLoading(true);
     try {
-      await api.put(`/api/bookings/${activeRide.bookingId}/status`, 
-        { status: 'rejected' } // Depending on your state machine
+      await api.put(`/api/bookings/${activeRide.bookingId}/status`,
+        { status: 'rejected' }
       );
+      setActiveRide(null);
     } catch (err) {
       console.error('Error declining trip:', err);
+    } finally {
+      setIsLoading(false);
     }
-    setActiveRide(null);
   };
 
   const handleFinishTrip = async () => {
