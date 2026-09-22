@@ -13,6 +13,39 @@ const initSocket = (httpServer) => {
     }
   });
 
+  const dbUrl = process.env.DATABASE_URL;
+  const useSqlite = process.env.USE_SQLITE === 'true' || process.env.DB_DIALECT === 'sqlite' || !dbUrl || dbUrl.startsWith('sqlite:');
+
+  if (!useSqlite && dbUrl) {
+    try {
+      const { createAdapter } = require('@socket.io/postgres-adapter');
+      const { Pool } = require('pg');
+      const sanitizedUrl = dbUrl.replace(/([?&])channel_binding=[^&]*(&|$)/, '$1').replace(/[?&]$/, '');
+      const isLocalhost = sanitizedUrl.includes('localhost') || sanitizedUrl.includes('127.0.0.1');
+      
+      const pool = new Pool({
+        connectionString: sanitizedUrl,
+        ssl: !isLocalhost ? { rejectUnauthorized: false } : false
+      });
+
+      pool.query(`
+        CREATE TABLE IF NOT EXISTS socket_io_attachments (
+            id          bigserial UNIQUE,
+            created_at  timestamptz DEFAULT NOW(),
+            payload     bytea
+        );
+      `).then(() => {
+        io.adapter(createAdapter(pool));
+        console.log('[Socket] Postgres Adapter initialized');
+      }).catch(err => {
+        console.error('[Socket] Failed to initialize Postgres Adapter table:', err);
+      });
+    } catch (err) {
+      console.error('[Socket] Could not load @socket.io/postgres-adapter:', err);
+    }
+  }
+
+
   // Socket.io JWT Authentication Middleware
   io.use((socket, next) => {
     if (socket.user) return next();
