@@ -45,16 +45,30 @@ const DriverDashboard = () => {
     });
     setSocket(newSocket);
     socketRef.current = newSocket;
-    
+    const isValidRideRequest = (data) => {
+      return (
+        data &&
+        typeof data.bookingId === 'string' &&
+        typeof data.pickupAddress === 'string' &&
+        typeof data.dropAddress === 'string' &&
+        Number.isFinite(Number(data.estimatedFare))
+      );
+    };
+
     newSocket.on('ride_request', (data) => {
+      if (!isValidRideRequest(data)) {
+        console.warn('Invalid ride request payload');
+        return;
+      }
+      
       if (isOnlineRef.current && !isNavigatingRef.current) {
         setActiveRide({
-          bookingId: data.bookingId || 'BKG-NEW',
-          fare: data.estimatedFare || 450,
-          distance: data.distance || '8.2 km',
-          duration: data.duration || '25 Mins',
-          pickup: data.pickupAddress || '123 Market Street, Viman Nagar',
-          dropoff: data.dropAddress || '456 Industrial Area, Hinjewadi'
+          bookingId: data.bookingId,
+          fare: Number(data.estimatedFare),
+          distance: data.distance,
+          duration: data.duration,
+          pickup: data.pickupAddress,
+          dropoff: data.dropAddress
         });
       }
     });
