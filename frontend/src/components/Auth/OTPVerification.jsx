@@ -67,15 +67,15 @@ const OTPVerification = () => {
   }, [autoSubmit]); // run only once when autoSubmit mounts
 
   const handleChange = (index, value) => {
-    if (isNaN(value)) return;
+    if (!/^\d?$/.test(value)) return;
     
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
+    const nextOtp = [...otp];
+    nextOtp[index] = value;
+    setOtp(nextOtp);
 
     // Auto-focus next input
-    if (value !== '' && index < 5) {
-      inputRefs.current[index + 1].focus();
+    if (value && index < otp.length - 1) {
+      inputRefs.current[index + 1]?.focus();
     }
   };
 
@@ -189,6 +189,8 @@ const OTPVerification = () => {
                 key={index}
                 ref={(el) => (inputRefs.current[index] = el)}
                 type="text"
+                inputMode="numeric"
+                pattern="\d*"
                 maxLength={1}
                 className="w-16 h-16 text-center text-2xl font-bold bg-loft-950/80 border border-loft-800/80 rounded-xl focus:outline-none focus:ring-2 focus:ring-copper-500/50 focus:border-copper-500/50 transition-all text-loft-50 shadow-inner"
                 value={digit}
