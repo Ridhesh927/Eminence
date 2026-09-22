@@ -155,7 +155,7 @@ const updateProfile = async (req, res) => {
     console.error('Update Profile Error:', error);
     const message = error.name === 'SequelizeUniqueConstraintError' 
       ? 'Email or Phone is already in use by another account.' 
-      : (error.message || 'Server error');
+      : 'Server error';
     return res.status(500).json({ success: false, message });
   }
 };

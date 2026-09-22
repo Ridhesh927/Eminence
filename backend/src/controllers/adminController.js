@@ -55,7 +55,7 @@ const createDriver = async (req, res) => {
     res.status(201).json({ success: true, driver });
   } catch (error) {
     console.error('Error creating driver:', error);
-    res.status(500).json({ success: false, message: error.message || 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -72,7 +72,7 @@ const updateDriver = async (req, res) => {
     res.status(200).json({ success: true, driver });
   } catch (error) {
     console.error('Error updating driver:', error);
-    res.status(500).json({ success: false, message: error.message || 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -152,7 +152,7 @@ const createCustomer = async (req, res) => {
     res.status(201).json({ success: true, customer });
   } catch (error) {
     console.error('Error creating customer:', error);
-    res.status(500).json({ success: false, message: error.message || 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -187,7 +187,7 @@ const updateCustomer = async (req, res) => {
     res.status(200).json({ success: true, customer });
   } catch (error) {
     console.error('Error updating customer:', error);
-    res.status(500).json({ success: false, message: error.message || 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -259,7 +259,7 @@ const createVehicle = async (req, res) => {
     res.status(201).json({ success: true, vehicle });
   } catch (error) {
     console.error('Error creating vehicle:', error);
-    res.status(500).json({ success: false, message: error.message || 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -276,7 +276,7 @@ const updateVehicle = async (req, res) => {
     res.status(200).json({ success: true, vehicle });
   } catch (error) {
     console.error('Error updating vehicle:', error);
-    res.status(500).json({ success: false, message: error.message || 'Server error' });
+    res.status(500).json({ success: false, message: 'Server error' });
   }
 };
 
@@ -541,8 +541,7 @@ const updatePlatformConfig = async (req, res) => {
   try {
     // Allowlist to prevent mass-assignment of internal DB columns
     const ALLOWED_CONFIG_FIELDS = [
-      'companyName', 'primaryColor', 'logoUrl', 'supportEmail',
-      'supportPhone', 'currency', 'gstPercent', 'tagline', 'footerText'
+      'brandName', 'primaryColor', 'secondaryColor', 'accentColor', 'logoUrl', 'tagline', 'supportEmail'
     ];
     const updates = Object.fromEntries(
       Object.entries(req.body).filter(([k]) => ALLOWED_CONFIG_FIELDS.includes(k))

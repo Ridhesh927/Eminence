@@ -53,6 +53,13 @@ const B2BContract = sequelize.define('B2BContract', {
   }
 }, {
   timestamps: true,
+  validate: {
+    startDateBeforeEndDate() {
+      if (this.startDate && this.endDate && new Date(this.startDate) > new Date(this.endDate)) {
+        throw new Error('startDate must be before or equal to endDate');
+      }
+    }
+  }
 });
 
 module.exports = B2BContract;
