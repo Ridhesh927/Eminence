@@ -68,11 +68,23 @@ const addressRateLimiter = rateLimit({
   }
 });
 
+const contactLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: 'Too many contact messages sent, please try again later.'
+  }
+});
+
 module.exports = {
   apiLimiter,
   authLimiter,
   otpLimiter,
   bookingsLimiter,
   aiBookingLimiter,
-  addressRateLimiter
+  addressRateLimiter,
+  contactLimiter
 };
