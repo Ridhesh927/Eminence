@@ -8,7 +8,15 @@ import { loginSuccess } from '../../redux/slices/authSlice';
 const OTPVerification = () => {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
+  const [otpValue, setOtpValue] = useState('');
+  const [error, setError] = useState('');
   const inputRefs = useRef([]);
+  
+  const getCsrfToken = () => {
+    const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]*)/);
+    return match ? decodeURIComponent(match[1]) : '';
+  };
+
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -32,13 +40,16 @@ const OTPVerification = () => {
         try {
           const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/phone-verify`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
               phone, 
               code: '123456', 
               role: location.state?.role || 'customer',
               acceptedTerms: !!location.state?.acceptedTerms 
             }),
+            headers: {
+              'Content-Type': 'application/json',
+              'x-xsrf-token': getCsrfToken()
+            },
             credentials: 'include'
           });
           const data = await response.json();
@@ -95,13 +106,16 @@ const OTPVerification = () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/phone-verify`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           phone, 
           code: otpValue, 
           role: location.state?.role || 'customer',
           acceptedTerms: !!location.state?.acceptedTerms 
         }),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-xsrf-token': getCsrfToken()
+        },
         credentials: 'include'
       });
       
@@ -119,7 +133,8 @@ const OTPVerification = () => {
             const updateRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/complete-profile`, {
               method: 'POST',
               headers: { 
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'x-xsrf-token': getCsrfToken()
               },
               credentials: 'include',
               body: JSON.stringify({ name: pendingName })
