@@ -2,7 +2,7 @@ const express = require('express');
 const { createOrder, verifyPayment, razorpayWebhook } = require('../controllers/paymentController');
 const { generateInvoice } = require('../controllers/invoiceController');
 const { sendEmail } = require('../services/emailService');
-const { apiLimiter, authLimiter } = require('../middleware/rateLimiter');
+const { apiLimiter, authLimiter, contactLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
@@ -63,7 +63,7 @@ const escapeHtml = (value) => String(value)
   .replace(/"/g, '&quot;')
   .replace(/'/g, '&#39;');
 
-router.post('/contact-message', authLimiter, async (req, res) => {
+router.post('/contact-message', contactLimiter, async (req, res) => {
   try {
     const { name, email, message } = req.body;
     
