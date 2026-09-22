@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { ArrowRight, Mail, Lock, ShieldAlert } from 'lucide-react';
 import { loginSuccess } from '../redux/slices/authSlice';
+import { setToken } from '../services/tokenService';
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('');
@@ -31,7 +32,7 @@ const AdminLogin = () => {
       setIsLoading(false);
       
       if (data.success) {
-        localStorage.setItem('token', data.token);
+        setToken(data.token);
         dispatch(loginSuccess({
           id: data.user.id,
           email: data.user.email,
