@@ -332,7 +332,7 @@ const phoneVerify = async (req, res) => {
     const userAgent = req.headers['user-agent'] || 'Unknown Client';
     
     // For local development only, allow bypass for the designated seed phone number
-    const isDevDemo = process.env.NODE_ENV === 'development' && code === '123456' && (phone === (process.env.SEED_PHONE || '1234567890') || phone === '9999999999');
+    const isDevDemo = ['development', 'test'].includes(process.env.NODE_ENV) && code === '123456' && (phone === (process.env.SEED_PHONE || '1234567890') || phone === '9999999999');
     
     if (isDevDemo) {
       let userObj;

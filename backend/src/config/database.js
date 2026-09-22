@@ -5,7 +5,7 @@ const path = require('path');
 
 // Load environment variables (.env.local first, overriding any parent process variables)
 dotenv.config({ path: path.resolve(__dirname, '../../.env.local'), override: true });
-dotenv.config({ path: path.resolve(__dirname, '../../.env'), override: true });
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 
 const dbUrl = process.env.DATABASE_URL;
 const useSqlite = process.env.USE_SQLITE === 'true' || process.env.DB_DIALECT === 'sqlite' || !dbUrl || dbUrl.startsWith('sqlite:');
