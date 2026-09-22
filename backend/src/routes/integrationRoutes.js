@@ -2,7 +2,7 @@ const express = require('express');
 const { createOrder, verifyPayment, razorpayWebhook } = require('../controllers/paymentController');
 const { generateInvoice } = require('../controllers/invoiceController');
 const { sendEmail } = require('../services/emailService');
-const { apiLimiter, authLimiter } = require('../middleware/rateLimiter');
+const { apiLimiter, authLimiter, contactLimiter } = require('../middleware/rateLimiter');
 
 const router = express.Router();
 
@@ -63,12 +63,18 @@ const escapeHtml = (value) => String(value)
   .replace(/"/g, '&quot;')
   .replace(/'/g, '&#39;');
 
-router.post('/contact-message', authLimiter, async (req, res) => {
+router.post('/contact-message', contactLimiter, async (req, res) => {
   try {
     const { name, email, message } = req.body;
-    
-    if (!name || !email || !message) {
-      return res.status(400).json({ error: 'All fields are required' });
+
+    // Server-side validation — clients can bypass React validation entirely
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (
+      !name || typeof name !== 'string' || name.trim().length < 2 || name.trim().length > 100 ||
+      !email || typeof email !== 'string' || !emailRegex.test(email) || email.length > 254 ||
+      !message || typeof message !== 'string' || message.trim().length < 10 || message.trim().length > 5000
+    ) {
+      return res.status(400).json({ error: 'Invalid contact message.' });
     }
 
     const subject = `New Contact Form Submission from ${name}`;
