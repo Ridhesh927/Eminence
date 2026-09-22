@@ -2,9 +2,28 @@ const express = require('express');
 const { createOrder, verifyPayment, razorpayWebhook } = require('../controllers/paymentController');
 const { generateInvoice } = require('../controllers/invoiceController');
 const { sendEmail } = require('../services/emailService');
-const { apiLimiter, authLimiter } = require('../middleware/rateLimiter');
+const { apiLimiter, authLimiter, contactLimiter } = require('../middleware/rateLimiter');
+const { z } = require('zod');
 
 const router = express.Router();
+
+const contactSchema = z.object({
+  name: z.string().trim().min(2).max(100),
+  email: z.string().email().max(254),
+  message: z.string().trim().min(10).max(5000),
+});
+
+function validateContactMessage(req, res, next) {
+  const result = contactSchema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid contact message.',
+    });
+  }
+  req.body = result.data;
+  next();
+}
 
 // Razorpay Payment Endpoints with rate limiting
 router.post('/payment/create-order', authLimiter, createOrder);
@@ -63,13 +82,9 @@ const escapeHtml = (value) => String(value)
   .replace(/"/g, '&quot;')
   .replace(/'/g, '&#39;');
 
-router.post('/contact-message', authLimiter, async (req, res) => {
+router.post('/contact-message', contactLimiter, validateContactMessage, async (req, res) => {
   try {
     const { name, email, message } = req.body;
-    
-    if (!name || !email || !message) {
-      return res.status(400).json({ error: 'All fields are required' });
-    }
 
     const subject = `New Contact Form Submission from ${name}`;
     const text = `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`;
