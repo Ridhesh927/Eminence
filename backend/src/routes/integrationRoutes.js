@@ -58,7 +58,8 @@ router.post('/whatsapp-webhook', (req, res) => {
 
 const { z } = require('zod');
 
-const contactSchema = z.object({
+// Reject unexpected fields as well as malformed or oversized contact data.
+const contactSchema = z.strictObject({
   name: z.string().trim().min(2).max(100),
   email: z.string().email().max(254),
   message: z.string().trim().min(10).max(5000),
@@ -82,11 +83,11 @@ router.post('/contact-message', contactLimiter, validateContactMessage, async (r
 
     // Send to support email (plain text only to prevent HTML injection/XSS alerts)
     await sendEmail('eminence.support.helpline@gmail.com', subject, text);
-    
+
     // Optionally send an auto-reply to the user
     await sendEmail(
-      email, 
-      'We received your message!', 
+      email,
+      'We received your message!',
       'Thank you for reaching out. We will get back to you shortly.',
       '<p>Thank you for reaching out. We will get back to you shortly.</p>'
     );
