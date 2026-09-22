@@ -56,41 +56,32 @@ router.post('/whatsapp-webhook', (req, res) => {
   }
 });
 
-const escapeHtml = (value) => String(value)
-  .replace(/&/g, '&amp;')
-  .replace(/</g, '&lt;')
-  .replace(/>/g, '&gt;')
-  .replace(/"/g, '&quot;')
-  .replace(/'/g, '&#39;');
+const { z } = require('zod');
 
-router.post('/contact-message', contactLimiter, async (req, res) => {
+const contactSchema = z.object({
+  name: z.string().trim().min(2).max(100),
+  email: z.string().email().max(254),
+  message: z.string().trim().min(10).max(5000),
+});
+
+const validateContactMessage = (req, res, next) => {
+  const result = contactSchema.safeParse(req.body);
+  if (!result.success) {
+    return res.status(400).json({ error: 'Invalid contact message.' });
+  }
+  req.body = result.data;
+  next();
+};
+
+router.post('/contact-message', contactLimiter, validateContactMessage, async (req, res) => {
   try {
     const { name, email, message } = req.body;
 
-    // Server-side validation — clients can bypass React validation entirely
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (
-      !name || typeof name !== 'string' || name.trim().length < 2 || name.trim().length > 100 ||
-      !email || typeof email !== 'string' || !emailRegex.test(email) || email.length > 254 ||
-      !message || typeof message !== 'string' || message.trim().length < 10 || message.trim().length > 5000
-    ) {
-      return res.status(400).json({ error: 'Invalid contact message.' });
-    }
-
     const subject = `New Contact Form Submission from ${name}`;
     const text = `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`;
-    const safeName = escapeHtml(name);
-    const safeEmail = escapeHtml(email);
-    const safeMessage = escapeHtml(message).replace(/\n/g, '<br/>');
-    const html = `
-      <h3>New Contact Message</h3>
-      <p><strong>Name:</strong> ${safeName}</p>
-      <p><strong>Email:</strong> ${safeEmail}</p>
-      <p><strong>Message:</strong><br/>${safeMessage}</p>
-    `;
 
-    // Send to support email
-    await sendEmail('eminence.support.helpline@gmail.com', subject, text, html);
+    // Send to support email (plain text only to prevent HTML injection/XSS alerts)
+    await sendEmail('eminence.support.helpline@gmail.com', subject, text);
     
     // Optionally send an auto-reply to the user
     await sendEmail(
