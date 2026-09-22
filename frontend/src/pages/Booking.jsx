@@ -4,12 +4,14 @@ import { MapPin, Calendar, Clock, Box, ShieldCheck, Tag, Shield, Crown } from 'l
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import axios from 'axios';
+import api from '../services/api';
 
 const Booking = () => {
   const navigate = useNavigate();
   const { user, token } = useSelector((state) => state.auth);
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
   
   const [promoCode, setPromoCode] = useState('');
   const [discount, setDiscount] = useState(0);
@@ -117,10 +119,10 @@ const Booking = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsSubmitting(true);
+    setError('');
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.post(
-        `${API_BASE_URL}/api/bookings`,
+      const res = await api.post(
+        '/api/bookings',
         {
           pickupAddress: formData.pickup,
           dropAddress: formData.drops.join(' → '),
@@ -134,14 +136,13 @@ const Booking = () => {
           estimatedFare: calculateFare(),
           paymentMethod: formData.paymentMethod,
           phone: formData.phone || user?.phone,
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
+        }
       );
       const bookingId = res.data?.booking?.id || 'pending';
       navigate(`/tracking/${bookingId}`);
     } catch (err) {
       console.error('Booking submission error:', err);
-      alert(err.response?.data?.message || 'Booking failed. Please try again.');
+      setError(err.response?.data?.message || 'Unable to create booking. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -512,6 +513,12 @@ const Booking = () => {
                     </label>
                   </div>
                 </div>
+
+                {error && (
+                  <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-center text-sm font-medium">
+                    {error}
+                  </div>
+                )}
 
                 <div className="flex gap-4 mt-6">
                   <button type="button" onClick={handleBack} disabled={isSubmitting} className="btn-secondary w-1/3">Back</button>
