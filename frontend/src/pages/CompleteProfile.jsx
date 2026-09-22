@@ -5,6 +5,7 @@ import axios from 'axios';
 import { updateProfileSuccess } from '../redux/slices/authSlice';
 import MapPicker from '../components/MapPicker';
 import { Upload, Scan, CheckCircle } from 'lucide-react';
+import { getToken } from '../services/tokenService';
 
 const CompleteProfile = () => {
   const { user } = useSelector((state) => state.auth);
@@ -51,7 +52,7 @@ const CompleteProfile = () => {
     setLoading(true);
     setError('');
     try {
-      const token = localStorage.getItem('token'); // Assuming token is stored here
+      const token = getToken(); // Assuming token is stored here
       const res = await axios.post(
         `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/complete-profile`,
         { name, phone, location },
@@ -74,7 +75,7 @@ const CompleteProfile = () => {
     setError('');
     setMessage('');
     try {
-      const token = localStorage.getItem('token');
+      const token = getToken();
       await axios.post(
         `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/send-otp`,
         { type },
@@ -93,7 +94,7 @@ const CompleteProfile = () => {
     setLoading(true);
     setError('');
     try {
-      const token = localStorage.getItem('token');
+      const token = getToken();
       const res = await axios.post(
         `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/verify-otp`,
         { type: otpType, code: otpCode },

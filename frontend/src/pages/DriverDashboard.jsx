@@ -13,7 +13,6 @@ const DriverDashboard = () => {
   const [activeTab, setActiveTab] = useState('today');
   const [isOnline, setIsOnline] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const [socket, setSocket] = useState(null);
   const [heatmapData, setHeatmapData] = useState(null);
   
   // WMS Scanning State

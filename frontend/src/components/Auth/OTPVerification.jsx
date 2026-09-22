@@ -4,6 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
 import { useDispatch } from 'react-redux';
 import { loginSuccess } from '../../redux/slices/authSlice';
+import { setToken } from '../../services/tokenService';
 
 const OTPVerification = () => {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -44,7 +45,7 @@ const OTPVerification = () => {
           setIsLoading(false);
           
           if (data.success) {
-            localStorage.setItem('token', data.token);
+            setToken(data.token);
             const userRole = data.user.role || 'customer';
             dispatch(loginSuccess({
               id: data.user.id,
@@ -108,7 +109,7 @@ const OTPVerification = () => {
       setIsLoading(false);
       
       if (data.success) {
-        localStorage.setItem('token', data.token);
+        setToken(data.token);
         
         // Handle saving name on registration if pending
         const pendingName = localStorage.getItem('pendingName') || location.state?.name;

@@ -4,6 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../../redux/slices/authSlice';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { removeToken } from '../../services/tokenService';
 
 const Navbar = () => {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
@@ -18,7 +19,7 @@ const Navbar = () => {
 
   const handleLogout = () => {
     dispatch(logout());
-    localStorage.removeItem('token');
+    removeToken();
     navigate('/');
   };
 
