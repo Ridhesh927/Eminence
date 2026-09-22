@@ -22,6 +22,7 @@ const BusinessDashboard = lazy(() => import('./pages/BusinessDashboard'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AdminLogin = lazy(() => import('./pages/AdminLogin'));
 const Terms = lazy(() => import('./pages/Terms'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 import CompleteProfileModal from './components/Customer/CompleteProfileModal';
 
 const RequireAuth = ({ children, allowedRoles }) => {
@@ -102,6 +103,7 @@ function App() {
                 <AdminDashboard />
               </RequireAuth>
             } />
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
         </ErrorBoundary>
