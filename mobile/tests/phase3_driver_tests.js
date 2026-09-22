@@ -181,7 +181,7 @@ async function runPhase3Tests() {
     // 2. Driver Accepts Trip
     const acceptRes = await axios.put(
       `${BASE_URL}/api/bookings/${testBookingId}/status`,
-      { status: 'driver_assigned' },
+      { status: 'driver_assigned', driverId },
       driverHeaders
     );
     const isAccepted = acceptRes.data?.success === true;
