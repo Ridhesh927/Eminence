@@ -120,6 +120,16 @@ const bootstrapDatabase = async () => {
           ADD COLUMN IF NOT EXISTS "termsAcceptedAt" TIMESTAMP WITH TIME ZONE,
           ADD COLUMN IF NOT EXISTS "termsVersion" VARCHAR(255);
       `);
+
+      // Database-level constraint preventing multiple referral rewards for one customer's wallet
+      await sequelize.query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS "unique_signup_bonus" ON "Transactions" ("walletId") WHERE description = 'Signup Referral Bonus';
+      `);
+    } else if (dialect === 'sqlite') {
+      // For SQLite test environment, use a similar partial index
+      await sequelize.query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS "unique_signup_bonus" ON "Transactions" ("walletId") WHERE description = 'Signup Referral Bonus';
+      `);
     }
   } catch (e) {
     console.warn('Bootstrap database note:', e.message);
