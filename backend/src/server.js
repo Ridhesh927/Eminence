@@ -21,10 +21,13 @@ const activeChats = {};
 // Chat message rate limiting tracker per socket (prevents spam and DoS)
 const socketMessageTimestamps = new Map();
 
+const cookie = require('cookie');
+
 // Socket.io JWT Authentication Middleware
 io.use((socket, next) => {
   if (socket.user) return next();
-  const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(' ')[1];
+  const cookies = socket.handshake.headers.cookie ? cookie.parse(socket.handshake.headers.cookie) : {};
+  const token = cookies.accessToken || socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(' ')[1];
   
   if (!token) {
     if (process.env.NODE_ENV === 'development') {

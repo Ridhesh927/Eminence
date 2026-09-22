@@ -2,13 +2,17 @@ const jwt = require('jsonwebtoken');
 const process = require('node:process');
 
 const authMiddleware = (req, res, next) => {
-  const authHeader = req.headers.authorization;
+  let token = null;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ success: false, message: 'No token provided' });
+  if (req.cookies && req.cookies.accessToken) {
+    token = req.cookies.accessToken;
+  } else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+    token = req.headers.authorization.split(' ')[1];
   }
 
-  const token = authHeader.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ success: false, message: 'No token provided' });
+  }
 
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');

@@ -42,7 +42,7 @@ const CustomRouteTooltip = ({ active, payload }) => {
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const { user } = useSelector((state) => state.auth);
-  const token = user?.token || localStorage.getItem('token');
+  const token = user?.token;
 
   // Overview stats & list state
   const [stats, setStats] = useState({
@@ -101,7 +101,7 @@ const AdminDashboard = () => {
 
   // Fetch API headers
   const getHeaders = () => ({
-    headers: { Authorization: `Bearer ${token}` }
+    withCredentials: true
   });
 
   // Auto scroll in chat

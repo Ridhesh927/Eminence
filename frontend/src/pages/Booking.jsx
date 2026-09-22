@@ -101,8 +101,7 @@ const Booking = () => {
     try {
       await axios.post(
         'http://localhost:5000/api/wallet/referral',
-        { referralCode: promoCode },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { referralCode: promoCode }
       );
       setDiscount(100); // 100 Rs discount applied immediately for UI purposes
       setPromoMessage({ type: 'success', text: 'Referral applied! ₹100 discount added.' });

@@ -51,25 +51,15 @@ const CompleteProfileModal = () => {
     setError('');
     setMessage('');
     try {
-      const token = localStorage.getItem('token');
-      
       if (termsAccepted && !user?.termsAccepted) {
         try {
-          await axios.post(
-            `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/accept-terms`,
-            { version: 'v1.0' },
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
+          await api.post('/api/auth/accept-terms', { version: 'v1.0' });
         } catch (e) {
           console.warn('Accept terms in profile completion note:', e.message);
         }
       }
 
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/complete-profile`,
-        formData,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await api.post('/api/auth/complete-profile', formData);
       
       const updatedUser = res.data.user;
       dispatch(updateProfileSuccess(updatedUser));
@@ -100,12 +90,7 @@ const CompleteProfileModal = () => {
     if (!internal) setLoading(true);
     setError('');
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/send-otp`,
-        { type },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await api.post('/api/auth/send-otp', { type });
       setOtpType(type);
       setOtpCooldown(60);
       setMessage(`OTP sent to your ${type}. Check your backend console for the code.`);
@@ -134,12 +119,7 @@ const CompleteProfileModal = () => {
     setLoading(true);
     setError('');
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/verify-otp`,
-        { type: otpType, code },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await api.post('/api/auth/verify-otp', { type: otpType, code });
       dispatch(updateProfileSuccess(res.data.user));
       setOtpType(null);
       setOtpCode('');

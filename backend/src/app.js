@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const cookieParser = require('cookie-parser');
 
 // Load environment variables (.env.local first, overriding any parent process variables)
 const path = require('path');
@@ -8,6 +9,10 @@ dotenv.config({ path: path.resolve(__dirname, '../.env.local') });
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 const app = express();
+app.use(cookieParser());
+
+const csrfProtection = require('./middleware/csrfMiddleware');
+app.use(csrfProtection);
 
 // Middleware - Secure Origin-Restricted CORS
 const allowedOrigins = process.env.CORS_ORIGIN

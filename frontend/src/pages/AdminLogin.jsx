@@ -31,7 +31,6 @@ const AdminLogin = () => {
       setIsLoading(false);
       
       if (data.success) {
-        localStorage.setItem('token', data.token);
         dispatch(loginSuccess({
           id: data.user.id,
           email: data.user.email,

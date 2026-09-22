@@ -8,7 +8,15 @@ import { loginSuccess } from '../../redux/slices/authSlice';
 const OTPVerification = () => {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
+  const [otpValue, setOtpValue] = useState('');
+  const [error, setError] = useState('');
   const inputRefs = useRef([]);
+  
+  const getCsrfToken = () => {
+    const match = document.cookie.match(/(?:^|;\s*)XSRF-TOKEN=([^;]*)/);
+    return match ? decodeURIComponent(match[1]) : '';
+  };
+
   const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -32,19 +40,22 @@ const OTPVerification = () => {
         try {
           const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/phone-verify`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
               phone, 
               code: '123456', 
               role: location.state?.role || 'customer',
               acceptedTerms: !!location.state?.acceptedTerms 
-            })
+            }),
+            headers: {
+              'Content-Type': 'application/json',
+              'x-xsrf-token': getCsrfToken()
+            },
+            credentials: 'include'
           });
           const data = await response.json();
           setIsLoading(false);
           
           if (data.success) {
-            localStorage.setItem('token', data.token);
             const userRole = data.user.role || 'customer';
             dispatch(loginSuccess({
               id: data.user.id,
@@ -95,21 +106,23 @@ const OTPVerification = () => {
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/phone-verify`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           phone, 
           code: otpValue, 
           role: location.state?.role || 'customer',
           acceptedTerms: !!location.state?.acceptedTerms 
-        })
+        }),
+        headers: {
+          'Content-Type': 'application/json',
+          'x-xsrf-token': getCsrfToken()
+        },
+        credentials: 'include'
       });
       
       const data = await response.json();
       setIsLoading(false);
       
       if (data.success) {
-        localStorage.setItem('token', data.token);
-        
         // Handle saving name on registration if pending
         const pendingName = localStorage.getItem('pendingName') || location.state?.name;
         let displayName = data.user.name || pendingName || (isNewUser ? 'New User' : 'Existing Customer');
@@ -121,8 +134,9 @@ const OTPVerification = () => {
               method: 'POST',
               headers: { 
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${data.token}`
+                'x-xsrf-token': getCsrfToken()
               },
+              credentials: 'include',
               body: JSON.stringify({ name: pendingName })
             });
             const updateData = await updateRes.json();
