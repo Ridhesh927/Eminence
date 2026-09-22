@@ -37,7 +37,7 @@ const BusinessDashboard = () => {
         setLoadingContracts(true);
         try {
           const res = await axios.get('http://localhost:5000/api/b2b/contracts', {
-            headers: { Authorization: `Bearer ${token}` }
+            withCredentials: true
           });
           if (res.data.success) {
             setContracts(res.data.contracts);
@@ -53,9 +53,7 @@ const BusinessDashboard = () => {
       const fetchInvoices = async () => {
         setLoadingInvoices(true);
         try {
-          const res = await axios.get('http://localhost:5000/api/b2b/invoices', {
-            headers: { Authorization: `Bearer ${token}` }
-          });
+          const res = await axios.get('http://localhost:5000/api/b2b/invoices');
           if (res.data.success) {
             setInvoices(res.data.invoices);
           }
@@ -74,7 +72,7 @@ const BusinessDashboard = () => {
     setRequestingContract(true);
     try {
       const res = await axios.post('http://localhost:5000/api/b2b/contracts', newContract, {
-        headers: { Authorization: `Bearer ${token}` }
+        withCredentials: true
       });
       if (res.data.success) {
         setContracts([res.data.contract, ...contracts]);
@@ -97,8 +95,8 @@ const BusinessDashboard = () => {
     
     try {
       await axios.post('http://localhost:5000/api/b2b/batch-bookings', formData, {
+        withCredentials: true,
         headers: { 
-          Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
         }
       });

@@ -16,10 +16,6 @@ const ReviewModal = ({ isOpen, onClose, bookingId, driverId, driverName = "Drive
     
     setIsSubmitting(true);
     try {
-      // Mock customer ID for now
-      const token = localStorage.getItem('token') || localStorage.getItem('userToken');
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
       await axios.post(
         `${import.meta.env.VITE_API_URL || 'http://localhost:5000/api'}/reviews`,
         {
@@ -27,8 +23,7 @@ const ReviewModal = ({ isOpen, onClose, bookingId, driverId, driverName = "Drive
           driverId,
           rating,
           comment
-        },
-        { headers }
+        }
       );
       
       setIsSuccess(true);

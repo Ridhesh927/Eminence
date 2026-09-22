@@ -57,9 +57,7 @@ const CustomerDashboard = () => {
 
   const fetchAddresses = async () => {
     try {
-      const res = await api.get('/api/address', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.get('/api/address');
       setAddresses(res.data);
     } catch (error) {
       console.error('Error fetching addresses:', error);
@@ -68,9 +66,7 @@ const CustomerDashboard = () => {
 
   const handleSaveAddress = async () => {
     try {
-      const res = await api.post('/api/address', newAddress, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.post('/api/address', newAddress);
       setAddresses([...addresses, res.data]);
       setIsAddAddressOpen(false);
       setNewAddress({ label: '', street: '', city: '', postalCode: '' });
@@ -81,9 +77,7 @@ const CustomerDashboard = () => {
 
   const handleDeleteAddress = async (id) => {
     try {
-      await api.delete(`/api/address/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.delete(`/api/address/${id}`);
       setAddresses(addresses.filter(addr => addr.id !== id));
     } catch (error) {
       console.error('Error deleting address:', error);
@@ -93,9 +87,7 @@ const CustomerDashboard = () => {
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
     try {
-      const res = await api.post('/api/auth/complete-profile', profileForm, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.post('/api/auth/complete-profile', profileForm);
       dispatch(updateProfileSuccess(res.data.user));
       alert('Profile updated successfully!');
       // In a real app we'd dispatch(loginSuccess(res.data)) to update Redux state
@@ -107,9 +99,7 @@ const CustomerDashboard = () => {
 
   const fetchWallet = async () => {
     try {
-      const res = await api.get('/api/wallet', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.get('/api/wallet');
       setWalletData(res.data);
     } catch (error) {
       console.error('Error fetching wallet:', error);

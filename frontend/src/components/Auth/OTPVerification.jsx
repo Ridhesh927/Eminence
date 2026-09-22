@@ -38,13 +38,13 @@ const OTPVerification = () => {
               code: '123456', 
               role: location.state?.role || 'customer',
               acceptedTerms: !!location.state?.acceptedTerms 
-            })
+            }),
+            credentials: 'include'
           });
           const data = await response.json();
           setIsLoading(false);
           
           if (data.success) {
-            localStorage.setItem('token', data.token);
             const userRole = data.user.role || 'customer';
             dispatch(loginSuccess({
               id: data.user.id,
@@ -101,15 +101,14 @@ const OTPVerification = () => {
           code: otpValue, 
           role: location.state?.role || 'customer',
           acceptedTerms: !!location.state?.acceptedTerms 
-        })
+        }),
+        credentials: 'include'
       });
       
       const data = await response.json();
       setIsLoading(false);
       
       if (data.success) {
-        localStorage.setItem('token', data.token);
-        
         // Handle saving name on registration if pending
         const pendingName = localStorage.getItem('pendingName') || location.state?.name;
         let displayName = data.user.name || pendingName || (isNewUser ? 'New User' : 'Existing Customer');
@@ -120,9 +119,9 @@ const OTPVerification = () => {
             const updateRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/complete-profile`, {
               method: 'POST',
               headers: { 
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${data.token}`
+                'Content-Type': 'application/json'
               },
+              credentials: 'include',
               body: JSON.stringify({ name: pendingName })
             });
             const updateData = await updateRes.json();

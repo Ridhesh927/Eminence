@@ -94,6 +94,13 @@ const googleLogin = async (req, res) => {
       { expiresIn: process.env.JWT_EXPIRE || '7d' }
     );
 
+    res.cookie('accessToken', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
     return res.status(200).json({
       success: true,
       token,
@@ -418,6 +425,12 @@ const phoneVerify = async (req, res) => {
       }
 
       userObj.role = userRole;
+      res.cookie('accessToken', token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60 * 1000
+      });
       return res.status(200).json({ success: true, token, user: userObj });
     }
 
@@ -509,6 +522,13 @@ const phoneVerify = async (req, res) => {
 
     const userObj = user.toJSON ? user.toJSON() : { ...user };
     userObj.role = userRole;
+
+    res.cookie('accessToken', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
 
     return res.status(200).json({ success: true, token, user: userObj });
   } catch (error) {
