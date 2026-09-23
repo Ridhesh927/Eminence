@@ -136,11 +136,43 @@ const initSocket = (httpServer) => {
     });
 
     // Driver sends location update — only drivers or admins are authorised
-    socket.on('driver:location_update', (data) => {
+    socket.on('driver:location_update', async (data) => {
       if (!socket.user || (socket.user.role !== 'driver' && socket.user.role !== 'admin')) {
         return socket.emit('error', { message: 'Unauthorized: Driver role required to send location updates' });
       }
       const { bookingId, lat, lng } = data;
+
+      if (
+        typeof lat !== 'number' ||
+        typeof lng !== 'number' ||
+        lat < -90 ||
+        lat > 90 ||
+        lng < -180 ||
+        lng > 180
+      ) {
+        return socket.emit('error', {
+          message: 'Invalid coordinates'
+        });
+      }
+
+      if (socket.user.role !== 'admin') {
+        try {
+          const { Booking } = require('./models');
+          const booking = await Booking.findOne({
+            where: {
+              id: bookingId,
+              driverId: socket.user.id
+            }
+          });
+          if (!booking) {
+            return socket.emit('error', { message: 'Not authorized for this booking' });
+          }
+        } catch (err) {
+          console.error(`[Socket] Error verifying booking for driver:location_update:`, err);
+          return socket.emit('error', { message: 'Server error verifying booking' });
+        }
+      }
+
       // Broadcast to customer in the same trip room
       io.to(`trip_${bookingId}`).emit('trip:location_update', { lat, lng });
     });
