@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ShieldCheck, FileText, CheckCircle, ExternalLink } from 'lucide-react';
+import { X, ShieldCheck, FileText, CheckCircle, ExternalLink, ScrollText, CheckCircle2, AlertTriangle, Scale, Clock, Shield } from 'lucide-react';
+import api from '../../services/api';
 import { Link } from 'react-router-dom';
 
 const DEFAULT_TERMS = {
@@ -44,9 +45,8 @@ const TermsModal = ({ isOpen, onClose, onAccept, showAcceptButton = true }) => {
 
     const fetchTerms = async () => {
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-        const res = await fetch(`${apiUrl}/api/auth/terms`);
-        const data = await res.json();
+        const res = await api.get('/api/auth/terms');
+        const data = res.data;
         if (data.success && data.terms) {
           setTerms(data.terms);
         }

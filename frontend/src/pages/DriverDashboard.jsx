@@ -6,7 +6,6 @@ import { useSelector } from 'react-redux';
 import api from '../services/api';
 import { io } from 'socket.io-client';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const DriverDashboard = () => {
   const { user, token } = useSelector((state) => state.auth);
@@ -39,7 +38,7 @@ const DriverDashboard = () => {
   }, [isNavigating]);
 
   useEffect(() => {
-    const newSocket = io(API_BASE_URL.replace('/api', ''), {
+    const newSocket = io(api.defaults.baseURL.replace('/api', ''), {
       auth: { token }, // Pass JWT so server can verify identity in production
       withCredentials: true,
     });

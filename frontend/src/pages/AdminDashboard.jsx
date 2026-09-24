@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useSelector } from 'react-redux';
+import api from '../services/api';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 import { 
@@ -13,7 +14,7 @@ import {
   MessageSquare, Send
 } from 'lucide-react';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+const API_BASE_URL = api.defaults.baseURL;
 
 const CustomTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {
@@ -240,7 +241,7 @@ const AdminDashboard = () => {
 
   const fetchOverviewData = async () => {
     try {
-      const statsRes = await axios.get(`${API_BASE_URL}/api/admin/stats/overview`, getHeaders());
+      const statsRes = await api.get(`/api/admin/stats/overview`);
       if (statsRes.data.success) {
         setStats(prev => ({
           ...prev,
@@ -257,12 +258,12 @@ const AdminDashboard = () => {
         }));
       }
       
-      const revRes = await axios.get(`${API_BASE_URL}/api/admin/stats/revenue`, getHeaders());
+      const revRes = await api.get(`/api/admin/stats/revenue`);
       if (revRes.data.success) {
         setRevenueData(revRes.data.revenueData);
       }
 
-      const routeRes = await axios.get(`${API_BASE_URL}/api/admin/stats/routes`, getHeaders());
+      const routeRes = await api.get(`/api/admin/stats/routes`);
       if (routeRes.data.success) {
         setRouteData(routeRes.data.routeData);
       }
@@ -274,7 +275,7 @@ const AdminDashboard = () => {
   const fetchCustomers = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/admin/customers`, getHeaders());
+      const res = await api.get(`/api/admin/customers`);
       if (res.data.success) {
         setCustomers(res.data.customers);
       }
@@ -288,7 +289,7 @@ const AdminDashboard = () => {
   const fetchDrivers = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/admin/drivers`, getHeaders());
+      const res = await api.get(`/api/admin/drivers`);
       if (res.data.success) {
         setDrivers(res.data.drivers);
       }
@@ -302,7 +303,7 @@ const AdminDashboard = () => {
   const fetchVehicles = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/admin/vehicles`, getHeaders());
+      const res = await api.get(`/api/admin/vehicles`);
       if (res.data.success) {
         setVehicles(res.data.vehicles);
       }
@@ -388,8 +389,8 @@ const AdminDashboard = () => {
     if (!type || !id) return;
     
     try {
-      const endpoint = `${API_BASE_URL}/api/admin/${type === 'customer' ? 'customers' : type + 's'}/${id}`;
-      const res = await axios.delete(endpoint, getHeaders());
+      const endpoint = `/api/admin/${type === 'customer' ? 'customers' : type + 's'}/${id}`;
+      const res = await api.delete(endpoint);
       if (res.data.success) {
         setDeleteConfirm({ isOpen: false, type: '', id: null });
         if (type === 'customer') fetchCustomers();
@@ -411,19 +412,19 @@ const AdminDashboard = () => {
       let payload = {};
 
       if (modalType === 'customer') {
-        endpoint = `${API_BASE_URL}/api/admin/customers`;
+        endpoint = `/api/admin/customers`;
         payload = customerForm;
       } else if (modalType === 'driver') {
-        endpoint = `${API_BASE_URL}/api/admin/drivers`;
+        endpoint = `/api/admin/drivers`;
         payload = driverForm;
       } else if (modalType === 'vehicle') {
-        endpoint = `${API_BASE_URL}/api/admin/vehicles`;
+        endpoint = `/api/admin/vehicles`;
         payload = vehicleForm;
       } else if (modalType === 'admin') {
-        endpoint = `${API_BASE_URL}/api/admin/admins`;
+        endpoint = `/api/admin/admins`;
         payload = adminForm;
       } else if (modalType === 'contract') {
-        endpoint = `${API_BASE_URL}/api/admin/contracts`;
+        endpoint = `/api/admin/contracts`;
         payload = contractForm;
       }
 
@@ -432,7 +433,7 @@ const AdminDashboard = () => {
         method = 'put';
       }
 
-      await axios[method](endpoint, payload, getHeaders());
+      await axios[method](endpoint, payload);
       
       setIsModalOpen(false);
       if (modalType === 'customer') fetchCustomers();

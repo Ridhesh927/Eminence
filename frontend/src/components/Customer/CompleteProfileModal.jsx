@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
-import axios from 'axios';
+import api from '../../services/api';
 import { updateProfileSuccess } from '../../redux/slices/authSlice';
 import { MapPin, Phone, Building2, Map, FileText, CheckCircle2, User, Mail } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -55,20 +55,18 @@ const CompleteProfileModal = () => {
       
       if (termsAccepted && !user?.termsAccepted) {
         try {
-          await axios.post(
-            `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/accept-terms`,
-            { version: 'v1.0' },
-            { headers: { Authorization: `Bearer ${token}` } }
+          await api.post(
+            '/api/auth/accept-terms',
+            { version: 'v1.0' }
           );
         } catch (e) {
           console.warn('Accept terms in profile completion note:', e.message);
         }
       }
 
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/complete-profile`,
-        formData,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const res = await api.post(
+        '/api/auth/complete-profile',
+        formData
       );
       
       const updatedUser = res.data.user;
@@ -101,10 +99,9 @@ const CompleteProfileModal = () => {
     setError('');
     try {
       const token = localStorage.getItem('token');
-      await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/send-otp`,
-        { type },
-        { headers: { Authorization: `Bearer ${token}` } }
+      await api.post(
+        '/api/auth/send-otp',
+        { type }
       );
       setOtpType(type);
       setOtpCooldown(60);
@@ -135,10 +132,9 @@ const CompleteProfileModal = () => {
     setError('');
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/verify-otp`,
-        { type: otpType, code },
-        { headers: { Authorization: `Bearer ${token}` } }
+      const res = await api.post(
+        '/api/auth/verify-otp',
+        { type: otpType, code }
       );
       dispatch(updateProfileSuccess(res.data.user));
       setOtpType(null);
