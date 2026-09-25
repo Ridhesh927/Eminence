@@ -53,6 +53,11 @@ const toggleAvailability = async (req, res) => {
 const generatePayslip = async (req, res) => {
   try {
     const { id } = req.params;
+    
+    if (req.user.role !== 'admin' && String(req.user.id) !== String(id)) {
+      return res.status(403).json({ success: false, message: 'Unauthorized access to payslip' });
+    }
+
     const driver = await Driver.findByPk(id);
     
     if (!driver) {
