@@ -98,7 +98,8 @@ async function runPhase4Tests() {
     let res;
     try {
       res = await axios.post(`${BASE_URL}/api/admin/drivers`, driverPayload, adminHeaders);
-    } catch {
+    } catch (err) {
+      console.log('Error creating driver via admin:', err.response?.data || err.message);
       res = await axios.post(`${BASE_URL}/api/drivers`, driverPayload);
     }
 

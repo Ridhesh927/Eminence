@@ -13,6 +13,7 @@ const io = initSocket(server);
 
 const jwt = require('jsonwebtoken');
 const { sanitizeChatMessage, sanitizeString } = require('./middleware/requestValidator');
+
 const { SupportChat } = require('./models');
 
 // Chat message rate limiting tracker per socket (prevents spam and DoS)
@@ -60,8 +61,12 @@ io.on('connection', (socket) => {
       return socket.emit('error', { message: 'Unauthorized: Admin role required' });
     }
     socket.join('admin_inbox');
-    const chats = await SupportChat.findAll();
-    socket.emit('chat_list', chats);
+    try {
+      const allChats = await SupportChat.findAll();
+      socket.emit('chat_list', allChats);
+    } catch (err) {
+      console.error('Failed to fetch chat list:', err);
+    }
   });
 
   // Admin selects a customer conversation thread
@@ -74,8 +79,12 @@ io.on('connection', (socket) => {
     }
     if (customerId) {
       socket.join(`chat_${customerId}`);
-      const chat = await SupportChat.findByPk(customerId);
-      socket.emit('chat_history', { customerId, messages: chat?.messages || [] });
+      try {
+        const chat = await SupportChat.findByPk(customerId);
+        socket.emit('chat_history', { customerId, messages: chat ? chat.messages : [] });
+      } catch (err) {
+        console.error('Error fetching history:', err);
+      }
     }
   });
 
@@ -85,8 +94,10 @@ io.on('connection', (socket) => {
       socket.join('admin_inbox');
       if (customerId) {
         socket.join(`chat_${customerId}`);
-        const chat = await SupportChat.findByPk(customerId);
-        socket.emit('chat_history', { customerId, messages: chat?.messages || [] });
+        try {
+          const chat = await SupportChat.findByPk(customerId);
+          socket.emit('chat_history', { customerId, messages: chat ? chat.messages : [] });
+        } catch (err) {}
       }
     } else {
       // Restrict customers to only their own chat room
@@ -95,19 +106,23 @@ io.on('connection', (socket) => {
       }
 
       socket.join(`chat_${customerId}`);
-      let chat = await SupportChat.findByPk(customerId);
-      if (!chat) {
-        chat = await SupportChat.create({
-          customerId,
-          customerName: name || 'Customer',
-          messages: []
-        });
+      try {
+        let chat = await SupportChat.findByPk(customerId);
+        if (!chat) {
+          chat = await SupportChat.create({
+            customerId,
+            customerName: name || 'Customer',
+            messages: []
+          });
+        }
+        // Send chat history to customer
+        socket.emit('chat_history', { customerId, messages: chat.messages || [] });
+        // Notify admins of updated active chats list
+        const allChats = await SupportChat.findAll();
+        io.to('admin_inbox').emit('chat_list_update', allChats);
+      } catch (err) {
+        console.error('Error joining room:', err);
       }
-      // Send chat history to customer
-      socket.emit('chat_history', { customerId, messages: chat.messages });
-      // Notify admins of updated active chats list
-      const chats = await SupportChat.findAll();
-      io.to('admin_inbox').emit('chat_list_update', chats);
     }
   });
 
@@ -146,26 +161,28 @@ io.on('connection', (socket) => {
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
     
-    let chat = await SupportChat.findByPk(customerId);
-    if (!chat) {
-      chat = await SupportChat.create({
-        customerId,
-        customerName: sender === 'customer' ? (sanitizeString(name) || 'Customer') : 'Customer',
-        messages: []
-      });
+    try {
+      let chat = await SupportChat.findByPk(customerId);
+      if (!chat) {
+        chat = await SupportChat.create({
+          customerId,
+          customerName: sender === 'customer' ? (sanitizeString(name) || 'Customer') : 'Customer',
+          messages: []
+        });
+      }
+      
+      const updatedMessages = [...(chat.messages || []), message];
+      await chat.update({ messages: updatedMessages });
+      
+      // Broadcast message ONLY to the specific conversation room
+      io.to(`chat_${customerId}`).emit('receive_message', message);
+      
+      // Broadcast updated chat list ONLY to admin inbox channel
+      const allChats = await SupportChat.findAll();
+      io.to('admin_inbox').emit('chat_list_update', allChats);
+    } catch (err) {
+      console.error('Error saving message:', err);
     }
-    
-    // Sequelize JSON fields need to be reassigned to trigger an update
-    const updatedMessages = [...chat.messages, message];
-    chat.messages = updatedMessages;
-    await chat.save();
-    
-    // Broadcast message ONLY to the specific conversation room
-    io.to(`chat_${customerId}`).emit('receive_message', message);
-    
-    // Broadcast updated chat list ONLY to admin inbox channel
-    const chats = await SupportChat.findAll();
-    io.to('admin_inbox').emit('chat_list_update', chats);
 
     // Automated bot reply only if message originated from customer
     if (sender === 'customer') {
@@ -181,16 +198,15 @@ io.on('connection', (socket) => {
             time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           };
           
-          let botChat = await SupportChat.findByPk(customerId);
-          if (botChat) {
-            const botUpdatedMessages = [...botChat.messages, botMessage];
-            botChat.messages = botUpdatedMessages;
-            await botChat.save();
+          let chatToUpdate = await SupportChat.findByPk(customerId);
+          if (chatToUpdate) {
+            const botUpdatedMsgs = [...(chatToUpdate.messages || []), botMessage];
+            await chatToUpdate.update({ messages: botUpdatedMsgs });
           }
           
           io.to(`chat_${customerId}`).emit('receive_message', botMessage);
-          const allChats = await SupportChat.findAll();
-          io.to('admin_inbox').emit('chat_list_update', allChats);
+          const currentChats = await SupportChat.findAll();
+          io.to('admin_inbox').emit('chat_list_update', currentChats);
         } catch (error) {
           console.error('Error in support bot response:', error);
         }
@@ -200,8 +216,12 @@ io.on('connection', (socket) => {
 
   // Admin fetch active chats list
   socket.on('get_chat_list', async () => {
-    const chats = await SupportChat.findAll();
-    socket.emit('chat_list', chats);
+    try {
+      const allChats = await SupportChat.findAll();
+      socket.emit('chat_list', allChats);
+    } catch (err) {
+      console.error('Error getting chat list:', err);
+    }
   });
 
   socket.on('disconnect', () => {

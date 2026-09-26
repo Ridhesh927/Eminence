@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FileText, Truck, Users, CreditCard, HeadphonesIcon, Upload, CheckCircle } from 'lucide-react';
-import axios from 'axios';
+import api from '../services/api';
 import { useSelector } from 'react-redux';
 
 const BusinessDashboard = () => {
@@ -36,9 +36,7 @@ const BusinessDashboard = () => {
       const fetchContracts = async () => {
         setLoadingContracts(true);
         try {
-          const res = await axios.get('http://localhost:5000/api/b2b/contracts', {
-            headers: { Authorization: `Bearer ${token}` }
-          });
+          const res = await api.get('/api/b2b/contracts');
           if (res.data.success) {
             setContracts(res.data.contracts);
           }
@@ -53,9 +51,7 @@ const BusinessDashboard = () => {
       const fetchInvoices = async () => {
         setLoadingInvoices(true);
         try {
-          const res = await axios.get('http://localhost:5000/api/b2b/invoices', {
-            headers: { Authorization: `Bearer ${token}` }
-          });
+          const res = await api.get('/api/b2b/invoices');
           if (res.data.success) {
             setInvoices(res.data.invoices);
           }
@@ -73,9 +69,7 @@ const BusinessDashboard = () => {
     e.preventDefault();
     setRequestingContract(true);
     try {
-      const res = await axios.post('http://localhost:5000/api/b2b/contracts', newContract, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const res = await api.post('/api/b2b/contracts', newContract);
       if (res.data.success) {
         setContracts([res.data.contract, ...contracts]);
         setNewContract({ vehicleType: '', vehicleCount: 1, startDate: '', endDate: '' });
@@ -96,9 +90,8 @@ const BusinessDashboard = () => {
     formData.append('file', file);
     
     try {
-      await axios.post('http://localhost:5000/api/b2b/batch-bookings', formData, {
+      await api.post('/api/b2b/batch-bookings', formData, {
         headers: { 
-          Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data'
         }
       });

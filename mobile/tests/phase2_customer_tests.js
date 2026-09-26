@@ -191,6 +191,13 @@ async function runPhase2Tests() {
         role: 'driver',
       });
       driverToken = verifyRes.data.token;
+      
+      // Assign the driver to the booking so the driver ownership check passes
+      await axios.put(
+        `${BASE_URL}/api/bookings/${targetBookingId}/status`,
+        { driverId: verifyRes.data.user.id },
+        { headers: { Authorization: `Bearer ${driverToken}` } }
+      );
     } catch (e) {
       console.warn('Driver auth fallback failed, using customer token (will fail if auth guard H7 is active)', e.message);
     }

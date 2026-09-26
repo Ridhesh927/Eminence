@@ -92,7 +92,7 @@ async function runPhase3Tests() {
   // TC-021: AI Demand Surge Heatmap
   // ----------------------------------------------------------------
   try {
-    const heatmapRes = await axios.get(`${BASE_URL}/api/drivers/heatmap`);
+    const heatmapRes = await axios.get(`${BASE_URL}/api/drivers/heatmap`, driverHeaders);
     const success = heatmapRes.data?.success === true;
     const hotspots = heatmapRes.data?.data?.hotspots;
     const hasHotspots = Array.isArray(hotspots) && hotspots.length > 0;
@@ -136,9 +136,14 @@ async function runPhase3Tests() {
   // TC-023: WMS Barcode Scan (Simulation)
   // ----------------------------------------------------------------
   try {
-    const scanRes = await axios.post(`${BASE_URL}/api/drivers/scan-inventory`, {
-      barcode: 'EMN-BOX-001',
-    });
+    const scanRes = await axios.post(
+      `${BASE_URL}/api/drivers/scan-inventory`,
+      {
+        barcode: 'EMN-BOX-001',
+        expectedStatus: 'Loaded',
+      },
+      driverHeaders
+    );
     const isScanValid =
       scanRes.data?.success === true &&
       scanRes.data?.item?.barcode === 'EMN-BOX-001' &&
@@ -181,7 +186,7 @@ async function runPhase3Tests() {
     // 2. Driver Accepts Trip
     const acceptRes = await axios.put(
       `${BASE_URL}/api/bookings/${testBookingId}/status`,
-      { status: 'driver_assigned' },
+      { status: 'driver_assigned', driverId },
       driverHeaders
     );
     const isAccepted = acceptRes.data?.success === true;

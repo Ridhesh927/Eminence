@@ -139,6 +139,17 @@ const completeBooking = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Booking not found' });
     }
 
+    const authorized =
+      req.user.role === 'admin' ||
+      (req.user.role === 'driver' && booking.driverId === req.user.id);
+
+    if (!authorized) {
+      return res.status(403).json({
+        success: false,
+        message: 'Not authorized to complete this booking'
+      });
+    }
+
     booking.status = 'completed';
     
     // Blockchain PoD Simulation
