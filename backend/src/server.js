@@ -215,6 +215,11 @@ io.on('connection', (socket) => {
   });
 
   // Admin fetch active chats list
+  socket.on('get_chat_list', () => {
+    if (socket.user?.role !== 'admin') {
+      return socket.emit('error', { message: 'Unauthorized: Admin role required' });
+    }
+    socket.emit('chat_list', Object.values(activeChats));
   socket.on('get_chat_list', async () => {
     try {
       const allChats = await SupportChat.findAll();
