@@ -3,7 +3,8 @@ const sequelize = require('../config/database');
 
 const SupportChat = sequelize.define('SupportChat', {
   customerId: {
-    type: DataTypes.STRING,
+    type: DataTypes.UUID,
+    allowNull: false,
     primaryKey: true,
   },
   customerName: {
@@ -11,11 +12,12 @@ const SupportChat = sequelize.define('SupportChat', {
     allowNull: false,
   },
   messages: {
-    type: DataTypes.JSONB,
+    type: DataTypes.JSON,
     defaultValue: [],
-  }
+  },
 }, {
   timestamps: true,
+  tableName: 'SupportChats',
 });
 
 module.exports = SupportChat;
