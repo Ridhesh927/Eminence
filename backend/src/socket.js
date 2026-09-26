@@ -13,6 +13,39 @@ const initSocket = (httpServer) => {
     }
   });
 
+  const dbUrl = process.env.DATABASE_URL;
+  const useSqlite = process.env.USE_SQLITE === 'true' || process.env.DB_DIALECT === 'sqlite' || !dbUrl || dbUrl.startsWith('sqlite:');
+
+  if (!useSqlite && dbUrl) {
+    try {
+      const { createAdapter } = require('@socket.io/postgres-adapter');
+      const { Pool } = require('pg');
+      const sanitizedUrl = dbUrl.replace(/([?&])channel_binding=[^&]*(&|$)/, '$1').replace(/[?&]$/, '');
+      const isLocalhost = sanitizedUrl.includes('localhost') || sanitizedUrl.includes('127.0.0.1');
+      
+      const pool = new Pool({
+        connectionString: sanitizedUrl,
+        ssl: !isLocalhost ? { rejectUnauthorized: false } : false
+      });
+
+      pool.query(`
+        CREATE TABLE IF NOT EXISTS socket_io_attachments (
+            id          bigserial UNIQUE,
+            created_at  timestamptz DEFAULT NOW(),
+            payload     bytea
+        );
+      `).then(() => {
+        io.adapter(createAdapter(pool));
+        console.log('[Socket] Postgres Adapter initialized');
+      }).catch(err => {
+        console.error('[Socket] Failed to initialize Postgres Adapter table:', err);
+      });
+    } catch (err) {
+      console.error('[Socket] Could not load @socket.io/postgres-adapter:', err);
+    }
+  }
+
+
   // Socket.io JWT Authentication Middleware
   io.use((socket, next) => {
     if (socket.user) return next();
@@ -103,11 +136,43 @@ const initSocket = (httpServer) => {
     });
 
     // Driver sends location update — only drivers or admins are authorised
-    socket.on('driver:location_update', (data) => {
+    socket.on('driver:location_update', async (data) => {
       if (!socket.user || (socket.user.role !== 'driver' && socket.user.role !== 'admin')) {
         return socket.emit('error', { message: 'Unauthorized: Driver role required to send location updates' });
       }
       const { bookingId, lat, lng } = data;
+
+      if (
+        typeof lat !== 'number' ||
+        typeof lng !== 'number' ||
+        lat < -90 ||
+        lat > 90 ||
+        lng < -180 ||
+        lng > 180
+      ) {
+        return socket.emit('error', {
+          message: 'Invalid coordinates'
+        });
+      }
+
+      if (socket.user.role !== 'admin') {
+        try {
+          const { Booking } = require('./models');
+          const booking = await Booking.findOne({
+            where: {
+              id: bookingId,
+              driverId: socket.user.id
+            }
+          });
+          if (!booking) {
+            return socket.emit('error', { message: 'Not authorized for this booking' });
+          }
+        } catch (err) {
+          console.error(`[Socket] Error verifying booking for driver:location_update:`, err);
+          return socket.emit('error', { message: 'Server error verifying booking' });
+        }
+      }
+
       // Broadcast to customer in the same trip room
       io.to(`trip_${bookingId}`).emit('trip:location_update', { lat, lng });
     });

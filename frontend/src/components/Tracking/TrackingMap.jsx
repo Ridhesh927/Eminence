@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { io } from 'socket.io-client';
+import api from '../../services/api';
 
 // Fix for default marker icon in react-leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -28,7 +29,7 @@ const TrackingMap = ({ bookingId, initialLat = 18.5204, initialLng = 73.8567 }) 
   useEffect(() => {
     // Initialize socket connection
     const token = localStorage.getItem('token');
-    const socket = io(import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000', {
+    const socket = io(api.defaults.baseURL.replace('/api', ''), {
       withCredentials: true,
       auth: { token }
     });

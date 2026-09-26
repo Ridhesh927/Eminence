@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ShieldCheck, FileText, Printer, ArrowLeft, CheckCircle2, Clock, Globe } from 'lucide-react';
+import api from '../services/api';
 import { Link } from 'react-router-dom';
 
 const DEFAULT_TERMS = {
@@ -49,9 +50,8 @@ const Terms = () => {
   useEffect(() => {
     const fetchTerms = async () => {
       try {
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-        const res = await fetch(`${apiUrl}/api/auth/terms`);
-        const data = await res.json();
+        const res = await api.get('/api/auth/terms');
+        const data = res.data;
         if (data.success && data.terms) {
           setTerms((prev) => ({
             ...prev,

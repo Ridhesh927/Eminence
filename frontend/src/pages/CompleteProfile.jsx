@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { motion, AnimatePresence } from 'framer-motion';
+import api from '../services/api';
 import { updateProfileSuccess } from '../redux/slices/authSlice';
 import MapPicker from '../components/MapPicker';
 import { Upload, Scan, CheckCircle } from 'lucide-react';
@@ -51,11 +52,9 @@ const CompleteProfile = () => {
     setLoading(true);
     setError('');
     try {
-      const token = localStorage.getItem('token'); // Assuming token is stored here
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/complete-profile`,
-        { name, phone, location },
-        { headers: { Authorization: `Bearer ${token}` } }
+      const res = await api.post(
+        '/api/auth/complete-profile',
+        { name, phone, location }
       );
       dispatch(updateProfileSuccess(res.data.user));
       setMessage('Profile updated. Please verify email and phone if required.');
@@ -74,11 +73,9 @@ const CompleteProfile = () => {
     setError('');
     setMessage('');
     try {
-      const token = localStorage.getItem('token');
-      await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/send-otp`,
-        { type },
-        { headers: { Authorization: `Bearer ${token}` } }
+      await api.post(
+        '/api/auth/send-otp',
+        { type }
       );
       setOtpType(type);
       setMessage(`OTP sent to your ${type}`);
@@ -93,11 +90,9 @@ const CompleteProfile = () => {
     setLoading(true);
     setError('');
     try {
-      const token = localStorage.getItem('token');
-      const res = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/verify-otp`,
-        { type: otpType, code: otpCode },
-        { headers: { Authorization: `Bearer ${token}` } }
+      const res = await api.post(
+        '/api/auth/verify-otp',
+        { type: otpType, code: otpCode }
       );
       dispatch(updateProfileSuccess(res.data.user));
       setOtpType(null);

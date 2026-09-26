@@ -172,6 +172,15 @@ const sendOtp = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please update your phone number first' });
     }
 
+    const existingOtp = await Otp.findOne({ 
+      where: { customerId, type }, 
+      order: [['createdAt', 'DESC']] 
+    });
+
+    if (existingOtp && (Date.now() - new Date(existingOtp.createdAt).getTime()) < 60000) {
+      return res.status(429).json({ success: false, message: 'Please wait 60 seconds before requesting a new OTP' });
+    }
+
     const code = generateOtp();
     const expiresAt = new Date(Date.now() + 10 * 60000); // 10 minutes
 
@@ -295,12 +304,22 @@ const phoneLogin = async (req, res) => {
       userId = customer.id;
     }
 
+    const { Otp } = require('../models');
+
+    const existingOtp = await Otp.findOne({ 
+      where: { customerId: userId, type: 'phone' }, 
+      order: [['createdAt', 'DESC']] 
+    });
+    
+    if (existingOtp && (Date.now() - new Date(existingOtp.createdAt).getTime()) < 60000) {
+      return res.status(429).json({ success: false, message: 'Please wait 60 seconds before requesting a new OTP' });
+    }
+
     const code = generateOtp();
     const expiresAt = new Date(Date.now() + 10 * 60000); // 10 minutes
 
     const otpHash = crypto.createHash('sha256').update(code).digest('hex');
 
-    const { Otp } = require('../models');
     await Otp.destroy({ where: { customerId: userId, type: 'phone' } });
     await Otp.create({
       customerId: userId,

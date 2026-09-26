@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { MapPin, Calendar, Clock, Box, ShieldCheck, Tag, Shield, Crown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import axios from 'axios';
+import api from '../services/api';
 
 const Booking = () => {
   const navigate = useNavigate();
@@ -99,10 +99,9 @@ const Booking = () => {
   const handleApplyPromo = async () => {
     if (!promoCode) return;
     try {
-      await axios.post(
-        'http://localhost:5000/api/wallet/referral',
-        { referralCode: promoCode },
-        { headers: { Authorization: `Bearer ${token}` } }
+      await api.post(
+        '/api/wallet/referral',
+        { referralCode: promoCode }
       );
       setDiscount(100); // 100 Rs discount applied immediately for UI purposes
       setPromoMessage({ type: 'success', text: 'Referral applied! ₹100 discount added.' });
@@ -118,9 +117,8 @@ const Booking = () => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.post(
-        `${API_BASE_URL}/api/bookings`,
+      const res = await api.post(
+        '/api/bookings',
         {
           pickupAddress: formData.pickup,
           dropAddress: formData.drops.join(' → '),
@@ -134,8 +132,7 @@ const Booking = () => {
           estimatedFare: calculateFare(),
           paymentMethod: formData.paymentMethod,
           phone: formData.phone || user?.phone,
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
+        }
       );
       const bookingId = res.data?.booking?.id || 'pending';
       navigate(`/tracking/${bookingId}`);

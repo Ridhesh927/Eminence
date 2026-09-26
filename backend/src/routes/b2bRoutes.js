@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const b2bController = require('../controllers/b2bController');
 const protect = require('../middleware/authMiddleware');
+const authorize = require('../middleware/roleMiddleware');
 const { apiLimiter } = require('../middleware/rateLimiter');
 
 // Apply rate limiting to protected B2B routes

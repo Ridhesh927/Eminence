@@ -75,7 +75,7 @@ const contactLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     success: false,
-    message: 'Too many contact messages sent, please try again later.'
+    message: 'Too many contact messages sent from this IP, please try again after 15 minutes'
   }
 });
 
