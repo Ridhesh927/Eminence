@@ -34,7 +34,11 @@ app.use(cors({
 }));
 app.use(express.json({
   verify: (req, res, buf) => {
-    if (req.originalUrl.includes('webhook')) {
+    const urlPath = req.originalUrl.split('?')[0];
+    if (
+      urlPath === '/api/integrations/razorpay-webhook' || 
+      urlPath === '/api/integrations/whatsapp-webhook'
+    ) {
       req.rawBody = buf.toString();
     }
   }
