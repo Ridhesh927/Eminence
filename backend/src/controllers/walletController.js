@@ -58,28 +58,33 @@ const applyReferralCode = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Referral code is required' });
     }
 
-    const currentCustomer = await Customer.findByPk(customerId);
-    if (!currentCustomer) return res.status(404).json({ success: false, message: 'Customer not found' });
-
-    if (currentCustomer.referredBy) {
-      return res.status(400).json({ success: false, message: 'You have already used a referral code' });
-    }
-
-    if (currentCustomer.referralCode === referralCode) {
-      return res.status(400).json({ success: false, message: 'You cannot use your own referral code' });
-    }
-
-    // Find the referrer
-    const referrer = await Customer.findOne({ where: { referralCode } });
-    if (!referrer) {
-      return res.status(404).json({ success: false, message: 'Invalid referral code' });
-    }
-
-    // Reward amount (can be configured)
-    const REWARD_AMOUNT = 100.0;
-
     const transaction = await sequelize.transaction();
     try {
+      const currentCustomer = await Customer.findByPk(customerId, { transaction, lock: transaction.LOCK.UPDATE });
+      if (!currentCustomer) {
+        await transaction.rollback();
+        return res.status(404).json({ success: false, message: 'Customer not found' });
+      }
+
+      if (currentCustomer.referredBy) {
+        await transaction.rollback();
+        return res.status(400).json({ success: false, message: 'You have already used a referral code' });
+      }
+
+      if (currentCustomer.referralCode === referralCode) {
+        await transaction.rollback();
+        return res.status(400).json({ success: false, message: 'You cannot use your own referral code' });
+      }
+
+      // Find the referrer
+      const referrer = await Customer.findOne({ where: { referralCode }, transaction, lock: transaction.LOCK.UPDATE });
+      if (!referrer) {
+        await transaction.rollback();
+        return res.status(404).json({ success: false, message: 'Invalid referral code' });
+      }
+
+      // Reward amount (can be configured)
+      const REWARD_AMOUNT = 100.0;
       // 1. Update current customer wallet
       let currentWallet = await Wallet.findOne({ where: { customerId: currentCustomer.id }, transaction });
       if (!currentWallet) {

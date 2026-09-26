@@ -15,9 +15,13 @@ const registerBusiness = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Customer not found' });
     }
 
-    // Set to pending business state. Do NOT set isBusiness to true or grant credit yet.
+    // Set to pending business state, grant business access but no postpaid credit yet.
+    customer.isBusiness = true;
     customer.companyName = resolvedCompanyName;
     customer.gstNumber = gstNumber;
+    customer.billingMode = 'prepaid';
+    customer.creditLimit = 0;
+    customer.creditUsed = 0;
     customer.b2bStatus = 'pending_verification';
     await customer.save();
 
