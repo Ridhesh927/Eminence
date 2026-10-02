@@ -6,18 +6,32 @@ const { handleSupportMessage } = require('./services/supportBotService');
 const { initSocket } = require('./socket');
 const { initCronJobs } = require('./cronJobs');
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 3000;
 
 const server = http.createServer(app);
 const io = initSocket(server);
 
 // Attach PeerJS Signaling Server for WebRTC Voice Calls
 const { ExpressPeerServer } = require('peer');
+const { WebSocketServer } = require('ws');
+let peerWss;
 const peerServer = ExpressPeerServer(server, {
   debug: true,
-  path: '/'
+  path: '/',
+  createWebSocketServer: (options) => {
+    peerWss = new WebSocketServer({ ...options, server: undefined, noServer: true });
+    return peerWss;
+  }
 });
 app.use('/peerjs', peerServer);
+
+server.on('upgrade', (req, socket, head) => {
+  if (req.url && req.url.startsWith('/peerjs') && peerWss) {
+    peerWss.handleUpgrade(req, socket, head, (ws) => {
+      peerWss.emit('connection', ws, req);
+    });
+  }
+});
 
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');

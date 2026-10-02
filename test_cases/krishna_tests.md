@@ -3,12 +3,6 @@
 ## Overview
 This document outlines cross-platform testing scenarios assigned to Krishna, covering Web Portal resilient communication and Mobile Driver telemetry & wake lock management.
 
-- **Interactive Web QA Scorecard & Runner:** [krishna_tests.html](http://localhost:5173/krishna_tests.html)
-- **Monorepo Global Test Suite:** [test_cases.html#mod-9](http://localhost:5173/test_cases.html#mod-9)
-- **Automated Integration Test Suite:** `backend/tests/integration/krishna_fullstack.test.js` (4/4 Passed)
-
----
-
 ## Part 1: Web Portal Tests (Frontend)
 
 ### TC-KRI-001: Web Speech API Interruption

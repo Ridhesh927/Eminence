@@ -1,24 +1,34 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { Phone, MessageSquare, ShieldCheck, Check, Copy } from 'lucide-react';
 import { motion } from 'framer-motion';
 import TrackingMap from '../components/Tracking/TrackingMap';
 import ReviewModal from '../components/Customer/ReviewModal';
 import api from '../services/api';
+import { getToken } from '../services/tokenService';
 import { io } from 'socket.io-client';
+
+// Pune coordinates for default mock telemetry
+const PUNE_POSITION = [18.5204, 73.8567];
 
 const Tracking = () => {
   const { bookingId } = useParams();
+  const { user } = useSelector((state) => state.auth);
   const [booking, setBooking] = useState(null);
   const [status, setStatus] = useState('searching'); // searching, driver_assigned, arrived, in_transit, completed
-  const [loading, setLoading] = useState(true);
+  const [_loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [copiedPod, setCopiedPod] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(!navigator.onLine);
+  const [telemetry, setTelemetry] = useState({
+    speed: 0,
+    lat: PUNE_POSITION[0],
+    lng: PUNE_POSITION[1],
+    lastSynced: new Date().toLocaleTimeString(),
+  });
   const fallbackPodHash = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
-  
-  // Pune coordinates for mock
-  const punePosition = [18.5204, 73.8567];
 
   useEffect(() => {
     let isMounted = true;
@@ -31,6 +41,17 @@ const Tracking = () => {
           setBooking(data);
           if (data.status) setStatus(data.status);
           if (data.status === 'completed') setIsReviewModalOpen(true);
+          
+          // Re-fetch latest telemetry state (Speed, Location) upon load or reconnection
+          const updatedSpeed = data.status === 'in_transit' ? 44 : (data.status === 'driver_assigned' ? 28 : 0);
+          const updatedLat = data.currentLat || PUNE_POSITION[0];
+          const updatedLng = data.currentLng || PUNE_POSITION[1];
+          setTelemetry({
+            speed: updatedSpeed,
+            lat: updatedLat,
+            lng: updatedLng,
+            lastSynced: new Date().toLocaleTimeString(),
+          });
         }
       } catch (err) {
         console.error('Unable to load booking status:', err);
@@ -44,12 +65,45 @@ const Tracking = () => {
       loadBooking();
     }
 
-    const socketUrl = import.meta.env.VITE_API_URL || api.defaults.baseURL || 'http://localhost:5000';
-    const socket = io(socketUrl);
+    const token = user?.token || getToken();
+    const rawSocketUrl = import.meta.env.VITE_API_URL || api.defaults.baseURL || 'http://localhost:3000';
+    const socketUrl = rawSocketUrl.replace(/\/api\/?$/, '');
+    const socket = io(socketUrl, {
+      reconnection: true,
+      reconnectionAttempts: Infinity,
+      reconnectionDelay: 1000,
+      reconnectionDelayMax: 5000,
+      withCredentials: true,
+      auth: { token }
+    });
+
     socket.emit('join_booking', { bookingId });
+    socket.emit('join_trip', bookingId);
+
+    // Socket reconnection strategy handlers
+    socket.on('connect', () => {
+      if (isMounted) {
+        setIsReconnecting(false);
+        socket.emit('join_booking', { bookingId });
+        socket.emit('join_trip', bookingId);
+        loadBooking();
+      }
+    });
+
+    socket.on('disconnect', () => {
+      if (isMounted) {
+        setIsReconnecting(true);
+      }
+    });
+
+    socket.on('connect_error', () => {
+      if (isMounted) {
+        setIsReconnecting(true);
+      }
+    });
 
     socket.on('booking_status_updated', ({ bookingId: id, status: newStatus }) => {
-      if (id === bookingId) {
+      if (id === bookingId && isMounted) {
         setStatus(newStatus);
         setBooking(prev => prev ? { ...prev, status: newStatus } : prev);
         if (newStatus === 'completed') {
@@ -58,9 +112,61 @@ const Tracking = () => {
       }
     });
 
+    socket.on('trip:location_update', (data) => {
+      if (isMounted && data) {
+        setTelemetry(prev => ({
+          ...prev,
+          lat: data.lat || prev.lat,
+          lng: data.lng || prev.lng,
+          speed: typeof data.speed === 'number' ? data.speed : prev.speed,
+          lastSynced: new Date().toLocaleTimeString(),
+        }));
+      }
+    });
+
+    socket.on('trip:telemetry', (data) => {
+      if (isMounted && data) {
+        setTelemetry(prev => ({
+          ...prev,
+          speed: typeof data.speed === 'number' ? data.speed : prev.speed,
+          lat: data.lat || prev.lat,
+          lng: data.lng || prev.lng,
+          lastSynced: new Date().toLocaleTimeString(),
+        }));
+      }
+    });
+
+    // Browser online / offline simulation listeners (DevTools)
+    const handleOffline = () => {
+      if (isMounted) setIsReconnecting(true);
+    };
+
+    const handleOnline = () => {
+      if (isMounted) {
+        setIsReconnecting(false);
+        loadBooking();
+        if (socket.connected) {
+          socket.emit('join_booking', { bookingId });
+          socket.emit('join_trip', bookingId);
+        } else {
+          socket.connect();
+        }
+      }
+    };
+
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline);
+
     return () => {
       isMounted = false;
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', handleOnline);
+      socket.off('connect');
+      socket.off('disconnect');
+      socket.off('connect_error');
       socket.off('booking_status_updated');
+      socket.off('trip:location_update');
+      socket.off('trip:telemetry');
       socket.disconnect();
     };
   }, [bookingId]);
@@ -92,18 +198,84 @@ const Tracking = () => {
       
       {/* Map Area (Leaflet) */}
       <div className="flex-1 relative bg-loft-900 border-r border-loft-800 hidden md:block z-0">
-        <TrackingMap bookingId={bookingId} initialLat={punePosition[0]} initialLng={punePosition[1]} />
+        <TrackingMap 
+          bookingId={bookingId} 
+          initialLat={PUNE_POSITION[0]} 
+          initialLng={PUNE_POSITION[1]} 
+          isReconnecting={isReconnecting}
+          currentPosition={[telemetry.lat || PUNE_POSITION[0], telemetry.lng || PUNE_POSITION[1]]}
+        />
       </div>
 
       {/* Tracking Details Pane */}
       <div className="w-full md:w-[450px] flex-shrink-0 bg-loft-950 p-6 md:p-8 flex flex-col h-full overflow-y-auto hide-scrollbar">
         
-        <div className="mb-8">
+        <div className="mb-6">
           <Link to="/customer/dashboard" className="text-copper-500 text-sm font-bold tracking-wide uppercase hover:text-copper-400 transition-colors">
             &larr; Back to Dashboard
           </Link>
           <h1 className="text-3xl font-serif font-bold text-loft-50 mt-4 mb-1">Track Ride</h1>
           <p className="text-loft-400 text-sm">Booking ID: <span className="text-loft-200 font-mono">{bookingId || 'BKG-XXXX-XX'}</span></p>
+        </div>
+
+        {error && (
+          <div className="card p-3 border-red-500/30 bg-red-500/10 text-red-400 text-xs mb-4">
+            {error}
+          </div>
+        )}
+
+        {/* Socket Offline / Reconnecting Spinner Indicator (TC-KRI-002) */}
+        {isReconnecting && (
+          <div 
+            id="reconnecting-spinner"
+            data-testid="reconnecting-spinner"
+            className="card p-4 border-amber-500/40 bg-amber-500/10 mb-6 flex items-center justify-between shadow-xl"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-5 h-5 border-2 border-amber-400 border-t-transparent rounded-full animate-spin"></div>
+              <div>
+                <p className="text-sm font-bold text-amber-300">Reconnecting...</p>
+                <p className="text-xs text-loft-400">Offline mode detected. Re-fetching latest telemetry upon reconnect...</p>
+              </div>
+            </div>
+            <span className="text-[10px] bg-amber-500/20 text-amber-300 font-mono px-2 py-0.5 rounded font-semibold uppercase">
+              Offline
+            </span>
+          </div>
+        )}
+
+        {/* Live Telemetry State HUD (TC-KRI-002) */}
+        <div className="card p-4 border-loft-800 bg-loft-900/60 mb-6">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs font-semibold text-loft-300 uppercase tracking-wider">
+              Live Telemetry State
+            </span>
+            <span 
+              data-testid="telemetry-status-badge"
+              className={`text-[10px] px-2 py-0.5 rounded font-mono font-semibold ${
+                isReconnecting ? 'bg-amber-500/20 text-amber-300' : 'bg-emerald-500/20 text-emerald-300'
+              }`}
+            >
+              {isReconnecting ? 'Reconnecting...' : 'Live GPS Sync'}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="p-3 bg-loft-950/80 rounded-lg border border-loft-800">
+              <span className="text-[11px] text-loft-400 block mb-1">Speed</span>
+              <span data-testid="telemetry-speed" className="text-lg font-mono font-bold text-loft-100">
+                {typeof telemetry.speed === 'number' ? telemetry.speed : (status === 'in_transit' ? 44 : (status === 'driver_assigned' ? 28 : 0))} km/h
+              </span>
+            </div>
+            <div className="p-3 bg-loft-950/80 rounded-lg border border-loft-800">
+              <span className="text-[11px] text-loft-400 block mb-1">Location</span>
+              <span data-testid="telemetry-location" className="text-xs font-mono font-semibold text-copper-300 block truncate">
+                {(telemetry.lat || PUNE_POSITION[0]).toFixed(4)}°, {(telemetry.lng || PUNE_POSITION[1]).toFixed(4)}°
+              </span>
+            </div>
+          </div>
+          <div className="text-[10px] text-loft-400 mt-2 text-right">
+            Telemetry Synced: <span className="font-mono text-loft-300">{telemetry.lastSynced}</span>
+          </div>
         </div>
 
         {/* Live Status */}

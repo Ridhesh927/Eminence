@@ -80,14 +80,17 @@ const startTelemetrySimulation = (vehicleId) => {
         timestamp: new Date().toISOString(),
         speed: Math.round(currentSpeed), // km/h
         engineTemp: Math.round(engineTemp), // Celsius
+        temperature: Math.round(engineTemp), // Celsius (TC-KRI-004 & Mobile HUD alias)
+        coolantAlert: engineTemp >= 100 ? 'Coolant Overheating Risk' : null,
         fuelLevel: parseFloat(fuelLevel.toFixed(1)), // %
         rpm: Math.round(rpm),
         healthScore: parseFloat(healthScore.toFixed(1)), // %
         alert: alertType
       };
 
-      // Broadcast to the admin telemetry room
+      // Broadcast to the admin telemetry room and vehicle telemetry room
       io.to('admin_telemetry').emit('telemetry_update', telemetryData);
+      io.to(`vehicle_${vehicleId}`).emit('telemetry_update', telemetryData);
       
     } catch (err) {
       // socket might not be initialized yet, ignore

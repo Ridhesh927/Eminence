@@ -4,7 +4,7 @@ import { io } from 'socket.io-client';
 import { MessageCircle, X, Send } from 'lucide-react';
 
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+import { getToken } from '../../services/tokenService';
 import api from '../../services/api';
 
 const ChatWidget = () => {
@@ -34,8 +34,10 @@ const ChatWidget = () => {
     }
 
     // Connect to Socket.io server
-    const socket = io(api.defaults.baseURL?.replace('/api', '') || 'http://localhost:5000', {
-      withCredentials: true
+    const rawSocketUrl = import.meta.env.VITE_API_URL || api.defaults.baseURL || 'http://localhost:3000';
+    const socket = io(rawSocketUrl.replace(/\/api\/?$/, ''), {
+      withCredentials: true,
+      auth: { token: token || user?.token || getToken() }
     });
     socketRef.current = socket;
 
@@ -87,6 +89,8 @@ const ChatWidget = () => {
         <button
           onClick={() => setIsOpen(true)}
           className="flex items-center justify-center w-14 h-14 bg-copper-500 hover:bg-copper-600 text-white rounded-full shadow-lg transition-transform duration-200 hover:scale-105 cursor-pointer"
+          title="Customer Support Chat"
+          aria-label="Customer Support Chat"
         >
           <MessageCircle className="w-6 h-6" />
         </button>

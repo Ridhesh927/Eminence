@@ -1,8 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useSelector } from 'react-redux';
 import Peer from 'peerjs';
 import { Phone, PhoneOff, Mic, MicOff } from 'lucide-react';
 
 const WebRTCCaller = () => {
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const hasChatWidget = Boolean(isAuthenticated && user && user.role !== 'admin');
   const [peer, setPeer] = useState(null);
   const [call, setCall] = useState(null);
   const [status, setStatus] = useState('idle'); // idle, calling, connected, error
@@ -84,16 +87,17 @@ const WebRTCCaller = () => {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className={`fixed ${hasChatWidget ? 'bottom-24' : 'bottom-6'} right-6 z-40 transition-all duration-300`}>
       <audio ref={remoteAudioRef} className="hidden" />
       
       {status === 'idle' && (
         <button 
           onClick={startCall}
-          className="bg-loft-500 text-white p-4 rounded-full shadow-xl hover:bg-loft-600 transition-colors flex items-center justify-center animate-bounce"
+          className="w-14 h-14 bg-moss-600 hover:bg-moss-500 text-white rounded-full shadow-lg shadow-moss-950/40 border border-moss-400/30 transition-transform duration-200 hover:scale-105 flex items-center justify-center cursor-pointer"
           title="Call Free Helpline"
+          aria-label="Call Free Helpline"
         >
-          <Phone size={24} />
+          <Phone className="w-6 h-6" />
         </button>
       )}
 

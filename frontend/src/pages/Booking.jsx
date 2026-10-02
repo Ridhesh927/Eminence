@@ -86,7 +86,15 @@ const Booking = () => {
       recognition.onerror = (event) => {
         console.error('Speech recognition error:', event.error);
         setIsListening(false);
-        setVoiceError(`Voice recognition: ${event.error}. You may type your booking prompt directly.`);
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          setVoiceError('Microphone access denied. UI fallback to manual text entry.');
+        } else if (event.error === 'aborted') {
+          setVoiceError('Microphone input was interrupted. UI fallback to manual text entry.');
+        } else if (event.error === 'network') {
+          setVoiceError('Network error during speech recognition. UI fallback to manual text entry.');
+        } else {
+          setVoiceError(`Voice recognition: ${event.error}. UI fallback to manual text entry.`);
+        }
       };
 
       recognition.onend = () => {
@@ -97,7 +105,11 @@ const Booking = () => {
       recognition.start();
     } catch (e) {
       console.error(e);
-      setVoiceError('Could not start microphone. You can type your voice booking command directly.');
+      if (e.name === 'NotAllowedError' || (e.message && e.message.toLowerCase().includes('denied'))) {
+        setVoiceError('Microphone access denied. UI fallback to manual text entry.');
+      } else {
+        setVoiceError('Could not start microphone. UI fallback to manual text entry.');
+      }
       setIsListening(false);
     }
   };
@@ -117,7 +129,10 @@ const Booking = () => {
     setIsVoiceSubmitting(true);
     setVoiceError('');
     try {
-      const res = await api.post('/api/bookings/ai-booking', { transcript: voiceTranscript });
+      const res = await api.post('/api/bookings/ai-booking', {
+        transcript: voiceTranscript,
+        customerId: user?.id
+      });
       if (res.data?.booking?.id) {
         setShowVoiceModal(false);
         navigate(`/tracking/${res.data.booking.id}`);
@@ -126,7 +141,11 @@ const Booking = () => {
       }
     } catch (err) {
       console.error('Voice booking error:', err);
-      setVoiceError(err.response?.data?.message || 'Voice booking failed. Please try again.');
+      if (err.response?.status === 401) {
+        setVoiceError('Please log in to complete your AI voice booking.');
+      } else {
+        setVoiceError(err.response?.data?.message || 'Voice booking failed. Please try again.');
+      }
     } finally {
       setIsVoiceSubmitting(false);
     }
@@ -141,12 +160,13 @@ const Booking = () => {
     else if (lower.includes('medium')) detectedType = 'medium';
     else if (lower.includes('small')) detectedType = 'small';
 
-    const match = voiceTranscript.match(/from\s+([^to]+?)\s+to\s+(.+)/i);
+    const match = voiceTranscript.match(/(?:from|for)\s+(.+?)\s+to\s+(.+)/i);
     if (match) {
+      const cleanDrop = match[2].replace(/\s+(tomorrow|today|morning|evening|night|now|afternoon)/i, '').trim();
       setFormData(prev => ({
         ...prev,
         pickup: match[1].trim(),
-        drops: [match[2].trim()],
+        drops: [cleanDrop || match[2].trim()],
         tempoType: detectedType
       }));
     } else {
@@ -422,6 +442,8 @@ const Booking = () => {
                     </div>
                   </div>
                   <button
+                    id="ai-voice-booking-btn"
+                    data-testid="ai-voice-booking-btn"
                     type="button"
                     onClick={() => { setShowVoiceModal(true); setVoiceError(''); }}
                     className="btn-primary py-2 px-3 text-xs flex items-center justify-center gap-2 whitespace-nowrap self-start sm:self-auto cursor-pointer"
@@ -857,10 +879,17 @@ const Booking = () => {
               </div>
 
               <div className="mb-6">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-loft-300 mb-2">
-                  Voice Transcript / Command
-                </label>
+                <div className="flex items-center justify-between mb-2">
+                  <label htmlFor="voice-manual-input" className="block text-xs font-semibold uppercase tracking-wider text-loft-300">
+                    Voice Transcript / Manual Prompt
+                  </label>
+                  <span className="text-[10px] text-loft-400 font-mono">
+                    Editable Fallback
+                  </span>
+                </div>
                 <textarea
+                  id="voice-manual-input"
+                  data-testid="voice-manual-input"
                   value={voiceTranscript}
                   onChange={(e) => setVoiceTranscript(e.target.value)}
                   placeholder="Your speech transcript will appear here, or you can type directly..."
@@ -870,8 +899,15 @@ const Booking = () => {
               </div>
 
               {voiceError && (
-                <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs">
-                  {voiceError}
+                <div 
+                  id="voice-error-message"
+                  data-testid="voice-error-msg"
+                  className="mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl text-xs flex items-center justify-between"
+                >
+                  <span className="font-medium">{voiceError}</span>
+                  <span className="text-[10px] bg-red-500/20 text-red-300 px-2 py-0.5 rounded font-mono uppercase ml-2 whitespace-nowrap">
+                    Fallback Active
+                  </span>
                 </div>
               )}
 

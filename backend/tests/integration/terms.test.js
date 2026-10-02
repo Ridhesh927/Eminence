@@ -110,7 +110,7 @@ describe('Terms and Conditions Integration Tests', () => {
 
   describe('POST /api/auth/phone-verify with acceptedTerms', () => {
     it('should record acceptance during login verification with valid OTP', async () => {
-      let testCust = await Customer.findOne({ where: { phone: '1234567890' } });
+      let testCust = await Customer.findOne({ where: { phone: '1234567890', isBusiness: false } });
       if (!testCust) {
         testCust = await Customer.create({ phone: '1234567890', name: 'Terms Verification User' });
       }

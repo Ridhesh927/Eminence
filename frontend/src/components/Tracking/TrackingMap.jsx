@@ -5,6 +5,7 @@ import L from 'leaflet';
 import { io } from 'socket.io-client';
 
 import api from '../../services/api';
+import { getToken } from '../../services/tokenService';
 
 // Fix for default marker icon in react-leaflet
 delete L.Icon.Default.prototype._getIconUrl;
@@ -22,14 +23,20 @@ const truckIcon = new L.Icon({
   className: 'rounded-full border-2 border-copper-500 shadow-lg object-cover'
 });
 
-const TrackingMap = ({ bookingId, initialLat = 18.5204, initialLng = 73.8567 }) => {
+const TrackingMap = ({ bookingId, initialLat = 18.5204, initialLng = 73.8567, isReconnecting = false, currentPosition = null }) => {
   const [driverPosition, setDriverPosition] = useState([initialLat, initialLng]);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
+    if (currentPosition && Array.isArray(currentPosition) && currentPosition.length === 2) {
+      setDriverPosition(currentPosition);
+    }
+  }, [currentPosition]);
+
+  useEffect(() => {
     // Initialize socket connection
     const token = getToken();
-    const socket = io(api.defaults.baseURL?.replace('/api', '') || 'http://localhost:5000', {
+    const socket = io(api.defaults.baseURL?.replace(/\/api\/?$/, '') || 'http://localhost:3000', {
       withCredentials: true,
       auth: { token }
     });
@@ -39,6 +46,10 @@ const TrackingMap = ({ bookingId, initialLat = 18.5204, initialLng = 73.8567 }) 
       if (bookingId) {
         socket.emit('join_trip', bookingId);
       }
+    });
+
+    socket.on('connect_error', () => {
+      setIsConnected(false);
     });
 
     socket.on('trip:location_update', (data) => {
@@ -56,13 +67,16 @@ const TrackingMap = ({ bookingId, initialLat = 18.5204, initialLng = 73.8567 }) 
     };
   }, [bookingId]);
 
+  const showOverlay = !isConnected || isReconnecting;
+
   return (
     <div className="relative w-full h-[500px] rounded-xl overflow-hidden border border-loft-700/50 shadow-lg">
-      {!isConnected && (
-        <div className="absolute inset-0 z-[1000] bg-loft-950/80 flex items-center justify-center backdrop-blur-sm">
+      {showOverlay && (
+        <div data-testid="map-reconnecting-overlay" className="absolute inset-0 z-[1000] bg-loft-950/80 flex items-center justify-center backdrop-blur-sm">
           <div className="flex flex-col items-center">
             <div className="w-8 h-8 border-4 border-copper-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-            <p className="text-loft-50 font-medium">Connecting to GPS tracking...</p>
+            <p className="text-loft-50 font-medium">Reconnecting to GPS tracking...</p>
+            <p className="text-xs text-loft-400 mt-1">Live telemetry sync paused while offline</p>
           </div>
         </div>
       )}

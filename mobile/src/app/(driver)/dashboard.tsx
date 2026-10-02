@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -10,16 +10,19 @@ import {
   Modal,
   TextInput,
   Alert,
+  Vibration,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { startBackgroundLocation, stopBackgroundLocation } from '../../services/LocationTracking';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
+import { io } from 'socket.io-client';
 
 export default function DriverDashboard() {
   const router = useRouter();
-  const { user, logout } = useAuth();
+  const { user, token, logout } = useAuth();
 
   const [isOnline, setIsOnline] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -54,6 +57,84 @@ export default function DriverDashboard() {
     tdsTax: 18.5,
     netPayout: 1554,
   });
+
+  // TC-KRI-003: Device Wake Lock Management
+  const [isWakeLockActive, setIsWakeLockActive] = useState(false);
+
+  useEffect(() => {
+    const isNavigatingTrip = !!activeTrip && tripStep !== 'completed';
+    if (isNavigatingTrip) {
+      activateKeepAwakeAsync('active_trip_navigation')
+        .then(() => setIsWakeLockActive(true))
+        .catch((err) => console.log('WakeLock activation note:', err?.message));
+    } else {
+      try {
+        deactivateKeepAwake('active_trip_navigation');
+      } catch (_e) {}
+      setIsWakeLockActive(false);
+    }
+
+    return () => {
+      try {
+        deactivateKeepAwake('active_trip_navigation');
+      } catch (_e) {}
+    };
+  }, [activeTrip, tripStep]);
+
+  // TC-KRI-004: Thermal Degradation Warnings (Simulated)
+  const [thermalAlert, setThermalAlert] = useState<{
+    active: boolean;
+    temperature: number;
+    title: string;
+    message: string;
+  } | null>(null);
+  const socketRef = useRef<any>(null);
+
+  const handleThermalDegradation = (temp: number) => {
+    if (temp >= 100) {
+      setThermalAlert({
+        active: true,
+        temperature: temp,
+        title: 'Coolant Overheating Risk',
+        message: `IoT Engine Coolant Sensor has recorded ${temp}°C! Safe operating threshold is 100°C. Immediate risk of engine head gasket failure. Pull over safely.`,
+      });
+      try {
+        Vibration.vibrate([0, 500, 200, 500]);
+      } catch (e) {
+        console.log('Vibration trigger note:', e);
+      }
+    } else {
+      setThermalAlert(null);
+    }
+  };
+
+  useEffect(() => {
+    const socketUrl = api.defaults.baseURL || 'http://localhost:3000';
+    const socket = io(socketUrl, {
+      transports: ['websocket'],
+      auth: { token },
+    });
+    socketRef.current = socket;
+
+    socket.emit('join_vehicle_telemetry', 'VEH-1234');
+
+    socket.on('telemetry_update', (packet: any) => {
+      if (packet && packet.temperature !== undefined) {
+        handleThermalDegradation(Number(packet.temperature));
+      }
+    });
+
+    socket.on('iot:telemetry', (packet: any) => {
+      if (packet && packet.temperature !== undefined) {
+        handleThermalDegradation(Number(packet.temperature));
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [token]);
 
   const fetchDriverData = async () => {
     try {
@@ -278,12 +359,21 @@ export default function DriverDashboard() {
           </View>
         )}
 
-        {/* TC-022: Active Trip Step-by-Step Lifecycle Progression */}
+        {/* TC-022 & TC-KRI-003: Active Trip Step-by-Step Lifecycle & Wake Lock */}
         {activeTrip && (
           <View style={styles.activeTripCard}>
             <View style={styles.activeTripHeader}>
               <Text style={styles.activeTripTitle}>ACTIVE SHIPMENT IN PROGRESS</Text>
               <Text style={styles.activeTripRef}>{activeTrip.bookingId}</Text>
+            </View>
+
+            {/* TC-KRI-003: Device Wake Lock Management Badge */}
+            <View style={[styles.wakeLockBadge, isWakeLockActive ? styles.wakeLockActive : styles.wakeLockInactive]}>
+              <Text style={styles.wakeLockBadgeText}>
+                {isWakeLockActive 
+                  ? '⚡ expo-keep-awake: Screen Kept Awake (Wake Lock Active)' 
+                  : '💤 expo-keep-awake: Wake Lock Released'}
+              </Text>
             </View>
 
             {/* Step 1: Heading to Pickup */}
@@ -442,7 +532,69 @@ export default function DriverDashboard() {
             <Text style={styles.payoutBtnText}>⚡ Request Instant Payout</Text>
           </TouchableOpacity>
         </View>
+
+        {/* TC-KRI-004: QA Hardware & IoT Telemetry Simulator Panel (Gated to development/QA builds) */}
+        {__DEV__ && (
+          <View style={styles.simPanel}>
+            <Text style={styles.simPanelTitle}>🧪 QA SENSOR & TELEMETRY SIMULATION</Text>
+            <Text style={styles.simPanelDesc}>Inject mock telemetry packets into WebSocket / device drivers</Text>
+            <View style={styles.simBtnRow}>
+              <TouchableOpacity 
+                style={[styles.simBtn, { backgroundColor: '#ef4444' }]} 
+                onPress={() => {
+                  handleThermalDegradation(110);
+                  if (socketRef.current?.connected) {
+                    socketRef.current.emit('qa:inject_telemetry', { vehicleId: 'VEH-1234', temperature: 110 });
+                  }
+                }}
+              >
+                <Text style={styles.simBtnText}>🔥 Inject Telemetry (110°C Overheat)</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.simBtn, { backgroundColor: '#10b981' }]} 
+                onPress={() => {
+                  handleThermalDegradation(85);
+                  if (socketRef.current?.connected) {
+                    socketRef.current.emit('qa:inject_telemetry', { vehicleId: 'VEH-1234', temperature: 85 });
+                  }
+                }}
+              >
+                <Text style={styles.simBtnText}>💧 Normal Temp (85°C)</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </ScrollView>
+
+      {/* TC-KRI-004: High-Priority Thermal Degradation Alert Modal Overlay */}
+      <Modal
+        visible={!!thermalAlert?.active}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setThermalAlert(null)}
+      >
+        <View style={styles.thermalModalOverlay}>
+          <View style={styles.thermalModalContent}>
+            <View style={styles.thermalAlertHeader}>
+              <Text style={styles.thermalAlertTag}>🚨 HIGH-PRIORITY CRITICAL WARNING</Text>
+              <Text style={styles.thermalAlertTemp}>{thermalAlert?.temperature}°C</Text>
+            </View>
+            <Text style={styles.thermalAlertTitle}>{thermalAlert?.title || 'Coolant Overheating Risk'}</Text>
+            <Text style={styles.thermalAlertDesc}>{thermalAlert?.message}</Text>
+            
+            <View style={styles.thermalHapticNotice}>
+              <Text style={styles.thermalHapticText}>📳 Distinct Haptic Vibration Warning Dispatched</Text>
+            </View>
+
+            <TouchableOpacity
+              style={styles.thermalDismissBtn}
+              onPress={() => setThermalAlert(null)}
+            >
+              <Text style={styles.thermalDismissBtnText}>Acknowledge Hazard & Pull Over</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
 
       {/* Start Ride OTP Verification Modal */}
       <Modal
@@ -877,5 +1029,148 @@ const styles = StyleSheet.create({
     color: '#f4f6f8',
     fontSize: 14,
     fontWeight: '700',
+  },
+  // TC-KRI-003: Device Wake Lock Styles
+  wakeLockBadge: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 14,
+    alignSelf: 'flex-start',
+  },
+  wakeLockActive: {
+    backgroundColor: 'rgba(232, 99, 49, 0.15)',
+    borderColor: '#e86331',
+  },
+  wakeLockInactive: {
+    backgroundColor: 'rgba(162, 178, 199, 0.1)',
+    borderColor: '#2f3a4e',
+  },
+  wakeLockBadgeText: {
+    color: '#f4f6f8',
+    fontSize: 11,
+    fontWeight: '600',
+    fontFamily: 'System',
+  },
+  // TC-KRI-004: QA Telemetry Simulation Panel Styles
+  simPanel: {
+    marginTop: 20,
+    backgroundColor: '#1b2230',
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#2f3a4e',
+  },
+  simPanelTitle: {
+    color: '#e86331',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  simPanelDesc: {
+    color: '#a2b2c7',
+    fontSize: 12,
+    marginBottom: 12,
+  },
+  simBtnRow: {
+    flexDirection: 'row',
+    gap: 10,
+    flexWrap: 'wrap',
+  },
+  simBtn: {
+    flex: 1,
+    minWidth: 140,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  simBtnText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  // TC-KRI-004: High-Priority Thermal Warning Modal Overlay Styles
+  thermalModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.85)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  thermalModalContent: {
+    backgroundColor: '#1f1315',
+    borderRadius: 20,
+    padding: 24,
+    borderWidth: 2,
+    borderColor: '#ef4444',
+    shadowColor: '#ef4444',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 16,
+    elevation: 20,
+  },
+  thermalAlertHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  thermalAlertTag: {
+    backgroundColor: '#ef4444',
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '800',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 4,
+    letterSpacing: 0.5,
+  },
+  thermalAlertTemp: {
+    color: '#ef4444',
+    fontSize: 22,
+    fontWeight: '900',
+    fontFamily: 'System',
+  },
+  thermalAlertTitle: {
+    color: '#ffffff',
+    fontSize: 20,
+    fontWeight: '800',
+    marginBottom: 8,
+  },
+  thermalAlertDesc: {
+    color: '#fca5a5',
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 16,
+  },
+  thermalHapticNotice: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 20,
+  },
+  thermalHapticText: {
+    color: '#fee2e2',
+    fontSize: 12,
+    fontWeight: '600',
+    textAlign: 'center',
+  },
+  thermalDismissBtn: {
+    backgroundColor: '#ef4444',
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  thermalDismissBtnText: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
 });

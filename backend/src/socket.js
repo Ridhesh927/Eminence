@@ -55,7 +55,17 @@ const initSocket = (httpServer) => {
   // Socket.io JWT Authentication Middleware
   io.use((socket, next) => {
     if (socket.user) return next();
-    const token = socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(' ')[1];
+
+    // Check auth object, Authorization header, or cookie
+    let cookieToken = null;
+    if (socket.handshake.headers?.cookie) {
+      const match = socket.handshake.headers.cookie.match(/(?:^|;\s*)(?:accessToken|token)=([^;]*)/);
+      if (match) cookieToken = decodeURIComponent(match[1]);
+    }
+
+    const token = socket.handshake.auth?.token || 
+                  socket.handshake.headers?.authorization?.split(' ')[1] || 
+                  cookieToken;
 
     if (!token) {
       if (process.env.NODE_ENV === 'development') {
@@ -182,6 +192,32 @@ const initSocket = (httpServer) => {
       io.to(`trip_${bookingId}`).emit('trip:location_update', { lat, lng });
     });
 
+    // Driver joins vehicle telemetry room
+    socket.on('join_vehicle_telemetry', (vehicleId) => {
+      const targetVehicle = vehicleId || 'VEH-1234';
+      socket.join(`vehicle_${targetVehicle}`);
+      socket.emit('joined_vehicle_telemetry', { vehicleId: targetVehicle });
+      console.log(`[Socket] Driver/Client ${socket.id} joined vehicle_${targetVehicle}`);
+    });
+
+    // Development/QA mock telemetry injection
+    socket.on('qa:inject_telemetry', (data) => {
+      if (process.env.NODE_ENV !== 'production' && data) {
+        const payload = {
+          vehicleId: data.vehicleId || 'VEH-1234',
+          timestamp: new Date().toISOString(),
+          temperature: Number(data.temperature) || 90,
+          engineTemp: Number(data.temperature) || 90,
+          speed: data.speed !== undefined ? Number(data.speed) : 45,
+          rpm: data.rpm || 2000,
+          coolantAlert: Number(data.temperature) >= 100 ? 'Coolant Overheating Risk' : null,
+          alert: Number(data.temperature) >= 100 ? 'CRITICAL_ENGINE_FAILURE_IMMINENT' : null
+        };
+        io.to('admin_telemetry').emit('telemetry_update', payload);
+        io.to(`vehicle_${payload.vehicleId}`).emit('telemetry_update', payload);
+      }
+    });
+
     // Admin joins telemetry room
     socket.on('join_admin_telemetry', () => {
       if (socket.user?.role !== 'admin') {
@@ -189,6 +225,7 @@ const initSocket = (httpServer) => {
       }
       
       socket.join('admin_telemetry');
+      socket.emit('joined_admin_telemetry');
       console.log(`[Socket] Admin ${socket.id} joined admin_telemetry`);
       
       // We start a mock simulation for a dummy vehicle ID when an admin connects

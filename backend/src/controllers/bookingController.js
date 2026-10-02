@@ -294,6 +294,14 @@ const aiVoiceBooking = async (req, res) => {
   try {
     const { transcript } = req.body;
     
+    // Guard against empty or missing transcripts (TC-KRI-001)
+    if (!transcript || typeof transcript !== 'string' || !transcript.trim()) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Speech transcript is required.' 
+      });
+    }
+
     // Simulate NLP Parsing of Transcript
     console.log(`[AI Agent] Received Voice Transcript: "${transcript}"`);
     
@@ -313,18 +321,80 @@ const aiVoiceBooking = async (req, res) => {
     const emissionRate = tempoType === 'large' ? 350 : (tempoType === 'medium' ? 200 : 120);
     const esgEmissions = parseFloat(((distance * emissionRate) / 1000).toFixed(2));
 
+    let pickupAddress = 'Eminence Hub, Pune';
+    let dropAddress = 'Destination (Extracted from Voice)';
+
+    // Deterministic, ReDoS-safe linear parsing for locations from transcript
+    if (typeof transcript === 'string') {
+      const cleaned = transcript.slice(0, 500).trim();
+      const lower = cleaned.toLowerCase();
+
+      let startIdx = -1;
+      const markers = [' from ', ' for '];
+      for (const marker of markers) {
+        const idx = lower.indexOf(marker);
+        if (idx !== -1 && (startIdx === -1 || idx < startIdx)) {
+          startIdx = idx + marker.length;
+        }
+      }
+
+      if (startIdx === -1) {
+        if (lower.startsWith('from ')) {
+          startIdx = 5;
+        } else if (lower.startsWith('for ')) {
+          startIdx = 4;
+        }
+      }
+
+      if (startIdx !== -1) {
+        const toIdx = lower.indexOf(' to ', startIdx);
+        if (toIdx !== -1) {
+          const parsedPickup = cleaned.slice(startIdx, toIdx).trim();
+          let parsedDrop = cleaned.slice(toIdx + 4).trim();
+
+          // Stop at newline if multiline
+          const newlineIdx = parsedDrop.indexOf('\n');
+          if (newlineIdx !== -1) {
+            parsedDrop = parsedDrop.slice(0, newlineIdx).trim();
+          }
+
+          // Strip trailing time keywords
+          const timeKeywords = ['tomorrow', 'today', 'morning', 'evening', 'night', 'now', 'afternoon'];
+          const dropWords = parsedDrop.split(/\s+/);
+          while (dropWords.length > 0) {
+            const lastWord = dropWords[dropWords.length - 1].toLowerCase().replace(/[^a-z]/g, '');
+            if (timeKeywords.includes(lastWord)) {
+              dropWords.pop();
+            } else {
+              break;
+            }
+          }
+          parsedDrop = dropWords.join(' ').replace(/[.,;]+$/, '').trim();
+
+          if (parsedPickup) pickupAddress = parsedPickup.replace(/[.,;]+$/, '').trim();
+          if (parsedDrop) dropAddress = parsedDrop;
+        }
+      }
+    }
+
+    let bookingDate = new Date();
+    if (typeof transcript === 'string' && transcript.toLowerCase().includes('tomorrow')) {
+      bookingDate.setDate(bookingDate.getDate() + 1);
+    }
+    const dateStr = bookingDate.toISOString().split('T')[0];
+
     const mockExtractedData = {
       customerId,
-      pickupAddress: 'Eminence Hub, Pune',
-      dropAddress: 'Destination (Extracted from Voice)',
-      date: new Date().toISOString().split('T')[0],
+      pickupAddress,
+      dropAddress,
+      date: dateStr,
       time: '10:00:00',
       goodsType: 'Voice Booking Cargo',
       weight: 100,
       tempoType,
       totalDistance: distance,
       esgEmissions,
-      estimatedFare: tempoType === 'large' ? 1200 : 500,
+      estimatedFare: tempoType === 'large' ? 1200 : (tempoType === 'medium' ? 750 : 500),
       paymentMethod: 'cash',
       status: 'pending'
     };
