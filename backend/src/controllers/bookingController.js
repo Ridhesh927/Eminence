@@ -1,5 +1,6 @@
 const { Booking, Customer, Driver, Vehicle, B2BContract } = require('../models');
 const { optimizeRoute } = require('../services/routeOptimizer');
+const { geocodeAddress } = require('../services/geocoder');
 const { findPoolMatch } = require('../services/poolingEngine');
 const crypto = require('crypto');
 
@@ -60,26 +61,49 @@ const createBooking = async (req, res) => {
     if (bookingData.tempoType === 'large') emissionRate = 350;
     bookingData.esgEmissions = parseFloat(((distance * emissionRate) / 1000).toFixed(2)); // in KG CO2
 
-    // Multi-stop Optimization (TSP)
-    if (req.body.drops && Array.isArray(req.body.drops)) {
-      const baseLat = 18.5204;
-      const baseLng = 73.8567;
-      const waypoints = req.body.drops.map((address, idx) => ({
-        id: `stop_${idx}`,
-        address,
-        // Deterministic geographic offset based on stop index
-        lat: baseLat + ((idx + 1) * 0.015),
-        lng: baseLng + ((idx + 1) * 0.012)
-      }));
+    // Multi-stop Optimization & Geocoding
+    const dropsArr = (req.body.drops && Array.isArray(req.body.drops)) ? req.body.drops : (req.body.dropAddress ? req.body.dropAddress.split(' → ') : []);
+    
+    if (dropsArr.length > 0 || req.body.pickupAddress) {
+      // 1. Geocode Pickup
+      const pickupGeo = await geocodeAddress(req.body.pickupAddress || 'Pune, India');
+      const baseLat = pickupGeo ? pickupGeo.lat : 18.5204;
+      const baseLng = pickupGeo ? pickupGeo.lng : 73.8567;
       
-      const optimized = optimizeRoute(
-        { lat: baseLat, lng: baseLng }, // starting point
-        waypoints
-      );
+      bookingData.pickupLat = baseLat;
+      bookingData.pickupLng = baseLng;
+
+      // 2. Geocode Drops
+      const waypoints = [];
+      for (let idx = 0; idx < dropsArr.length; idx++) {
+        const address = dropsArr[idx];
+        const geo = await geocodeAddress(address);
+        
+        waypoints.push({
+          id: `stop_${idx}`,
+          address,
+          lat: geo ? geo.lat : baseLat + ((idx + 1) * 0.015),
+          lng: geo ? geo.lng : baseLng + ((idx + 1) * 0.012)
+        });
+      }
       
-      bookingData.stops = optimized;
-      // We still keep the first drop as dropAddress for legacy compatibility
-      bookingData.dropAddress = req.body.drops[0];
+      if (waypoints.length > 0) {
+        const optimized = await optimizeRoute(
+          { lat: baseLat, lng: baseLng }, // starting point
+          waypoints
+        );
+        
+        bookingData.stops = optimized;
+        // Keep the first drop as dropAddress for legacy compatibility
+        bookingData.dropAddress = req.body.dropAddress || dropsArr[0];
+
+        // Update total distance based on real OSRM routing
+        let newDist = 0;
+        optimized.forEach(s => newDist += (s.legDistance || 0));
+        if (newDist > 0) {
+          bookingData.totalDistance = newDist;
+        }
+      }
     }
 
     // Bounds & Financial Validation (Issue #172)
@@ -301,95 +325,58 @@ const aiVoiceBooking = async (req, res) => {
       });
     }
 
-    // Simulate NLP Parsing of Transcript
+    // Use Groq NLP Parsing of Transcript
     console.log(`[AI Agent] Received Voice Transcript: "${transcript}"`);
     
-    // NLP entity extraction
-    let tempoType = 'small';
-    if (transcript && typeof transcript === 'string') {
-      if (transcript.toLowerCase().includes('large')) tempoType = 'large';
-      else if (transcript.toLowerCase().includes('medium')) tempoType = 'medium';
-    }
     // Ensure booking is tied to authenticated customer
     const customerId = req.user?.id || req.body.customerId;
     if (!customerId) {
       return res.status(401).json({ success: false, message: 'Authentication required: customerId must be provided' });
     }
 
-    const distance = 15.0;
+    const Groq = require('groq-sdk');
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+    
+    const today = new Date().toISOString().split('T')[0];
+    const prompt = `You are a logistics booking assistant. Extract the booking details from this user request: "${transcript}".
+Return exactly a raw JSON object (and nothing else) with these keys: 
+- pickupAddress (string)
+- dropAddress (string)
+- tempoType (string, one of: 'small', 'medium', 'large')
+- date (string, YYYY-MM-DD format, assume today is ${today} unless specified like tomorrow)
+- time (string, HH:mm:ss format, e.g. "10:00:00", guess 10:00:00 if not specified)
+- goodsType (string, default to 'General Cargo' if unknown)
+- weight (number, default to 100 if unknown)
+`;
+
+    const chatCompletion = await groq.chat.completions.create({
+      messages: [{ role: 'user', content: prompt }],
+      model: 'llama3-8b-8192',
+      temperature: 0,
+      response_format: { type: 'json_object' }
+    });
+
+    let extractedData;
+    try {
+      extractedData = JSON.parse(chatCompletion.choices[0].message.content);
+    } catch (err) {
+      console.error('JSON Parse Error:', err);
+      return res.status(500).json({ success: false, message: 'Failed to parse AI response' });
+    }
+
+    const tempoType = extractedData.tempoType || 'small';
+    const distance = 15.0; // Mock distance for voice booking
     const emissionRate = tempoType === 'large' ? 350 : (tempoType === 'medium' ? 200 : 120);
     const esgEmissions = parseFloat(((distance * emissionRate) / 1000).toFixed(2));
 
-    let pickupAddress = 'Eminence Hub, Pune';
-    let dropAddress = 'Destination (Extracted from Voice)';
-
-    // Deterministic, ReDoS-safe linear parsing for locations from transcript
-    if (typeof transcript === 'string') {
-      const cleaned = transcript.slice(0, 500).trim();
-      const lower = cleaned.toLowerCase();
-
-      let startIdx = -1;
-      const markers = [' from ', ' for '];
-      for (const marker of markers) {
-        const idx = lower.indexOf(marker);
-        if (idx !== -1 && (startIdx === -1 || idx < startIdx)) {
-          startIdx = idx + marker.length;
-        }
-      }
-
-      if (startIdx === -1) {
-        if (lower.startsWith('from ')) {
-          startIdx = 5;
-        } else if (lower.startsWith('for ')) {
-          startIdx = 4;
-        }
-      }
-
-      if (startIdx !== -1) {
-        const toIdx = lower.indexOf(' to ', startIdx);
-        if (toIdx !== -1) {
-          const parsedPickup = cleaned.slice(startIdx, toIdx).trim();
-          let parsedDrop = cleaned.slice(toIdx + 4).trim();
-
-          // Stop at newline if multiline
-          const newlineIdx = parsedDrop.indexOf('\n');
-          if (newlineIdx !== -1) {
-            parsedDrop = parsedDrop.slice(0, newlineIdx).trim();
-          }
-
-          // Strip trailing time keywords
-          const timeKeywords = ['tomorrow', 'today', 'morning', 'evening', 'night', 'now', 'afternoon'];
-          const dropWords = parsedDrop.split(/\s+/);
-          while (dropWords.length > 0) {
-            const lastWord = dropWords[dropWords.length - 1].toLowerCase().replace(/[^a-z]/g, '');
-            if (timeKeywords.includes(lastWord)) {
-              dropWords.pop();
-            } else {
-              break;
-            }
-          }
-          parsedDrop = dropWords.join(' ').replace(/[.,;]+$/, '').trim();
-
-          if (parsedPickup) pickupAddress = parsedPickup.replace(/[.,;]+$/, '').trim();
-          if (parsedDrop) dropAddress = parsedDrop;
-        }
-      }
-    }
-
-    let bookingDate = new Date();
-    if (typeof transcript === 'string' && transcript.toLowerCase().includes('tomorrow')) {
-      bookingDate.setDate(bookingDate.getDate() + 1);
-    }
-    const dateStr = bookingDate.toISOString().split('T')[0];
-
-    const mockExtractedData = {
+    const finalBookingData = {
       customerId,
-      pickupAddress,
-      dropAddress,
-      date: dateStr,
-      time: '10:00:00',
-      goodsType: 'Voice Booking Cargo',
-      weight: 100,
+      pickupAddress: extractedData.pickupAddress || 'Unknown Pickup',
+      dropAddress: extractedData.dropAddress || 'Unknown Drop',
+      date: extractedData.date,
+      time: extractedData.time,
+      goodsType: extractedData.goodsType,
+      weight: extractedData.weight,
       tempoType,
       totalDistance: distance,
       esgEmissions,
@@ -398,7 +385,7 @@ const aiVoiceBooking = async (req, res) => {
       status: 'pending'
     };
 
-    const booking = await Booking.create(mockExtractedData);
+    const booking = await Booking.create(finalBookingData);
     
     res.status(201).json({ 
       success: true, 

@@ -18,6 +18,8 @@ import api from '../../services/api';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { startBackgroundLocation, stopBackgroundLocation } from '../../services/LocationTracking';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
+import NetInfo from '@react-native-community/netinfo';
+import { queueOfflineRequest } from '../../services/OfflineSync';
 import { io } from 'socket.io-client';
 
 export default function DriverDashboard() {
@@ -247,16 +249,28 @@ export default function DriverDashboard() {
     
     setLoading(true);
     try {
-      if (activeTrip?.bookingId && activeTrip.bookingId.length > 20) {
-        const res = await api.post(`/api/bookings/${activeTrip.bookingId}/complete`);
-        if (res.data?.booking?.podHash) {
-          setPodHash(res.data.booking.podHash);
+      const netState = await NetInfo.fetch();
+      
+      if (!netState.isConnected) {
+        if (activeTrip?.bookingId && activeTrip.bookingId.length > 20) {
+          queueOfflineRequest(`/api/bookings/${activeTrip.bookingId}/complete`, 'POST', { photoUri });
         }
+        setPodHash('OFFLINE_SYNC_PENDING_' + Math.random().toString(36).substring(7).toUpperCase());
+        setTripStep('completed');
+        setPhotoUri(null);
+        Alert.alert('Offline Mode', 'Delivery saved locally. It will auto-sync when connection is restored.');
       } else {
-        setPodHash('a9f4c33089d3421e90bce24d55');
+        if (activeTrip?.bookingId && activeTrip.bookingId.length > 20) {
+          const res = await api.post(`/api/bookings/${activeTrip.bookingId}/complete`);
+          if (res.data?.booking?.podHash) {
+            setPodHash(res.data.booking.podHash);
+          }
+        } else {
+          setPodHash('a9f4c33089d3421e90bce24d55');
+        }
+        setTripStep('completed');
+        setPhotoUri(null);
       }
-      setTripStep('completed');
-      setPhotoUri(null); // Reset for next trip
     } catch (err) {
       setPodHash('a9f4c33089d3421e90bce24d55');
       setTripStep('completed');
