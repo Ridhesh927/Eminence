@@ -374,10 +374,32 @@ Return exactly a raw JSON object (and nothing else) with these keys:
     const emissionRate = tempoType === 'large' ? 350 : (tempoType === 'medium' ? 200 : 120);
     const esgEmissions = parseFloat(((distance * emissionRate) / 1000).toFixed(2));
 
+    let pickupLat = 18.5204, pickupLng = 73.8567; // Fallback Pune
+    let dropLat = 18.5204, dropLng = 73.8567; // Fallback Pune
+    
+    try {
+      if (extractedData.pickupAddress) {
+        const pRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(extractedData.pickupAddress)}`);
+        const pData = await pRes.json();
+        if (pData && pData.length > 0) { pickupLat = parseFloat(pData[0].lat); pickupLng = parseFloat(pData[0].lon); }
+      }
+      if (extractedData.dropAddress) {
+        const dRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(extractedData.dropAddress)}`);
+        const dData = await dRes.json();
+        if (dData && dData.length > 0) { dropLat = parseFloat(dData[0].lat); dropLng = parseFloat(dData[0].lon); }
+      }
+    } catch (e) {
+      console.warn('Geocoding failed for voice booking:', e.message);
+    }
+
     const finalBookingData = {
       customerId,
       pickupAddress: extractedData.pickupAddress || 'Unknown Pickup',
       dropAddress: extractedData.dropAddress || 'Unknown Drop',
+      pickupLat,
+      pickupLng,
+      dropLat,
+      dropLng,
       date: extractedData.date,
       time: extractedData.time,
       goodsType: extractedData.goodsType,

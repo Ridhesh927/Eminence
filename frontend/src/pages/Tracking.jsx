@@ -384,6 +384,21 @@ const Tracking = () => {
         <div className="card p-6 mb-6">
           <h3 className="text-sm font-bold text-loft-400 uppercase tracking-wider mb-4">Trip Details</h3>
           
+          <div className="flex flex-col gap-3 mb-6 bg-loft-950/50 p-4 rounded-lg border border-loft-800">
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-loft-400">Booked At:</span>
+              <span className="text-xs font-semibold text-loft-200">
+                {booking?.createdAt ? new Date(booking.createdAt).toLocaleString() : 'N/A'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-xs text-loft-400">Scheduled For:</span>
+              <span className="text-xs font-semibold text-loft-200">
+                {booking?.date} at {booking?.time}
+              </span>
+            </div>
+          </div>
+          
           <div className="relative pl-6 space-y-6">
             <div className="absolute left-2.5 top-2 bottom-2 w-px bg-loft-800"></div>
             
