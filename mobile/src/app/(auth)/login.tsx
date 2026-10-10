@@ -15,6 +15,7 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
 import { useAuth } from '../../context/AuthContext';
 import TermsModal from '../../components/TermsModal';
+import { Eye, EyeOff } from 'lucide-react-native';
 
 WebBrowser.maybeCompleteAuthSession();
 import * as LocalAuthentication from 'expo-local-authentication';
@@ -31,6 +32,7 @@ export default function LoginScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(true);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -401,7 +403,22 @@ export default function LoginScreen() {
               </View>
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Password</Text>
-                <TextInput style={styles.input} placeholder="••••••••••••" placeholderTextColor="#a2b2c7" secureTextEntry value={password} onChangeText={setPassword} />
+                <View style={styles.passwordContainer}>
+                  <TextInput 
+                    style={styles.passwordInput} 
+                    placeholder="••••••••••••" 
+                    placeholderTextColor="#a2b2c7" 
+                    secureTextEntry={!showPassword} 
+                    value={password} 
+                    onChangeText={setPassword} 
+                  />
+                  <TouchableOpacity 
+                    style={styles.eyeIcon} 
+                    onPress={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff color="#a2b2c7" size={20} /> : <Eye color="#a2b2c7" size={20} />}
+                  </TouchableOpacity>
+                </View>
               </View>
               
               <TouchableOpacity style={styles.primaryBtn} onPress={handleEmailLogin} disabled={loading}>
@@ -449,7 +466,22 @@ export default function LoginScreen() {
               </View>
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Password</Text>
-                <TextInput style={styles.input} placeholder="••••••••••••" placeholderTextColor="#a2b2c7" secureTextEntry value={password} onChangeText={setPassword} />
+                <View style={styles.passwordContainer}>
+                  <TextInput 
+                    style={styles.passwordInput} 
+                    placeholder="••••••••••••" 
+                    placeholderTextColor="#a2b2c7" 
+                    secureTextEntry={!showPassword} 
+                    value={password} 
+                    onChangeText={setPassword} 
+                  />
+                  <TouchableOpacity 
+                    style={styles.eyeIcon} 
+                    onPress={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff color="#a2b2c7" size={20} /> : <Eye color="#a2b2c7" size={20} />}
+                  </TouchableOpacity>
+                </View>
               </View>
               
               <View style={styles.termsRow}>
@@ -676,6 +708,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     color: '#f4f6f8',
     fontSize: 15,
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0f141f',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#2f3a4e',
+  },
+  passwordInput: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    color: '#f4f6f8',
+    fontSize: 15,
+  },
+  eyeIcon: {
+    padding: 14,
   },
   otpInput: {
     backgroundColor: '#0f141f',

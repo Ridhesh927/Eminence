@@ -12,13 +12,14 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
-import { ShieldCheck } from 'lucide-react-native';
+import { ShieldCheck, Eye, EyeOff } from 'lucide-react-native';
 
 export default function AdminLoginScreen() {
   const router = useRouter();
   const { adminLogin } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -76,14 +77,26 @@ export default function AdminLoginScreen() {
           
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Password</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="••••••••"
-              placeholderTextColor="#4b5563"
-              secureTextEntry
-              value={password}
-              onChangeText={setPassword}
-            />
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="••••••••"
+                placeholderTextColor="#4b5563"
+                secureTextEntry={!showPassword}
+                value={password}
+                onChangeText={setPassword}
+              />
+              <TouchableOpacity
+                style={styles.eyeIcon}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? (
+                  <EyeOff color="#4b5563" size={20} />
+                ) : (
+                  <Eye color="#4b5563" size={20} />
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
 
           <TouchableOpacity
@@ -177,6 +190,23 @@ const styles = StyleSheet.create({
     padding: 16,
     color: '#f8fafc',
     fontSize: 16,
+  },
+  passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#0f141f',
+    borderWidth: 1,
+    borderColor: '#334155',
+    borderRadius: 12,
+  },
+  passwordInput: {
+    flex: 1,
+    padding: 16,
+    color: '#f8fafc',
+    fontSize: 16,
+  },
+  eyeIcon: {
+    padding: 16,
   },
   primaryButton: {
     backgroundColor: '#22c55e',
