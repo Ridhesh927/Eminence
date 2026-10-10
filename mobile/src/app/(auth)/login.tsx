@@ -457,7 +457,22 @@ export default function LoginScreen() {
             </View>
           )}
 
-
+          {step === 'phone' && (
+            <>
+              <View style={styles.adminDivider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>ENTERPRISE ADMIN</Text>
+                <View style={styles.dividerLine} />
+              </View>
+              
+              <TouchableOpacity
+                style={styles.adminLinkBtn}
+                onPress={() => router.push('/(auth)/admin-login')}
+              >
+                <Text style={styles.adminLinkText}>Go to Secure Admin Portal</Text>
+              </TouchableOpacity>
+            </>
+          )}
 
           <TermsModal
             visible={showTermsModal}
