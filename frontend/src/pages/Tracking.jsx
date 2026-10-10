@@ -355,19 +355,21 @@ const Tracking = () => {
             </div>
             <div className="flex-1">
               <h3 className="text-lg font-bold text-loft-50">
-                {booking?.driver?.name || 'Ramesh Kumar'}
+                {booking?.is3plOutsourced 
+                  ? booking?.thirdPartyProvider 
+                  : (booking?.driver?.name || (booking?.status === 'pending' ? 'Finding a driver...' : 'Assigning driver...'))}
               </h3>
               <div className="flex items-center gap-2 text-sm text-loft-300">
                 <span>⭐ {booking?.driver?.rating || '4.8'}</span>
                 <span>&bull;</span>
-                <span className="capitalize">{booking?.vehicle?.type ? `${booking.vehicle.type} tempo` : 'Tata Ace (Medium)'}</span>
+                <span className="capitalize">{booking?.is3plOutsourced ? 'Outsourced Partner' : (booking?.vehicle?.type ? `${booking.vehicle.type} tempo` : 'Tata Ace (Medium)')}</span>
               </div>
             </div>
           </div>
           
           <div className="flex items-center justify-between">
             <div className="bg-loft-800 px-3 py-1 rounded text-lg font-mono font-bold text-loft-50 border border-loft-700">
-              {booking?.vehicle?.registrationNumber || booking?.driver?.licenseNumber || 'MH 12 AB 1234'}
+              {booking?.vehicle?.registrationNumber || booking?.driver?.licenseNumber || (booking?.is3plOutsourced ? '3PL-PARTNER' : 'MH 12 AB 1234')}
             </div>
             <div className="flex gap-2">
               <button className="w-10 h-10 rounded-full bg-copper-500/10 border border-copper-500/20 text-copper-500 flex items-center justify-center hover:bg-copper-500/20 transition-colors">
@@ -431,7 +433,7 @@ const Tracking = () => {
         onClose={() => setIsReviewModalOpen(false)} 
         bookingId={bookingId} 
         driverId={booking?.driverId || "d1234567-89ab-cdef-0123-456789abcdef"} 
-        driverName={booking?.driver?.name || "Ramesh Kumar"} 
+        driverName={booking?.is3plOutsourced ? booking?.thirdPartyProvider : (booking?.driver?.name || "Ramesh Kumar")} 
       />
     </div>
   );

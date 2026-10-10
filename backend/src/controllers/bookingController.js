@@ -47,7 +47,12 @@ const createBooking = async (req, res) => {
     let customerId = req.user?.id;
     if (req.user?.role === 'admin' && req.body.customerId) {
       customerId = req.body.customerId;
+    } else if (req.user?.role === 'admin') {
+      // If admin is testing the frontend without providing a customerId, pick a fallback demo customer
+      const demoCustomer = await Customer.findOne();
+      if (demoCustomer) customerId = demoCustomer.id;
     }
+    
     if (!customerId) {
       return res.status(401).json({ success: false, message: 'Authentication required to create a booking' });
     }

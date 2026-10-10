@@ -9,34 +9,24 @@ test.describe('AI Voice Booking Flow', () => {
     await page.getByRole('button', { name: 'Customer' }).click();
     await page.getByRole('textbox', { name: 'Email / Username / Phone' }).fill('1234567890');
     
-    // Intercept login to bypass actual Fast2SMS OTP creation
-    await page.route('**/api/auth/phone-login*', async (route) => {
-      await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ success: true, message: 'OTP sent' }) });
-    });
-    await page.getByRole('button', { name: 'Sign In' }).click();
+    await page.locator('input[type="password"]').fill('password123'); // Assume password is password123 or doesn't matter for mock
     
-    const otpInputs = page.locator('input[type="text"]');
-    await otpInputs.nth(0).fill('1');
-    await otpInputs.nth(1).fill('2');
-    await otpInputs.nth(2).fill('3');
-    await otpInputs.nth(3).fill('4');
-    await otpInputs.nth(4).fill('5');
-    await otpInputs.nth(5).fill('6');
-
-    // Intercept OTP Verification to bypass dynamic backend OTPs
-    await page.route('**/api/auth/phone-verify*', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          success: true,
-          token: 'fake-jwt-token',
-          user: { id: 1, phone: '1234567890', name: 'Demo User', role: 'customer', isProfileComplete: true }
-        })
+    // Intercept login to bypass actual DB check
+    await page.route('**/api/auth/login*', async (route) => {
+      await route.fulfill({ 
+        status: 200, 
+        contentType: 'application/json', 
+        body: JSON.stringify({ 
+          success: true, 
+          token: 'mock-jwt', 
+          user: { id: 'cust123', name: 'Demo User', role: 'customer', isProfileComplete: true } 
+        }) 
       });
     });
+    
+    await page.getByRole('button', { name: 'Login' }).click();
 
-    await page.getByRole('button', { name: 'Verify & Continue' }).click();
+    // 2. Go to New Booking section
 
     // 2. Go to New Booking section
     await page.waitForURL('**/customer/dashboard');

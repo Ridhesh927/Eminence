@@ -29,28 +29,9 @@ test.describe('Eminence Complete E2E Flow', () => {
     // Enter phone
     await page.getByRole('button', { name: 'Customer' }).click();
     await page.getByRole('textbox', { name: 'Email / Username / Phone' }).fill('1234567890');
-    // Intercept the initial login request to bypass real Firebase SMS sending which causes flakiness
-    await page.route('**/api/auth/phone-login*', async (route) => {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({ success: true, message: 'OTP sent' })
-      });
-    });
-
-    await page.getByRole('button', { name: 'Sign In' }).click();
-
-    // The app expects OTP. Let's enter the universal bypass or standard test OTP '123456'
-    // Since OTP inputs are split into 6 boxes, we fill them individually
-    const otpInputs = page.locator('input[type="text"]');
-    await otpInputs.nth(0).fill('1');
-    await otpInputs.nth(1).fill('2');
-    await otpInputs.nth(2).fill('3');
-    await otpInputs.nth(3).fill('4');
-    await otpInputs.nth(4).fill('5');
-    await otpInputs.nth(5).fill('6');
-    // Intercept OTP Verification to bypass dynamic backend OTPs
-    await page.route('**/api/auth/phone-verify*', async (route) => {
+    await page.locator('input[type="password"]').fill('password123');
+    // Intercept the initial login request
+    await page.route('**/api/auth/login*', async (route) => {
       await route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -61,7 +42,8 @@ test.describe('Eminence Complete E2E Flow', () => {
         })
       });
     });
-    await page.getByRole('button', { name: 'Verify & Continue' }).click();
+
+    await page.getByRole('button', { name: 'Login' }).click();
 
     // Verify successful login
     await expect(page).toHaveURL(/\/customer\/dashboard/);
