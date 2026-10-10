@@ -370,9 +370,7 @@ Return exactly a raw JSON object (and nothing else) with these keys:
     }
 
     const tempoType = extractedData.tempoType || 'small';
-    const distance = 15.0; // Mock distance for voice booking
     const emissionRate = tempoType === 'large' ? 350 : (tempoType === 'medium' ? 200 : 120);
-    const esgEmissions = parseFloat(((distance * emissionRate) / 1000).toFixed(2));
 
     let pickupLat = 18.5204, pickupLng = 73.8567; // Fallback Pune
     let dropLat = 18.5204, dropLng = 73.8567; // Fallback Pune
@@ -392,6 +390,33 @@ Return exactly a raw JSON object (and nothing else) with these keys:
       console.warn('Geocoding failed for voice booking:', e.message);
     }
 
+    // Calculate real distance using Haversine formula
+    const R = 6371; // Earth's radius in km
+    const dLat = (dropLat - pickupLat) * (Math.PI / 180);
+    const dLng = (dropLng - pickupLng) * (Math.PI / 180);
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(pickupLat * (Math.PI / 180)) * Math.cos(dropLat * (Math.PI / 180)) * 
+      Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    let distance = R * c;
+    
+    // If coordinates are identical or fallback failed, use minimum distance 5km
+    if (distance < 1) distance = 5.0;
+
+    const esgEmissions = parseFloat(((distance * emissionRate) / 1000).toFixed(2));
+    
+    // Dynamic Fare Calculation (Base Fare + Per KM rate)
+    let estimatedFare = 0;
+    if (tempoType === 'large') {
+      estimatedFare = 800 + (distance * 50); // 800 base + 50/km
+    } else if (tempoType === 'medium') {
+      estimatedFare = 500 + (distance * 35); // 500 base + 35/km
+    } else {
+      estimatedFare = 300 + (distance * 20); // 300 base + 20/km
+    }
+    estimatedFare = Math.round(estimatedFare);
+
     const finalBookingData = {
       customerId,
       pickupAddress: extractedData.pickupAddress || 'Unknown Pickup',
@@ -405,9 +430,9 @@ Return exactly a raw JSON object (and nothing else) with these keys:
       goodsType: extractedData.goodsType,
       weight: extractedData.weight,
       tempoType,
-      totalDistance: distance,
+      totalDistance: parseFloat(distance.toFixed(2)),
       esgEmissions,
-      estimatedFare: tempoType === 'large' ? 1200 : (tempoType === 'medium' ? 750 : 500),
+      estimatedFare,
       paymentMethod: 'cash',
       status: 'pending'
     };
