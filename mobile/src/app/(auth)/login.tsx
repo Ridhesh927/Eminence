@@ -22,12 +22,13 @@ import * as SecureStore from 'expo-secure-store';
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { sendOtp, verifyOtp, adminLogin, googleLogin } = useAuth();
+  const { sendOtp, verifyOtp, adminLogin, googleLogin, registerWithPassword, loginWithPassword } = useAuth();
 
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
-  const [step, setStep] = useState<'phone' | 'otp'>('phone');
+  const [step, setStep] = useState<'phone' | 'otp' | 'email_login' | 'email_register'>('phone');
   const [role, setRole] = useState<'customer' | 'driver' | 'admin'>('customer');
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [termsAccepted, setTermsAccepted] = useState(true);
@@ -221,6 +222,44 @@ export default function LoginScreen() {
     }
   };
 
+  const handleEmailRegister = async () => {
+    if (!email || !password || !phone) {
+      setErrorMessage('Email, phone and password are required');
+      return;
+    }
+    if (!termsAccepted) {
+      setErrorMessage('Please accept the Terms & Conditions');
+      return;
+    }
+    setLoading(true);
+    setErrorMessage('');
+    const res = await registerWithPassword({ name, email, phone, password, role });
+    setLoading(false);
+    if (res.success) {
+      setSuccessMessage('Registration successful! Please login.');
+      setStep('email_login');
+    } else {
+      setErrorMessage(res.message);
+    }
+  };
+
+  const handleEmailLogin = async () => {
+    if (!email || !password) {
+      setErrorMessage('Email and password are required');
+      return;
+    }
+    setLoading(true);
+    setErrorMessage('');
+    const res = await loginWithPassword({ email, password, role });
+    setLoading(false);
+    if (res.success) {
+      if (role === 'driver') router.replace('/(driver)/dashboard');
+      else router.replace('/(customer)/dashboard');
+    } else {
+      setErrorMessage(res.message);
+    }
+  };
+
   const handleGoogleSignIn = () => {
     if (!request) {
       setErrorMessage('Google Sign-In configuration is loading, please try again in a moment.');
@@ -247,16 +286,16 @@ export default function LoginScreen() {
         {/* Card */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>
-            {step === 'phone' ? 'Sign In / Register' : 'Verify Phone Number'}
+            {step === 'phone' ? 'Sign In / Register' : step === 'otp' ? 'Verify Phone Number' : step === 'email_login' ? 'Login to your Account' : 'Create an Account'}
           </Text>
           <Text style={styles.cardSubtitle}>
             {step === 'phone'
-              ? 'Enter your mobile number to get an instant verification code'
-              : `Enter the OTP sent to +91 ${phone}`}
+              ? 'Choose your preferred authentication method'
+              : step === 'otp' ? `Enter the OTP sent to +91 ${phone}` : step === 'email_login' ? 'Enter your email and password' : 'Fill out the form to register'}
           </Text>
 
           {/* Role selector (Customer vs Driver vs Admin) */}
-          {step === 'phone' && (
+          {(step === 'phone' || step === 'email_login' || step === 'email_register') && (
             <View style={styles.roleSelector}>
               <TouchableOpacity
                 style={[styles.roleBtn, role === 'customer' && styles.roleBtnActive]}
@@ -341,8 +380,88 @@ export default function LoginScreen() {
                 )}
               </TouchableOpacity>
             </View>
+          ) : step === 'email_login' ? (
+            <View style={styles.inputGroup}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Email Address</Text>
+                <TextInput style={styles.input} placeholder="Enter your email" placeholderTextColor="#a2b2c7" keyboardType="email-address" autoCapitalize="none" value={email} onChangeText={setEmail} />
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Password</Text>
+                <TextInput style={styles.input} placeholder="••••••••••••" placeholderTextColor="#a2b2c7" secureTextEntry value={password} onChangeText={setPassword} />
+              </View>
+              <TouchableOpacity style={styles.primaryBtn} onPress={handleEmailLogin} disabled={loading}>
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Login</Text>}
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.backBtn} onPress={() => setStep('email_register')}>
+                <Text style={styles.backBtnText}>Don't have an account? Sign Up</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.backBtn} onPress={() => setStep('phone')}>
+                <Text style={styles.backBtnText}>Back to Options</Text>
+              </TouchableOpacity>
+            </View>
+          ) : step === 'email_register' ? (
+            <View style={styles.inputGroup}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Full Name / Username</Text>
+                <TextInput style={styles.input} placeholder="John Doe" placeholderTextColor="#a2b2c7" value={name} onChangeText={setName} />
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Email Address</Text>
+                <TextInput style={styles.input} placeholder="john@example.com" placeholderTextColor="#a2b2c7" keyboardType="email-address" autoCapitalize="none" value={email} onChangeText={setEmail} />
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Mobile Phone Number</Text>
+                <TextInput style={styles.input} placeholder="10-digit number" placeholderTextColor="#a2b2c7" keyboardType="phone-pad" maxLength={10} value={phone} onChangeText={setPhone} />
+              </View>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Password</Text>
+                <TextInput style={styles.input} placeholder="••••••••••••" placeholderTextColor="#a2b2c7" secureTextEntry value={password} onChangeText={setPassword} />
+              </View>
+              
+              <View style={styles.termsRow}>
+                <TouchableOpacity onPress={() => setTermsAccepted(!termsAccepted)} style={[styles.checkbox, termsAccepted && styles.checkboxChecked]} activeOpacity={0.8}>
+                  {termsAccepted && <Text style={styles.checkmark}>✓</Text>}
+                </TouchableOpacity>
+                <View style={styles.termsTextContainer}>
+                  <Text style={styles.termsText}>
+                    I accept the <Text style={styles.termsLink} onPress={() => setShowTermsModal(true)}>Terms & Conditions</Text>
+                  </Text>
+                </View>
+              </View>
+
+              <TouchableOpacity style={[styles.primaryBtn, { backgroundColor: '#10b981' }]} onPress={handleEmailRegister} disabled={loading}>
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Sign Up</Text>}
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.backBtn} onPress={() => setStep('email_login')}>
+                <Text style={styles.backBtnText}>Already have an account? Login</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.backBtn} onPress={() => setStep('phone')}>
+                <Text style={styles.backBtnText}>Back to Options</Text>
+              </TouchableOpacity>
+            </View>
           ) : step === 'phone' ? (
             <View style={styles.inputGroup}>
+              <TouchableOpacity
+                style={[styles.primaryBtn, { backgroundColor: '#3b82f6', marginBottom: 12 }]}
+                onPress={() => setStep('email_login')}
+              >
+                <Text style={styles.primaryBtnText}>Login with Email & Password</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.primaryBtn, { backgroundColor: '#10b981', marginBottom: 20 }]}
+                onPress={() => setStep('email_register')}
+              >
+                <Text style={styles.primaryBtnText}>Sign Up with Email</Text>
+              </TouchableOpacity>
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+                <View style={{ flex: 1, height: 1, backgroundColor: '#2f3a4e' }} />
+                <Text style={{ color: '#a2b2c7', paddingHorizontal: 10, fontSize: 12 }}>OR CONTINUE WITH</Text>
+                <View style={{ flex: 1, height: 1, backgroundColor: '#2f3a4e' }} />
+              </View>
+
               <TouchableOpacity
                 style={[styles.primaryBtn, { backgroundColor: '#ffffff', marginBottom: 20, borderWidth: 1, borderColor: '#d1d5db', flexDirection: 'row', alignItems: 'center' }]}
                 onPress={handleGoogleSignIn}
