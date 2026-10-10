@@ -26,6 +26,8 @@ interface AuthContextType {
   acceptTerms: (version?: string) => Promise<{ success: boolean; message?: string }>;
   adminLogin: (email: string, password: string) => Promise<{ success: boolean; user?: User; message?: string }>;
   googleLogin: (idToken: string) => Promise<{ success: boolean; user?: User; message?: string }>;
+  registerWithPassword: (data: any) => Promise<{ success: boolean; message?: string }>;
+  loginWithPassword: (data: any) => Promise<{ success: boolean; user?: User; message?: string }>;
   logout: () => Promise<void>;
 }
 
@@ -197,6 +199,30 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const registerWithPassword = async (data: any) => {
+    try {
+      const res = await api.post('/api/auth/register', data);
+      return { success: true, message: res.data.message };
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.message || 'Registration failed';
+      return { success: false, message: msg };
+    }
+  };
+
+  const loginWithPassword = async (data: any) => {
+    try {
+      const res = await api.post('/api/auth/login', data);
+      if (res.data.success && res.data.token) {
+        await saveAuthSession(res.data.token, res.data.user);
+        return { success: true, user: res.data.user };
+      }
+      return { success: false, message: res.data.message || 'Login failed' };
+    } catch (err: any) {
+      const msg = err.response?.data?.message || err.message || 'Invalid credentials';
+      return { success: false, message: msg };
+    }
+  };
+
   const logout = async () => {
     setUser(null);
     setToken(null);
@@ -224,6 +250,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         acceptTerms,
         adminLogin,
         googleLogin,
+        registerWithPassword,
+        loginWithPassword,
         logout,
       }}
     >

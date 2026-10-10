@@ -802,9 +802,108 @@ const deleteUserData = async (req, res) => {
       success: true,
       message: 'Account personal data anonymized and erased successfully in compliance with DPDP guidelines'
     });
+  }
+};
+
+const bcryptjs = require('bcryptjs');
+
+const register = async (req, res) => {
+  try {
+    const { name, email, phone, password, role = 'customer' } = req.body;
+    
+    if (!email || !password || !phone) {
+      return res.status(400).json({ success: false, message: 'Email, phone, and password are required' });
+    }
+
+    const salt = await bcryptjs.genSalt(10);
+    const hashedPassword = await bcryptjs.hash(password, salt);
+
+    if (role === 'driver') {
+      const existingDriver = await Driver.findOne({ where: { phone } });
+      if (existingDriver) return res.status(400).json({ success: false, message: 'Phone already registered as Driver' });
+      
+      const driver = await Driver.create({
+        name: name || 'New Driver',
+        email,
+        phone,
+        password: hashedPassword,
+        licenseNumber: 'DL-' + Math.floor(Math.random()*10000)
+      });
+      
+      return res.status(201).json({ success: true, message: 'Driver registered successfully' });
+    } else {
+      const isBusiness = role === 'business';
+      const existingCustomer = await Customer.findOne({ where: { email } });
+      if (existingCustomer) return res.status(400).json({ success: false, message: 'Email already registered' });
+      
+      const refCode = 'EMINENCE-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+      const customer = await Customer.create({
+        name: name || 'New User',
+        email,
+        phone,
+        password: hashedPassword,
+        referralCode: refCode,
+        isBusiness
+      });
+      const { Wallet } = require('../models');
+      await Wallet.create({ customerId: customer.id, balance: 0.0 });
+      
+      return res.status(201).json({ success: true, message: 'Customer registered successfully' });
+    }
   } catch (error) {
-    console.error('Delete User Data Error:', error);
-    return res.status(500).json({ success: false, message: 'Failed to process account deletion request' });
+    console.error('Registration Error:', error);
+    return res.status(500).json({ success: false, message: 'Server error during registration' });
+  }
+};
+
+const login = async (req, res) => {
+  try {
+    const { email, password, role = 'customer' } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ success: false, message: 'Email and password are required' });
+    }
+
+    let user;
+    if (role === 'driver') {
+      user = await Driver.findOne({ where: { email } });
+    } else {
+      const isBusiness = role === 'business';
+      user = await Customer.findOne({ where: { email, isBusiness } });
+    }
+
+    if (!user || !user.password) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials or account uses OTP login' });
+    }
+
+    const isMatch = await bcryptjs.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    }
+
+    const token = jwt.sign(
+      { id: user.id, role, isProfileComplete: user.isProfileComplete !== false },
+      getJwtSecret(),
+      { expiresIn: process.env.JWT_EXPIRE || '7d' }
+    );
+
+    res.cookie('accessToken', token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000
+    });
+
+    const safeUser = user.toJSON ? user.toJSON() : { ...user };
+    delete safeUser.password;
+    if (safeUser.governmentId) {
+      safeUser.governmentId = maskGovernmentId(safeUser.governmentId);
+    }
+
+    return res.status(200).json({ success: true, token, user: safeUser });
+  } catch (error) {
+    console.error('Login Error:', error);
+    return res.status(500).json({ success: false, message: 'Server error during login' });
   }
 };
 
@@ -815,6 +914,8 @@ module.exports = {
   verifyOtp,
   phoneLogin,
   phoneVerify,
+  register,
+  login,
   getTerms,
   acceptTerms,
   exportUserData,

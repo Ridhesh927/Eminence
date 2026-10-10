@@ -20,6 +20,10 @@ const Driver = sequelize.define('Driver', {
     type: DataTypes.STRING,
     allowNull: true,
   },
+  password: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
   licenseNumber: {
     type: DataTypes.STRING,
     allowNull: false,

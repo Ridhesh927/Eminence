@@ -9,6 +9,8 @@ router.get('/terms', authController.getTerms);
 router.post('/google-login', authLimiter, authController.googleLogin);
 router.post('/phone-login', authLimiter, authController.phoneLogin);
 router.post('/phone-verify', authLimiter, authController.phoneVerify);
+router.post('/register', authLimiter, authController.register);
+router.post('/login', authLimiter, authController.login);
 
 // Protected Routes
 router.post('/accept-terms', authLimiter, authMiddleware, authController.acceptTerms);

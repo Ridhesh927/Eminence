@@ -19,6 +19,10 @@ const Customer = sequelize.define('Customer', {
       isEmail: true,
     },
   },
+  password: {
+    type: DataTypes.STRING,
+    allowNull: true, // true because old users and Google Auth users might not have a password
+  },
   phone: {
     type: DataTypes.STRING,
     allowNull: true,
