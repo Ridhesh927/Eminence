@@ -802,9 +802,11 @@ const deleteUserData = async (req, res) => {
       success: true,
       message: 'Account personal data anonymized and erased successfully in compliance with DPDP guidelines'
     });
+  } catch (error) {
+    console.error('Delete User Data Error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to delete user data' });
   }
 };
-
 const bcryptjs = require('bcryptjs');
 
 const register = async (req, res) => {

@@ -5,8 +5,8 @@ const request = (path, data) => {
     const postData = JSON.stringify(data);
     const req = http.request(
       {
-        hostname: 'localhost',
-        port: 5000,
+        hostname: '127.0.0.1',
+        port: 3000,
         path: path,
         method: 'POST',
         headers: {
