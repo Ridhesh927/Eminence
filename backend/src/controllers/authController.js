@@ -856,20 +856,33 @@ const register = async (req, res) => {
   }
 };
 
+const { Op } = require('sequelize');
+
 const login = async (req, res) => {
   try {
-    const { email, password, role = 'customer' } = req.body;
+    const identifier = req.body.identifier || req.body.email;
+    const { password, role = 'customer' } = req.body;
     
-    if (!email || !password) {
-      return res.status(400).json({ success: false, message: 'Email and password are required' });
+    if (!identifier || !password) {
+      return res.status(400).json({ success: false, message: 'Identifier and password are required' });
     }
 
     let user;
+    const searchConditions = {
+      [Op.or]: [
+        { email: identifier },
+        { phone: identifier },
+        { name: identifier }
+      ]
+    };
+
     if (role === 'driver') {
-      user = await Driver.findOne({ where: { email } });
+      user = await Driver.findOne({ where: searchConditions });
     } else {
       const isBusiness = role === 'business';
-      user = await Customer.findOne({ where: { email, isBusiness } });
+      user = await Customer.findOne({ 
+        where: { ...searchConditions, isBusiness } 
+      });
     }
 
     if (!user || !user.password) {

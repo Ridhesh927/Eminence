@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { ArrowRight, Phone, Mail, Lock, ShieldAlert } from 'lucide-react';
+import { ArrowRight, Phone, Mail, Lock, ShieldAlert, Eye, EyeOff } from 'lucide-react';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../../config/firebase';
 import api from '../../services/api';
@@ -19,9 +19,11 @@ const GoogleIcon = () => (
 );
 
 const Login = () => {
-  const [phone, setPhone] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({ email: '', password: '' });
@@ -38,19 +40,42 @@ const Login = () => {
 
   const isAdmin = activeTab === 'admin';
 
-  const handlePhoneSubmit = async (e) => {
+  const handleEmailLogin = async (e) => {
     e.preventDefault();
-    if (phone.length < 10) return;
+    if (!identifier || !password) return;
     setIsLoading(true);
     setError('');
+    setFieldErrors({ email: '', password: '' });
     try {
-      await api.post('/api/auth/phone-login', { phone });
+      const response = await api.post('/api/auth/login', { identifier, password, role: activeTab });
+      const data = response.data;
       setIsLoading(false);
-      navigate('/otp', { state: { phone } });
+      if (data.success) {
+        dispatch(loginSuccess({
+          id: data.user.id,
+          email: data.user.email,
+          name: data.user.name,
+          role: data.user.role,
+          token: data.token,
+          isProfileComplete: data.user.isProfileComplete
+        }));
+        if (!data.user.isProfileComplete) {
+          navigate('/complete-profile');
+        }
+      }
     } catch (err) {
-      console.error('Phone login error:', err);
+      console.error('Login error:', err);
       setIsLoading(false);
-      setError('Error sending OTP. Please try again.');
+      if (err.response && err.response.data) {
+        const data = err.response.data;
+        if (data.field) {
+          setFieldErrors((prev) => ({ ...prev, [data.field]: data.message }));
+        } else {
+          setError(data.message || 'Invalid credentials');
+        }
+      } else {
+        setError('Server error. Please try again later.');
+      }
     }
   };
 
@@ -95,17 +120,8 @@ const Login = () => {
       setError('Demo login is disabled in production builds.');
       return;
     }
-    const demoPhone = import.meta.env.VITE_DEMO_PHONE || '9999999999';
-    setIsLoading(true);
-    try {
-      await api.post('/api/auth/phone-login', { phone: demoPhone, role: activeTab });
-      setIsLoading(false);
-      navigate('/otp', { state: { phone: demoPhone, autoSubmit: true, role: activeTab } });
-    } catch (err) {
-      console.error('Demo login error:', err);
-      setIsLoading(false);
-      setError('Error logging in as demo user.');
-    }
+    setIdentifier('demo@eminence.com');
+    setPassword('demopassword123');
   };
 
   const handleGoogleSignIn = async () => {
@@ -231,10 +247,10 @@ const Login = () => {
                     </div>
                     <input
                       id="admin-password"
-                      type="password"
+                      type={showAdminPassword ? "text" : "password"}
                       required
                       autoComplete="current-password"
-                      className={`input-field pl-12 ${fieldErrors.password ? 'border-red-500 ring-1 ring-red-500' : ''}`}
+                      className={`input-field pl-12 pr-12 ${fieldErrors.password ? 'border-red-500 ring-1 ring-red-500' : ''}`}
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => {
@@ -242,6 +258,13 @@ const Login = () => {
                         if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: '' }));
                       }}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setShowAdminPassword(!showAdminPassword)}
+                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-loft-400 hover:text-loft-200"
+                    >
+                      {showAdminPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
                   </div>
                   {fieldErrors.password && (
                     <p className="mt-2 text-sm text-red-500 flex items-center">
@@ -302,33 +325,59 @@ const Login = () => {
                   <div className="w-full border-t border-loft-800"></div>
                 </div>
                 <div className="relative flex justify-center text-sm">
-                  <span className="px-4 bg-loft-900 text-loft-400">Or continue with phone</span>
+                  <span className="px-4 bg-loft-900 text-loft-400">Or login with email, username, or phone</span>
                 </div>
               </div>
 
-              <form onSubmit={handlePhoneSubmit} className="space-y-6">
+              <form onSubmit={handleEmailLogin} className="space-y-6">
                 <div>
-                  <label htmlFor="phone" className="block text-sm font-medium text-loft-200 mb-2">Phone Number</label>
+                  <label htmlFor="identifier" className="block text-sm font-medium text-loft-200 mb-2">Email / Username / Phone</label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                      <Phone className="h-5 w-5 text-loft-400" />
+                      <Mail className="h-5 w-5 text-loft-400" />
                     </div>
                     <input
-                      id="phone"
-                      name="phone"
-                      type="tel"
+                      id="identifier"
+                      name="identifier"
+                      type="text"
                       required
                       className="input-field pl-12"
-                      placeholder="Enter 10 digit number"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder="Enter your email, username, or phone"
+                      value={identifier}
+                      onChange={(e) => setIdentifier(e.target.value)}
                     />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="password" className="block text-sm font-medium text-loft-200 mb-2">Password</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <Lock className="h-5 w-5 text-loft-400" />
+                    </div>
+                    <input
+                      id="password"
+                      type={showPassword ? "text" : "password"}
+                      required
+                      autoComplete="current-password"
+                      className="input-field pl-12 pr-12"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-loft-400 hover:text-loft-200"
+                    >
+                      {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                    </button>
                   </div>
                 </div>
 
                 <button
                   type="submit"
-                  disabled={isLoading || phone.length < 10}
+                  disabled={isLoading || !identifier || !password}
                   className="btn-primary w-full"
                 >
                   {isLoading ? (
@@ -340,7 +389,7 @@ const Login = () => {
                       Processing...
                     </span>
                   ) : (
-                    <span className="flex items-center">Sign In <ArrowRight className="ml-2 w-5 h-5" /></span>
+                    <span className="flex items-center">Login <ArrowRight className="ml-2 w-5 h-5" /></span>
                   )}
                 </button>
               </form>

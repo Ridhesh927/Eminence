@@ -398,8 +398,8 @@ export default function LoginScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Email Address</Text>
-                <TextInput style={styles.input} placeholder="Enter your email" placeholderTextColor="#a2b2c7" keyboardType="email-address" autoCapitalize="none" value={email} onChangeText={setEmail} />
+                <Text style={styles.label}>Email / Username / Phone</Text>
+                <TextInput style={styles.input} placeholder="Enter your email, username, or phone" placeholderTextColor="#a2b2c7" keyboardType="default" autoCapitalize="none" value={email} onChangeText={setEmail} />
               </View>
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Password</Text>
