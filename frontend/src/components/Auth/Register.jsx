@@ -19,7 +19,7 @@ const GoogleIcon = () => (
 );
 
 const Register = () => {
-  const [formData, setFormData] = useState({ name: '', phone: '', email: '' });
+  const [formData, setFormData] = useState({ name: '', phone: '', email: '', password: '' });
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isTermsOpen, setIsTermsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -32,31 +32,31 @@ const Register = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handlePhoneSubmit = async (e) => {
+  const handleRegisterSubmit = async (e) => {
     e.preventDefault();
-    if (formData.phone.length < 10 || !formData.name || !termsAccepted) return;
+    if (!formData.name || !formData.email || !formData.password) return;
+    if (!termsAccepted) return;
     
     setIsLoading(true);
     try {
-      await api.post('/api/auth/phone-login', { phone: formData.phone, role: activeTab });
-      
-      // Save pending name for profile completion
-      localStorage.setItem('pendingName', formData.name);
-      
-      setIsLoading(false);
-      navigate('/otp', { 
-        state: { 
-          phone: formData.phone, 
-          isNewUser: true, 
-          name: formData.name, 
-          role: activeTab,
-          acceptedTerms: true
-        } 
+      const response = await api.post('/api/auth/register-password', { 
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        password: formData.password,
+        role: activeTab 
       });
-    } catch (error) {
-      console.error('Registration phone submit error:', error);
+      
       setIsLoading(false);
-      alert('Error initiating registration. Please try again.');
+      
+      if (response.data.success) {
+        alert('Registration successful! Please log in.');
+        navigate('/login');
+      }
+    } catch (error) {
+      console.error('Registration submit error:', error);
+      setIsLoading(false);
+      alert(error.response?.data?.message || 'Error initiating registration. Please try again.');
     }
   };
 
@@ -144,11 +144,11 @@ const Register = () => {
             <div className="w-full border-t border-loft-800"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-4 bg-loft-900 text-loft-400">Or register with phone</span>
+            <span className="px-4 bg-loft-900 text-loft-400">Or register with email</span>
           </div>
         </div>
 
-        <form onSubmit={handlePhoneSubmit} className="space-y-5">
+        <form onSubmit={handleRegisterSubmit} className="space-y-5">
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-loft-200 mb-2">
               Full Name
@@ -171,8 +171,26 @@ const Register = () => {
           </div>
 
           <div>
+            <label htmlFor="email" className="block text-sm font-medium text-loft-200 mb-2">
+              Email Address
+            </label>
+            <div className="relative">
+              <input
+                id="email"
+                name="email"
+                type="email"
+                required
+                className="input-field pl-4"
+                placeholder="john@example.com"
+                value={formData.email}
+                onChange={handleChange}
+              />
+            </div>
+          </div>
+
+          <div>
             <label htmlFor="phone" className="block text-sm font-medium text-loft-200 mb-2">
-              Phone Number
+              Phone Number (Optional)
             </label>
             <div className="relative">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -182,10 +200,27 @@ const Register = () => {
                 id="phone"
                 name="phone"
                 type="tel"
-                required
                 className="input-field pl-12"
                 placeholder="Enter 10 digit number"
                 value={formData.phone}
+                onChange={handleChange}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-loft-200 mb-2">
+              Password
+            </label>
+            <div className="relative">
+              <input
+                id="password"
+                name="password"
+                type="password"
+                required
+                className="input-field pl-4"
+                placeholder="••••••••"
+                value={formData.password}
                 onChange={handleChange}
               />
             </div>
@@ -215,7 +250,7 @@ const Register = () => {
 
           <button
             type="submit"
-            disabled={isLoading || formData.phone.length < 10 || !formData.name || !termsAccepted}
+            disabled={isLoading || !formData.email || !formData.name || !formData.password || !termsAccepted}
             className="btn-primary w-full mt-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? (

@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
 import api from '../../services/api';
 import { updateProfileSuccess } from '../../redux/slices/authSlice';
-import { MapPin, Phone, Building2, Map, FileText, CheckCircle2, User, Mail } from 'lucide-react';
+import { MapPin, Phone, Building2, Map, FileText, CheckCircle2, User, Mail, LocateFixed, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import TermsModal from '../Common/TermsModal';
 
@@ -31,6 +31,7 @@ const CompleteProfileModal = () => {
   const [message, setMessage] = useState('');
   const [isClosed, setIsClosed] = useState(false);
   const [otpCooldown, setOtpCooldown] = useState(0);
+  const [detectingLocation, setDetectingLocation] = useState(false);
 
   useEffect(() => {
     if (otpCooldown > 0) {
@@ -132,6 +133,46 @@ const CompleteProfileModal = () => {
     }
   };
 
+  const handleDetectLocation = () => {
+    if (!navigator.geolocation) {
+      setError('Geolocation is not supported by your browser');
+      return;
+    }
+
+    setDetectingLocation(true);
+    setError('');
+    
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          // Use OpenStreetMap Nominatim for free reverse geocoding
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+          const data = await res.json();
+          
+          if (data && data.address) {
+            setFormData(prev => ({
+              ...prev,
+              city: data.address.city || data.address.town || data.address.village || data.address.county || '',
+              state: data.address.state || '',
+              address: data.display_name || ''
+            }));
+            setMessage('Location detected successfully!');
+          }
+        } catch (err) {
+          setError('Failed to fetch location details.');
+        } finally {
+          setDetectingLocation(false);
+        }
+      },
+      (err) => {
+        setError('Failed to detect location. Please ensure location permissions are granted.');
+        setDetectingLocation(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <AnimatePresence>
@@ -230,6 +271,20 @@ const CompleteProfileModal = () => {
                       className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
                     />
                   </div>
+                </div>
+
+                {/* Address Section Header with Detect Button */}
+                <div className="flex items-center justify-between mt-2 mb-1">
+                  <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">Location Details</h3>
+                  <button
+                    type="button"
+                    onClick={handleDetectLocation}
+                    disabled={detectingLocation}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-orange-600 transition-colors bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-full"
+                  >
+                    {detectingLocation ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LocateFixed className="w-3.5 h-3.5" />}
+                    {detectingLocation ? 'Detecting...' : 'Detect Current Location'}
+                  </button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

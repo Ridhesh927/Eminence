@@ -16,6 +16,7 @@ import { useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import CompleteProfileModal from '../../components/CompleteProfileModal';
 
 interface AddressItem {
   id: string | number;
@@ -278,6 +279,20 @@ export default function CustomerDashboard() {
 
             {loading ? (
               <ActivityIndicator color="#e86331" style={{ marginVertical: 20 }} />
+            ) : rides.length === 0 ? (
+              <View style={styles.emptyCard}>
+                <Text style={styles.emptyCardIcon}>🚚</Text>
+                <Text style={styles.emptyCardTitle}>Welcome to Eminence!</Text>
+                <Text style={styles.emptyCardSub}>
+                  You haven't booked any tempos yet. Book your first transport now to get started!
+                </Text>
+                <TouchableOpacity
+                  style={styles.addFirstBtn}
+                  onPress={() => router.push('/(customer)/book' as any)}
+                >
+                  <Text style={styles.addFirstBtnText}>Book a Tempo</Text>
+                </TouchableOpacity>
+              </View>
             ) : (
               <>
                 {/* Dynamically Created Bookings */}
@@ -338,79 +353,6 @@ export default function CustomerDashboard() {
                     )}
                   </TouchableOpacity>
                 ))}
-
-                {/* Seeded History Rides (Matching TC-010) */}
-                <View style={styles.rideCard}>
-                  <View style={styles.rideHeader}>
-                    <Text style={styles.rideType}>Tata Ace (Small Tempo)</Text>
-                    <View style={styles.statusBadge}>
-                      <Text style={styles.statusText}>COMPLETED</Text>
-                    </View>
-                  </View>
-                  <View style={styles.routeContainer}>
-                    <View style={styles.routeItem}>
-                      <Text style={styles.routeDotGreen}>●</Text>
-                      <Text style={styles.routeText}>Swargate Market, Pune</Text>
-                    </View>
-                    <View style={styles.routeDivider} />
-                    <View style={styles.routeItem}>
-                      <Text style={styles.routeDotRed}>●</Text>
-                      <Text style={styles.routeText}>Hinjewadi Infotech Park Phase 1, Pune</Text>
-                    </View>
-                  </View>
-                  <View style={styles.rideFooter}>
-                    <Text style={styles.esgTag}>🌿 4.2 kg CO2 Saved</Text>
-                    <Text style={styles.rideFare}>₹650</Text>
-                  </View>
-                  <View style={styles.reviewRow}>
-                    {reviewedRides['seed-1'] ? (
-                      <Text style={styles.reviewedBadge}>★ {reviewedRides['seed-1']}.0 Rated</Text>
-                    ) : (
-                      <TouchableOpacity
-                        style={styles.rateDriverBtn}
-                        onPress={() => handleOpenReview({ id: 'seed-1', driverId: 1, tempoType: 'small' })}
-                      >
-                        <Text style={styles.rateDriverBtnText}>⭐ Rate Driver</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                </View>
-
-                <View style={styles.rideCard}>
-                  <View style={styles.rideHeader}>
-                    <Text style={styles.rideType}>Mahindra Bolero Pickup</Text>
-                    <View style={styles.statusBadge}>
-                      <Text style={styles.statusText}>COMPLETED</Text>
-                    </View>
-                  </View>
-                  <View style={styles.routeContainer}>
-                    <View style={styles.routeItem}>
-                      <Text style={styles.routeDotGreen}>●</Text>
-                      <Text style={styles.routeText}>Pune Railway Station Cargo Hub</Text>
-                    </View>
-                    <View style={styles.routeDivider} />
-                    <View style={styles.routeItem}>
-                      <Text style={styles.routeDotRed}>●</Text>
-                      <Text style={styles.routeText}>Kothrud Industrial Area, Pune</Text>
-                    </View>
-                  </View>
-                  <View style={styles.rideFooter}>
-                    <Text style={styles.esgTag}>🌿 5.1 kg CO2 Saved</Text>
-                    <Text style={styles.rideFare}>₹820</Text>
-                  </View>
-                  <View style={styles.reviewRow}>
-                    {reviewedRides['seed-2'] ? (
-                      <Text style={styles.reviewedBadge}>★ {reviewedRides['seed-2']}.0 Rated</Text>
-                    ) : (
-                      <TouchableOpacity
-                        style={styles.rateDriverBtn}
-                        onPress={() => handleOpenReview({ id: 'seed-2', driverId: 2, tempoType: 'medium' })}
-                      >
-                        <Text style={styles.rateDriverBtnText}>⭐ Rate Driver</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                </View>
               </>
             )}
           </View>
@@ -653,6 +595,9 @@ export default function CustomerDashboard() {
           </View>
         </View>
       </Modal>
+
+      {/* Profile Completion Modal */}
+      <CompleteProfileModal />
     </View>
   );
 }

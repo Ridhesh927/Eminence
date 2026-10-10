@@ -7,7 +7,7 @@ test.describe('AI Voice Booking Flow', () => {
     // 1. Login as Customer
     await page.goto('/login');
     await page.getByRole('button', { name: 'Customer' }).click();
-    await page.getByRole('textbox', { name: 'Phone Number' }).fill('1234567890');
+    await page.getByRole('textbox', { name: 'Email / Username / Phone' }).fill('1234567890');
     
     // Intercept login to bypass actual Fast2SMS OTP creation
     await page.route('**/api/auth/phone-login*', async (route) => {

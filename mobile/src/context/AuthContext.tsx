@@ -28,6 +28,7 @@ interface AuthContextType {
   googleLogin: (idToken: string) => Promise<{ success: boolean; user?: User; message?: string }>;
   registerWithPassword: (data: any) => Promise<{ success: boolean; message?: string }>;
   loginWithPassword: (data: any) => Promise<{ success: boolean; user?: User; message?: string }>;
+  updateUser: (user: User) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -223,6 +224,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const updateUser = async (updatedUser: User) => {
+    if (token) {
+      await saveAuthSession(token, updatedUser);
+    } else {
+      setUser(updatedUser);
+    }
+  };
+
   const logout = async () => {
     setUser(null);
     setToken(null);
@@ -252,6 +261,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         googleLogin,
         registerWithPassword,
         loginWithPassword,
+        updateUser,
         logout,
       }}
     >

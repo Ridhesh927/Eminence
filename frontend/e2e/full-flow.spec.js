@@ -28,7 +28,7 @@ test.describe('Eminence Complete E2E Flow', () => {
 
     // Enter phone
     await page.getByRole('button', { name: 'Customer' }).click();
-    await page.getByRole('textbox', { name: 'Phone Number' }).fill('1234567890');
+    await page.getByRole('textbox', { name: 'Email / Username / Phone' }).fill('1234567890');
     // Intercept the initial login request to bypass real Firebase SMS sending which causes flakiness
     await page.route('**/api/auth/phone-login*', async (route) => {
       await route.fulfill({

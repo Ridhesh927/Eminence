@@ -911,6 +911,7 @@ const login = async (req, res) => {
 
     const safeUser = user.toJSON ? user.toJSON() : { ...user };
     delete safeUser.password;
+    safeUser.role = role;
     if (safeUser.governmentId) {
       safeUser.governmentId = maskGovernmentId(safeUser.governmentId);
     }

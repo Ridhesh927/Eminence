@@ -7,7 +7,7 @@ test.describe('Driver Portal E2E Flow', () => {
     await page.goto('/login');
     
     await page.getByRole('button', { name: 'Driver' }).click();
-    await page.getByRole('textbox', { name: 'Phone Number' }).fill('9876543210');
+    await page.getByRole('textbox', { name: 'Email / Username / Phone' }).fill('9876543210');
     // Intercept the initial login request to bypass real Firebase SMS sending which causes flakiness
     await page.route('**/api/auth/phone-login*', async (route) => {
       await route.fulfill({
