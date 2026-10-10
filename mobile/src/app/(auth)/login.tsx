@@ -26,7 +26,7 @@ export default function LoginScreen() {
 
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
-  const [step, setStep] = useState<'phone' | 'otp' | 'email_login' | 'email_register'>('phone');
+  const [step, setStep] = useState<'email_login' | 'email_register' | 'otp'>('email_login');
   const [role, setRole] = useState<'customer' | 'driver' | 'admin'>('customer');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -286,16 +286,14 @@ export default function LoginScreen() {
         {/* Card */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>
-            {step === 'phone' ? 'Sign In / Register' : step === 'otp' ? 'Verify Phone Number' : step === 'email_login' ? 'Login to your Account' : 'Create an Account'}
+            {step === 'email_login' ? 'Login to your Account' : step === 'email_register' ? 'Create an Account' : 'Verify'}
           </Text>
           <Text style={styles.cardSubtitle}>
-            {step === 'phone'
-              ? 'Choose your preferred authentication method'
-              : step === 'otp' ? `Enter the OTP sent to +91 ${phone}` : step === 'email_login' ? 'Enter your email and password' : 'Fill out the form to register'}
+            {step === 'email_login' ? 'Enter your email and password' : step === 'email_register' ? 'Fill out the form to register' : ''}
           </Text>
 
           {/* Role selector (Customer vs Driver vs Admin) */}
-          {(step === 'phone' || step === 'email_login' || step === 'email_register') && (
+          {(step === 'email_login' || step === 'email_register') && (
             <View style={styles.roleSelector}>
               <TouchableOpacity
                 style={[styles.roleBtn, role === 'customer' && styles.roleBtnActive]}
@@ -382,6 +380,21 @@ export default function LoginScreen() {
             </View>
           ) : step === 'email_login' ? (
             <View style={styles.inputGroup}>
+              <TouchableOpacity
+                style={[styles.primaryBtn, { backgroundColor: '#ffffff', marginBottom: 20, borderWidth: 1, borderColor: '#d1d5db', flexDirection: 'row', alignItems: 'center' }]}
+                onPress={handleGoogleSignIn}
+                disabled={loading}
+              >
+                <Text style={{ fontSize: 20, marginRight: 10 }}>G</Text>
+                <Text style={[styles.primaryBtnText, { color: '#374151' }]}>Continue with Google</Text>
+              </TouchableOpacity>
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+                <View style={{ flex: 1, height: 1, backgroundColor: '#2f3a4e' }} />
+                <Text style={{ color: '#a2b2c7', paddingHorizontal: 10, fontSize: 12 }}>OR LOGIN WITH EMAIL</Text>
+                <View style={{ flex: 1, height: 1, backgroundColor: '#2f3a4e' }} />
+              </View>
+
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Email Address</Text>
                 <TextInput style={styles.input} placeholder="Enter your email" placeholderTextColor="#a2b2c7" keyboardType="email-address" autoCapitalize="none" value={email} onChangeText={setEmail} />
@@ -390,14 +403,34 @@ export default function LoginScreen() {
                 <Text style={styles.label}>Password</Text>
                 <TextInput style={styles.input} placeholder="••••••••••••" placeholderTextColor="#a2b2c7" secureTextEntry value={password} onChangeText={setPassword} />
               </View>
+              
               <TouchableOpacity style={styles.primaryBtn} onPress={handleEmailLogin} disabled={loading}>
                 {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Login</Text>}
               </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.primaryBtn, { backgroundColor: '#1a1f2e', marginTop: 15, borderWidth: 1, borderColor: '#e86331' }]}
+                onPress={handleBiometricLogin}
+                disabled={loading}
+              >
+                <Text style={[styles.primaryBtnText, { color: '#e86331' }]}>FaceID / Fingerprint</Text>
+              </TouchableOpacity>
+              
               <TouchableOpacity style={styles.backBtn} onPress={() => setStep('email_register')}>
                 <Text style={styles.backBtnText}>Don't have an account? Sign Up</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.backBtn} onPress={() => setStep('phone')}>
-                <Text style={styles.backBtnText}>Back to Options</Text>
+
+              <View style={styles.adminDivider}>
+                <View style={styles.dividerLine} />
+                <Text style={styles.dividerText}>ENTERPRISE ADMIN</Text>
+                <View style={styles.dividerLine} />
+              </View>
+              
+              <TouchableOpacity
+                style={styles.adminLinkBtn}
+                onPress={() => router.push('/(auth)/admin-login')}
+              >
+                <Text style={styles.adminLinkText}>Go to Secure Admin Portal</Text>
               </TouchableOpacity>
             </View>
           ) : step === 'email_register' ? (
@@ -411,7 +444,7 @@ export default function LoginScreen() {
                 <TextInput style={styles.input} placeholder="john@example.com" placeholderTextColor="#a2b2c7" keyboardType="email-address" autoCapitalize="none" value={email} onChangeText={setEmail} />
               </View>
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Mobile Phone Number</Text>
+                <Text style={styles.label}>Mobile Phone Number (Optional but Recommended)</Text>
                 <TextInput style={styles.input} placeholder="10-digit number" placeholderTextColor="#a2b2c7" keyboardType="phone-pad" maxLength={10} value={phone} onChangeText={setPhone} />
               </View>
               <View style={styles.inputGroup}>
@@ -435,105 +468,6 @@ export default function LoginScreen() {
               </TouchableOpacity>
               <TouchableOpacity style={styles.backBtn} onPress={() => setStep('email_login')}>
                 <Text style={styles.backBtnText}>Already have an account? Login</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.backBtn} onPress={() => setStep('phone')}>
-                <Text style={styles.backBtnText}>Back to Options</Text>
-              </TouchableOpacity>
-            </View>
-          ) : step === 'phone' ? (
-            <View style={styles.inputGroup}>
-              <TouchableOpacity
-                style={[styles.primaryBtn, { backgroundColor: '#3b82f6', marginBottom: 12 }]}
-                onPress={() => setStep('email_login')}
-              >
-                <Text style={styles.primaryBtnText}>Login with Email & Password</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.primaryBtn, { backgroundColor: '#10b981', marginBottom: 20 }]}
-                onPress={() => setStep('email_register')}
-              >
-                <Text style={styles.primaryBtnText}>Sign Up with Email</Text>
-              </TouchableOpacity>
-
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
-                <View style={{ flex: 1, height: 1, backgroundColor: '#2f3a4e' }} />
-                <Text style={{ color: '#a2b2c7', paddingHorizontal: 10, fontSize: 12 }}>OR CONTINUE WITH</Text>
-                <View style={{ flex: 1, height: 1, backgroundColor: '#2f3a4e' }} />
-              </View>
-
-              <TouchableOpacity
-                style={[styles.primaryBtn, { backgroundColor: '#ffffff', marginBottom: 20, borderWidth: 1, borderColor: '#d1d5db', flexDirection: 'row', alignItems: 'center' }]}
-                onPress={handleGoogleSignIn}
-                disabled={loading}
-              >
-                <Text style={{ fontSize: 20, marginRight: 10 }}>G</Text>
-                <Text style={[styles.primaryBtnText, { color: '#374151' }]}>Continue with Google</Text>
-              </TouchableOpacity>
-
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
-                <View style={{ flex: 1, height: 1, backgroundColor: '#2f3a4e' }} />
-                <Text style={{ color: '#a2b2c7', paddingHorizontal: 10, fontSize: 12 }}>OR CONTINUE WITH PHONE</Text>
-                <View style={{ flex: 1, height: 1, backgroundColor: '#2f3a4e' }} />
-              </View>
-
-              <Text style={styles.label}>Mobile Phone Number</Text>
-              <View style={styles.phoneInputRow}>
-                <View style={styles.countryCode}>
-                  <Text style={styles.countryCodeText}>+91</Text>
-                </View>
-                <TextInput
-                  style={styles.phoneInput}
-                  placeholder="10-digit number"
-                  placeholderTextColor="#a2b2c7"
-                  keyboardType="phone-pad"
-                  maxLength={10}
-                  value={phone}
-                  onChangeText={setPhone}
-                />
-              </View>
-
-              {/* Terms Agreement */}
-              <View style={styles.termsRow}>
-                <TouchableOpacity
-                  onPress={() => setTermsAccepted(!termsAccepted)}
-                  style={[styles.checkbox, termsAccepted && styles.checkboxChecked]}
-                  activeOpacity={0.8}
-                >
-                  {termsAccepted && <Text style={styles.checkmark}>✓</Text>}
-                </TouchableOpacity>
-                <View style={styles.termsTextContainer}>
-                  <Text style={styles.termsText}>
-                    I accept the{' '}
-                    <Text
-                      style={styles.termsLink}
-                      onPress={() => setShowTermsModal(true)}
-                    >
-                      Terms & Conditions
-                    </Text>
-                    {' '}and telematics privacy rules.
-                  </Text>
-                </View>
-              </View>
-
-              <TouchableOpacity
-                style={styles.primaryBtn}
-                onPress={handleSendOtp}
-                disabled={loading}
-              >
-                {loading ? (
-                  <ActivityIndicator color="#fff" />
-                ) : (
-                  <Text style={styles.primaryBtnText}>Send Verification Code</Text>
-                )}
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.primaryBtn, { backgroundColor: '#1a1f2e', marginTop: 15, borderWidth: 1, borderColor: '#e86331' }]}
-                onPress={handleBiometricLogin}
-                disabled={loading}
-              >
-                <Text style={[styles.primaryBtnText, { color: '#e86331' }]}>FaceID / Fingerprint</Text>
               </TouchableOpacity>
             </View>
           ) : (
@@ -566,31 +500,14 @@ export default function LoginScreen() {
               <TouchableOpacity
                 style={styles.backBtn}
                 onPress={() => {
-                  setStep('phone');
+                  setStep('email_login');
                   setOtp('');
                   setErrorMessage('');
                 }}
               >
-                <Text style={styles.backBtnText}>Change Phone Number</Text>
+                <Text style={styles.backBtnText}>Back to Login</Text>
               </TouchableOpacity>
             </View>
-          )}
-
-          {step === 'phone' && (
-            <>
-              <View style={styles.adminDivider}>
-                <View style={styles.dividerLine} />
-                <Text style={styles.dividerText}>ENTERPRISE ADMIN</Text>
-                <View style={styles.dividerLine} />
-              </View>
-              
-              <TouchableOpacity
-                style={styles.adminLinkBtn}
-                onPress={() => router.push('/(auth)/admin-login')}
-              >
-                <Text style={styles.adminLinkText}>Go to Secure Admin Portal</Text>
-              </TouchableOpacity>
-            </>
           )}
 
           <TermsModal
