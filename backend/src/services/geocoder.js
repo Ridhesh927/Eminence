@@ -34,7 +34,7 @@ const geocodeAddress = async (address) => {
     }
     return null;
   } catch (error) {
-    console.error(`[Geocoder] Failed to geocode address: ${address}`, error.message);
+    console.error('[Geocoder] Failed to geocode address: %s %s', address, error.message);
     return null; // Fallback to null on failure
   }
 };
