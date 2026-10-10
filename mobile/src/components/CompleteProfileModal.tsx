@@ -8,6 +8,7 @@ export default function CompleteProfileModal() {
   const { user, updateUser } = useAuth();
   const [loading, setLoading] = useState(false);
   const [detectingLocation, setDetectingLocation] = useState(false);
+  const [isClosed, setIsClosed] = useState(false);
   
   const [formData, setFormData] = useState({
     name: user?.name || '',
@@ -19,7 +20,7 @@ export default function CompleteProfileModal() {
     governmentId: ''
   });
 
-  if (!user || user.isProfileComplete) return null;
+  if (!user || user.isProfileComplete || isClosed) return null;
 
   const handleDetectLocation = async () => {
     setDetectingLocation(true);
@@ -74,6 +75,9 @@ export default function CompleteProfileModal() {
     <Modal visible={true} transparent={true} animationType="slide">
       <View style={styles.overlay}>
         <View style={styles.container}>
+          <TouchableOpacity style={styles.closeBtn} onPress={() => setIsClosed(true)}>
+            <Text style={styles.closeBtnText}>✕</Text>
+          </TouchableOpacity>
           <Text style={styles.title}>Complete Your Profile</Text>
           <Text style={styles.subtitle}>We need a few more details to set up your account completely.</Text>
 
@@ -232,6 +236,23 @@ const styles = StyleSheet.create({
   },
   flex1: {
     flex: 1,
+  },
+  closeBtn: {
+    position: 'absolute',
+    top: 15,
+    right: 15,
+    zIndex: 10,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  closeBtnText: {
+    color: '#a2b2c7',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   saveBtn: {
     backgroundColor: '#e86331',

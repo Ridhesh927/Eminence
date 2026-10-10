@@ -6,8 +6,8 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-
 import api from '../services/api';
+import AutocompleteLocationInput from '../components/Customer/Booking/AutocompleteLocationInput';
 import { bookingLocationsSchema, bookingDetailsSchema } from '../utils/formSchemas';
 
 const Booking = () => {
@@ -477,10 +477,13 @@ const Booking = () => {
                 
                 <div>
                   <label className="block text-sm font-medium text-loft-200 mb-1">Pickup Address</label>
-                  <div className="relative">
-                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-moss-500" />
-                    <input required name="pickup" value={formData.pickup} onChange={handleChange} type="text" className="input-field pl-12" placeholder="Enter pickup location" />
-                  </div>
+                  <AutocompleteLocationInput 
+                    required={true}
+                    value={formData.pickup}
+                    onChange={(val) => setFormData({ ...formData, pickup: val })}
+                    placeholder="Enter pickup location"
+                    iconColor="text-moss-500"
+                  />
                 </div>
                 
                 <div>
@@ -491,15 +494,13 @@ const Booking = () => {
                   <div className="space-y-3">
                     {formData.drops.map((drop, index) => (
                       <div key={index} className="relative flex items-center gap-2">
-                        <div className="relative flex-1">
-                          <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-copper-500" />
-                          <input 
-                            required 
-                            value={drop} 
-                            onChange={(e) => handleDropChange(index, e.target.value)} 
-                            type="text" 
-                            className="input-field pl-12" 
-                            placeholder={`Enter drop location ${index + 1}`} 
+                        <div className="flex-1">
+                          <AutocompleteLocationInput 
+                            required={true}
+                            value={drop}
+                            onChange={(val) => handleDropChange(index, val)}
+                            placeholder={`Enter drop location ${index + 1}`}
+                            iconColor="text-copper-500"
                           />
                         </div>
                         {formData.drops.length > 1 && (
