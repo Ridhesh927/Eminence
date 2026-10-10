@@ -62,7 +62,11 @@ const createBooking = async (req, res) => {
     bookingData.esgEmissions = parseFloat(((distance * emissionRate) / 1000).toFixed(2)); // in KG CO2
 
     // Multi-stop Optimization & Geocoding
-    const dropsArr = (req.body.drops && Array.isArray(req.body.drops)) ? req.body.drops : (req.body.dropAddress ? req.body.dropAddress.split(' → ') : []);
+    const MAX_DROPS = 100;
+    const rawDropsArr = (req.body.drops && Array.isArray(req.body.drops))
+      ? req.body.drops
+      : (req.body.dropAddress ? req.body.dropAddress.split(' → ') : []);
+    const dropsArr = Array.isArray(rawDropsArr) ? rawDropsArr.slice(0, MAX_DROPS) : [];
     
     if (dropsArr.length > 0 || req.body.pickupAddress) {
       // 1. Geocode Pickup
