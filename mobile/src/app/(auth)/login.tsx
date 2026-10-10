@@ -241,7 +241,7 @@ export default function LoginScreen() {
       setSuccessMessage('Registration successful! Please login.');
       setStep('email_login');
     } else {
-      setErrorMessage(res.message);
+      setErrorMessage(res.message || 'An error occurred during registration.');
     }
   };
 
@@ -258,7 +258,7 @@ export default function LoginScreen() {
       if (role === 'driver') router.replace('/(driver)/dashboard');
       else router.replace('/(customer)/dashboard');
     } else {
-      setErrorMessage(res.message);
+      setErrorMessage(res.message || 'An error occurred during login.');
     }
   };
 
