@@ -16,12 +16,13 @@ try {
     }),
   });
 } catch (error) {
-  console.warn('expo-notifications is not available in Expo Go SDK 53+:', error);
+  // Suppressing the terminal log to keep the Expo output perfectly clean
+  // console.log('expo-notifications is not available in Expo Go SDK 53+:', error);
 }
 
 export const registerForPushNotificationsAsync = async () => {
   if (!Notifications) {
-    console.warn('Push notifications are not available in this environment.');
+    // console.log('Push notifications are not available in this environment.');
     return;
   }
 

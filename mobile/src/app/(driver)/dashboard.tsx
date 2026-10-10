@@ -17,6 +17,7 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { startBackgroundLocation, stopBackgroundLocation } from '../../services/LocationTracking';
+import * as Location from 'expo-location';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import NetInfo from '@react-native-community/netinfo';
 import { queueOfflineRequest } from '../../services/OfflineSync';
@@ -249,11 +250,23 @@ export default function DriverDashboard() {
     
     setLoading(true);
     try {
+      // Get exact GPS timestamp and coordinates for Blockchain PoD
+      let currentLat = null;
+      let currentLng = null;
+      try {
+        const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        currentLat = loc.coords.latitude;
+        currentLng = loc.coords.longitude;
+      } catch (e) {
+        console.log("Could not fetch location for PoD:", e);
+      }
+
       const netState = await NetInfo.fetch();
+      const payload = { photoUri, lat: currentLat, lng: currentLng };
       
       if (!netState.isConnected) {
         if (activeTrip?.bookingId && activeTrip.bookingId.length > 20) {
-          queueOfflineRequest(`/api/bookings/${activeTrip.bookingId}/complete`, 'POST', { photoUri });
+          queueOfflineRequest(`/api/bookings/${activeTrip.bookingId}/complete`, 'POST', payload);
         }
         setPodHash('OFFLINE_SYNC_PENDING_' + Math.random().toString(36).substring(7).toUpperCase());
         setTripStep('completed');
@@ -261,7 +274,7 @@ export default function DriverDashboard() {
         Alert.alert('Offline Mode', 'Delivery saved locally. It will auto-sync when connection is restored.');
       } else {
         if (activeTrip?.bookingId && activeTrip.bookingId.length > 20) {
-          const res = await api.post(`/api/bookings/${activeTrip.bookingId}/complete`);
+          const res = await api.post(`/api/bookings/${activeTrip.bookingId}/complete`, payload);
           if (res.data?.booking?.podHash) {
             setPodHash(res.data.booking.podHash);
           }

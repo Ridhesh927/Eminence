@@ -218,11 +218,16 @@ const completeBooking = async (req, res) => {
     booking.status = 'completed';
     
     // Blockchain PoD Simulation
+    // Incorporate real GPS location from driver app (IoT simulation)
+    const { lat, lng } = req.body;
     const bookingDataStr = JSON.stringify({
       id: booking.id,
       customerId: booking.customerId,
       driverId: booking.driverId,
-      timestamp: new Date().toISOString()
+      status: booking.status,
+      timestamp: new Date().toISOString(),
+      gps_lat: lat || booking.dropLat || 'Unknown',
+      gps_lng: lng || booking.dropLng || 'Unknown',
     });
     const podHash = crypto.createHash('sha256').update(bookingDataStr).digest('hex');
     booking.podHash = podHash;

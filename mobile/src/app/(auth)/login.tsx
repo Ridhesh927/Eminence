@@ -302,7 +302,8 @@ export default function LoginScreen() {
             <View style={styles.successBox}>
               <Text style={styles.successText}>{successMessage}</Text>
             </View>
-          ) : null}          {/* Input Fields */}
+          ) : null}
+          {/* Input Fields */}
           {role === 'admin' ? (
             <View style={styles.inputGroup}>
               <View style={styles.inputGroup}>
