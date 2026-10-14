@@ -15,7 +15,7 @@ function isOffTopicQuery(text) {
 
   const codingPattern = /\b(python|javascript|typescript|c\+\+|java|html|css|sql|script|function|algorithm|write code|code a|write a program|debug|regex|api key)\b/i;
   const triviaPattern = /\b(president|prime minister|capital of|who wrote|history of|recipe|how to cook|bake a cake|lyrics of|write a poem|write a song|write an essay|solve for x|integral of|derivative of)\b/i;
-  const mathPattern = /^\s*(\d+[\s\+\-\*\/%]+\d+)+\s*$/;
+  const mathPattern = /^\s*\d+(?:[\s+\-*/%]+\d+)+\s*$/;
   const roleplayPattern = /\b(pretend you are|ignore previous instructions|act as a|roleplay as|jailbreak)\b/i;
 
   if (codingPattern.test(t) || triviaPattern.test(t) || mathPattern.test(t) || roleplayPattern.test(t)) {
