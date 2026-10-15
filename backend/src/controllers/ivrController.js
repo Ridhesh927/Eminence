@@ -1,6 +1,38 @@
 const axios = require('axios');
 const ivrVoiceService = require('../services/ivrVoiceService');
 
+// Restrict telephony recording downloads to known trusted hosts only.
+// Update this allow-list to match your carrier/provider domains.
+const ALLOWED_RECORDING_HOSTS = new Set([
+  'api.twilio.com',
+  'media.twiliocdn.com'
+]);
+
+function isAllowedRecordingUrl(rawUrl) {
+  try {
+    const parsed = new URL(rawUrl);
+
+    // Enforce HTTPS only.
+    if (parsed.protocol !== 'https:') {
+      return false;
+    }
+
+    // Prevent custom ports (allow default HTTPS only).
+    if (parsed.port && parsed.port !== '443') {
+      return false;
+    }
+
+    // Hostname must be in the explicit allow-list.
+    if (!ALLOWED_RECORDING_HOSTS.has(parsed.hostname)) {
+      return false;
+    }
+
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
 /**
  * REST Endpoint for Mobile and Web Apps:
  * POST /api/ivr/voice-query
@@ -108,14 +140,30 @@ async function handleRecordingCallback(req, res) {
       return res.status(200).send(twiml);
     }
 
-    // Download the recording audio from the telephony carrier (appending .wav if applicable)
-    const downloadUrl = recordingUrl.endsWith('.wav') || recordingUrl.endsWith('.mp3')
-      ? recordingUrl
-      : `${recordingUrl}.wav`;
+    if (!isAllowedRecordingUrl(recordingUrl)) {
+      console.warn('Rejected untrusted RecordingUrl');
+      const twiml = ivrVoiceService.generateTwimlResponse(
+        'Thank you for calling Eminence. We are processing your request and an SMS update has been dispatched.',
+        { hangup: true }
+      );
+      res.set('Content-Type', 'text/xml');
+      return res.status(200).send(twiml);
+    }
+
+    const parsedRecordingUrl = new URL(recordingUrl);
+    const pathname = parsedRecordingUrl.pathname.toLowerCase();
+    if (!pathname.endsWith('.wav') && !pathname.endsWith('.mp3')) {
+      parsedRecordingUrl.pathname = `${parsedRecordingUrl.pathname}.wav`;
+    }
+    const downloadUrl = parsedRecordingUrl.toString();
 
     let audioBuffer;
     try {
-      const response = await axios.get(downloadUrl, { responseType: 'arraybuffer', timeout: 8000 });
+      const response = await axios.get(downloadUrl, {
+        responseType: 'arraybuffer',
+        timeout: 8000,
+        maxRedirects: 0
+      });
       audioBuffer = Buffer.from(response.data);
     } catch (fetchErr) {
       console.warn('Could not download telephony audio:', fetchErr.message);
