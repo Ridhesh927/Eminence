@@ -152,10 +152,23 @@ async function handleRecordingCallback(req, res) {
 
     const parsedRecordingUrl = new URL(recordingUrl);
     const pathname = parsedRecordingUrl.pathname.toLowerCase();
-    if (!pathname.endsWith('.wav') && !pathname.endsWith('.mp3')) {
-      parsedRecordingUrl.pathname = `${parsedRecordingUrl.pathname}.wav`;
-    }
-    const downloadUrl = parsedRecordingUrl.toString();
+
+    // Rebuild a canonical URL from validated components to avoid passing
+    // attacker-controlled raw URL text into the outbound request sink.
+    const canonicalUrl = new URL('https://placeholder.invalid');
+    canonicalUrl.protocol = 'https:';
+    canonicalUrl.hostname = parsedRecordingUrl.hostname.toLowerCase();
+    canonicalUrl.port = parsedRecordingUrl.port || '';
+    canonicalUrl.pathname =
+      !pathname.endsWith('.wav') && !pathname.endsWith('.mp3')
+        ? `${parsedRecordingUrl.pathname}.wav`
+        : parsedRecordingUrl.pathname;
+
+    // Recording media fetch does not require query or fragment; drop them.
+    canonicalUrl.search = '';
+    canonicalUrl.hash = '';
+
+    const downloadUrl = canonicalUrl.toString();
 
     let audioBuffer;
     try {
