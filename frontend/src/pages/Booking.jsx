@@ -42,6 +42,10 @@ const Booking = () => {
   const [isProcessingTopup, setIsProcessingTopup] = useState(false);
   const [topupError, setTopupError] = useState('');
   const [topupSuccess, setTopupSuccess] = useState('');
+  const safeTopupAmount = (() => {
+    const parsed = Number(topupAmount);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 500;
+  })();
   
   // Fetch saved addresses for quick selection
   useEffect(() => {
@@ -1635,7 +1639,7 @@ const Booking = () => {
                     <span>Secure 256-bit encryption</span>
                   </div>
                   <a
-                    href={`/wallet?refill=true&amount=${topupAmount || 500}`}
+                    href={`/wallet?refill=true&amount=${encodeURIComponent(String(safeTopupAmount))}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-copper-400 hover:underline flex items-center gap-1 font-medium"
