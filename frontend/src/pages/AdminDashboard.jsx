@@ -1,6 +1,7 @@
 import { useState } from 'react';
 
 import { useSelector } from 'react-redux';
+import { getToken } from '../services/tokenService';
 import { 
   BarChart3, Users, Truck, FileText, Settings, 
   ShieldAlert, Activity, MessageSquare, UserCheck, Tag
@@ -20,7 +21,8 @@ import PromoCodesTab from '../components/admin/PromoCodesTab';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
-  const { token } = useSelector((state) => state.auth);
+  const { token: reduxToken } = useSelector((state) => state.auth);
+  const token = reduxToken || getToken();
 
   return (
     <div className="w-full pt-12 pb-24 relative min-h-screen bg-loft-950">

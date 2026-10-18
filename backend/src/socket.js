@@ -329,11 +329,15 @@ const initSocket = (httpServer) => {
       const telemetryStatus = getTelemetryStatus();
       socket.emit('telemetry_status', telemetryStatus);
 
-      const simulationVehicleId = process.env.TELEMETRY_SIMULATION_VEHICLE_ID;
+      const simulationVehicleId = process.env.TELEMETRY_SIMULATION_VEHICLE_ID || 'MH-12-BP-1001';
       if (telemetryStatus.simulated && simulationVehicleId) {
         const { startTelemetrySimulation, getTelemetryHistory } = require('./services/telematicsSimulator');
         startTelemetrySimulation(simulationVehicleId);
-        socket.emit('telemetry_history', getTelemetryHistory(simulationVehicleId));
+        const history = getTelemetryHistory(simulationVehicleId);
+        socket.emit('telemetry_history', history);
+        if (history.length > 0) {
+          socket.emit('telemetry_update', history[history.length - 1]);
+        }
       }
     });
 
@@ -345,8 +349,8 @@ const initSocket = (httpServer) => {
       socket.leave('admin_telemetry');
       console.log(`[Socket] Admin ${socket.id} left admin_telemetry`);
       const { stopTelemetrySimulation } = require('./services/telematicsSimulator');
-      if (process.env.TELEMETRY_SIMULATION_VEHICLE_ID) {
-        stopTelemetrySimulation(process.env.TELEMETRY_SIMULATION_VEHICLE_ID);
+      if (process.env.TELEMETRY_SIMULATION_VEHICLE_ID || 'MH-12-BP-1001') {
+        stopTelemetrySimulation(process.env.TELEMETRY_SIMULATION_VEHICLE_ID || 'MH-12-BP-1001');
       }
     });
 
@@ -358,8 +362,8 @@ const initSocket = (httpServer) => {
       // Clean up mock simulation if admin disconnects
       try {
         const { stopTelemetrySimulation } = require('./services/telematicsSimulator');
-        if (process.env.TELEMETRY_SIMULATION_VEHICLE_ID) {
-          stopTelemetrySimulation(process.env.TELEMETRY_SIMULATION_VEHICLE_ID);
+        if (process.env.TELEMETRY_SIMULATION_VEHICLE_ID || 'MH-12-BP-1001') {
+          stopTelemetrySimulation(process.env.TELEMETRY_SIMULATION_VEHICLE_ID || 'MH-12-BP-1001');
         }
       } catch (err) {}
     });

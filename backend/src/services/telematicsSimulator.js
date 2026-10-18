@@ -20,16 +20,16 @@ const fluctuate = (base, variance) => {
  */
 const startTelemetrySimulation = (vehicleId) => {
   if (!isSimulatorEnabled()) return false;
-  if (activeVehicles.has(vehicleId)) return; // Already running
+  if (activeVehicles.has(vehicleId)) return true; // Already running
 
-  let currentSpeed = 0;
+  let currentSpeed = 38;
   let targetSpeed = 45; // target cruising speed
   let engineTemp = 90; // normal operating temp
   let fuelLevel = 85; // %
-  let rpm = 800; // idle
+  let rpm = 2150; // running rpm
   let healthScore = 100; // 0-100%
 
-  const timer = setInterval(() => {
+  const emitTick = () => {
     try {
       const io = getIo();
       
@@ -104,7 +104,10 @@ const startTelemetrySimulation = (vehicleId) => {
     } catch (err) {
       // socket might not be initialized yet, ignore
     }
-  }, 2000); // Emits every 2 seconds
+  };
+
+  emitTick();
+  const timer = setInterval(emitTick, 2000);
 
   activeVehicles.set(vehicleId, timer);
   console.log(`[Telematics] Started simulation for vehicle ${vehicleId}`);
