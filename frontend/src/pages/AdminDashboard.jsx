@@ -17,7 +17,6 @@ import AnalyticsTab from '../components/admin/AnalyticsTab';
 import ChatInbox from '../components/admin/ChatInbox';
 import SettingsTab from '../components/admin/SettingsTab';
 import PromoCodesTab from '../components/admin/PromoCodesTab';
-import NotificationBell from '../components/Shared/NotificationBell';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -30,12 +29,9 @@ const AdminDashboard = () => {
         {/* Sidebar */}
         <div className="w-full md:w-64 flex-shrink-0">
           <div className="sticky top-28 bg-loft-900 border border-loft-800 rounded-2xl p-4">
-            <div className="mb-8 px-4 py-2 flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold text-loft-50 font-serif">Admin Control</h2>
-                <p className="text-xs text-moss-500 font-bold uppercase tracking-wider">Superadmin</p>
-              </div>
-              <NotificationBell role="admin" variant="dashboard" />
+            <div className="mb-8 px-4 py-2">
+              <h2 className="text-xl font-bold text-loft-50 font-serif">Admin Control</h2>
+              <p className="text-xs text-moss-500 font-bold uppercase tracking-wider">Superadmin</p>
             </div>
             
             <nav className="space-y-1">

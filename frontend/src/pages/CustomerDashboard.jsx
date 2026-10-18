@@ -16,7 +16,6 @@ import { addressSchema, profileSchema } from '../utils/formSchemas';
 import AutocompleteLocationInput from '../components/Customer/Booking/AutocompleteLocationInput';
 import TripDetailsModal from '../components/Customer/TripDetailsModal';
 import { getPunePincode } from '../utils/puneGeocoder';
-import NotificationBell from '../components/Shared/NotificationBell';
 
 const CustomerDashboard = ({ initialTab = 'history', autoOpenTopup = false }) => {
   const { user } = useSelector((state) => state.auth);
@@ -805,7 +804,6 @@ const CustomerDashboard = ({ initialTab = 'history', autoOpenTopup = false }) =>
             <div>
               <h1 className="text-3xl md:text-4xl font-serif font-bold text-loft-50 mb-2 flex items-center gap-3">
                 Dashboard
-                <NotificationBell role="customer" variant="dashboard" />
                 {isPro && (
                   <span className="bg-gradient-to-r from-yellow-400 to-yellow-600 text-black text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1 uppercase tracking-widest">
                     <Crown className="w-3 h-3" /> Pro
