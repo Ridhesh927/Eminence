@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useSelector } from 'react-redux';
 import { getToken } from '../services/tokenService';
 import { 
-  BarChart3, Users, Truck, FileText, Settings, 
+  BarChart3, Users, Truck, Settings, 
   ShieldAlert, Activity, MessageSquare, UserCheck, Tag
 } from 'lucide-react';
 
@@ -13,7 +13,6 @@ import UsersTab from '../components/admin/UsersTab';
 import DriversTab from '../components/admin/DriversTab';
 import AppointWorkTab from '../components/admin/AppointWorkTab';
 import VehiclesTab from '../components/admin/VehiclesTab';
-import ContractsTab from '../components/admin/ContractsTab';
 import AnalyticsTab from '../components/admin/AnalyticsTab';
 import ChatInbox from '../components/admin/ChatInbox';
 import SettingsTab from '../components/admin/SettingsTab';
@@ -44,7 +43,6 @@ const AdminDashboard = () => {
                 { id: 'drivers', label: 'Manage Drivers', icon: ShieldAlert },
                 { id: 'dispatch', label: 'Appoint Work', icon: UserCheck },
                 { id: 'vehicles', label: 'Manage Vehicles', icon: Truck },
-                { id: 'contracts', label: 'Contracts', icon: FileText },
                 { id: 'promocodes', label: 'Promo Codes', icon: Tag },
                 { id: 'analytics', label: 'Analytics', icon: BarChart3 },
                 { id: 'chat', label: 'Support Inbox', icon: MessageSquare },
@@ -75,7 +73,6 @@ const AdminDashboard = () => {
           {activeTab === 'drivers' && <DriversTab />}
           {activeTab === 'dispatch' && <AppointWorkTab />}
           {activeTab === 'vehicles' && <VehiclesTab />}
-          {activeTab === 'contracts' && <ContractsTab />}
           {activeTab === 'promocodes' && <PromoCodesTab />}
           {activeTab === 'analytics' && <AnalyticsTab />}
           {activeTab === 'chat' && <ChatInbox activeTab={activeTab} token={token} />}
