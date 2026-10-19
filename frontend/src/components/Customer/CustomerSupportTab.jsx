@@ -220,7 +220,7 @@ const CustomerSupportTab = ({ user, token }) => {
       </div>
 
       {/* Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="card p-4 flex items-center justify-between border-loft-800 bg-loft-900/60">
           <div>
             <p className="text-xs text-loft-400 font-medium">Active Tickets</p>
@@ -238,16 +238,6 @@ const CustomerSupportTab = ({ user, token }) => {
           </div>
           <div className="p-2.5 rounded-xl bg-emerald-500/10 text-emerald-400">
             <CheckCircle2 className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="card p-4 flex items-center justify-between border-loft-800 bg-loft-900/60">
-          <div>
-            <p className="text-xs text-loft-400 font-medium">Avg Dispatch Response</p>
-            <p className="text-2xl font-bold text-loft-100 mt-1">&lt; 5 mins</p>
-          </div>
-          <div className="p-2.5 rounded-xl bg-blue-500/10 text-blue-400">
-            <MessageSquare className="w-5 h-5" />
           </div>
         </div>
       </div>
