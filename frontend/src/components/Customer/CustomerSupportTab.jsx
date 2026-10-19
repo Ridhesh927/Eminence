@@ -423,43 +423,37 @@ const CustomerSupportTab = ({ user, token }) => {
             </div>
           ) : (
             <div className="space-y-4">
-              {/* Pune Dispatch 24/7 Helpline Card */}
+              {/* Pune Dispatch Dedicated Helpline Card */}
               <div className="card p-5 bg-gradient-to-br from-loft-900 to-loft-950 border-loft-800 shadow-md">
                 <div className="flex items-center gap-3 mb-4">
                   <div className="p-2.5 rounded-xl bg-copper-500/10 text-copper-400">
                     <Phone className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-loft-100">24/7 Dedicated Helpline</h4>
-                    <p className="text-[11px] text-loft-400">Instant connection with Pune fleet controllers</p>
+                    <h4 className="text-sm font-bold text-loft-100">Dedicated Helpline (7 AM – 7 PM)</h4>
+                    <p className="text-[11px] text-loft-400">Calling hours: Morning 7:00 AM to Evening 7:00 PM</p>
                   </div>
                 </div>
 
                 <div className="space-y-2 text-xs">
                   <a
-                    href="tel:18002669999"
-                    className="flex items-center justify-between p-3 rounded-xl bg-loft-800/60 hover:bg-copper-500/15 border border-loft-700/60 hover:border-copper-500/40 text-loft-200 hover:text-copper-400 transition-all font-semibold"
+                    href="tel:9970734425"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 p-3 rounded-xl bg-loft-800/60 hover:bg-copper-500/15 border border-loft-700/60 hover:border-copper-500/40 text-loft-200 hover:text-copper-400 transition-all font-semibold"
                   >
-                    <span>Toll-Free Helpline</span>
-                    <span className="font-mono text-copper-400">1800-266-9999</span>
+                    <span>Helpline Number</span>
+                    <span className="font-mono text-copper-400 font-bold">+91 9970734425</span>
                   </a>
 
                   <a
-                    href="tel:+912067890000"
-                    className="flex items-center justify-between p-3 rounded-xl bg-loft-800/60 hover:bg-copper-500/15 border border-loft-700/60 hover:border-copper-500/40 text-loft-200 hover:text-copper-400 transition-all font-semibold"
+                    href="mailto:eminence.support.helpline@gmail.com"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 p-3 rounded-xl bg-loft-800/60 hover:bg-copper-500/15 border border-loft-700/60 hover:border-copper-500/40 text-loft-200 hover:text-copper-400 transition-all font-semibold"
                   >
-                    <span>Pune Dispatch Desk</span>
-                    <span className="font-mono text-copper-400">+91 20 6789 0000</span>
-                  </a>
-
-                  <a
-                    href="mailto:support@eminencelogistics.com"
-                    className="flex items-center justify-between p-3 rounded-xl bg-loft-800/60 hover:bg-copper-500/15 border border-loft-700/60 hover:border-copper-500/40 text-loft-200 hover:text-copper-400 transition-all font-semibold"
-                  >
-                    <span className="flex items-center gap-1.5">
+                    <span className="flex items-center gap-1.5 flex-shrink-0">
                       <Mail className="w-3.5 h-3.5 text-copper-400" /> Support Email
                     </span>
-                    <span className="text-loft-300">support@eminence.com</span>
+                    <span className="text-loft-300 font-mono text-[11px] sm:text-xs truncate" title="eminence.support.helpline@gmail.com">
+                      eminence.support.helpline@gmail.com
+                    </span>
                   </a>
                 </div>
               </div>

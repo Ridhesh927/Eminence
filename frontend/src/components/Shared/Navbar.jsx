@@ -79,7 +79,7 @@ const Navbar = () => {
               <button 
                 onClick={(e) => {
                   e.preventDefault();
-                  navigator.clipboard.writeText('18001234567');
+                  navigator.clipboard.writeText('9970734425');
                   setIvrCopied(true);
                   setTimeout(() => setIvrCopied(false), 2000);
                 }}

@@ -141,6 +141,9 @@ export const useAdminChat = (activeTab, token) => {
         if (selectedChat?.ticketId === ticketId) {
           setSelectedChat((prev) => ({ ...prev, status }));
         }
+        if (status === 'closed' || status === 'resolved') {
+          setEmergencyAlerts((prev) => prev.filter(a => a.ticketId !== ticketId));
+        }
       }
     } catch (err) {
       console.error('Failed to update ticket status:', err);

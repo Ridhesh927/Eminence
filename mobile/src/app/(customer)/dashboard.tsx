@@ -32,14 +32,14 @@ export default function CustomerDashboard() {
   const { tab } = useLocalSearchParams<{ tab?: string }>();
   const { user, logout } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'history' | 'addresses' | 'wallet'>('history');
+  const [activeTab, setActiveTab] = useState<'history' | 'addresses' | 'wallet' | 'support'>('history');
   const [rides, setRides] = useState<any[]>([]);
   const [addresses, setAddresses] = useState<AddressItem[]>([]);
   const [wallet, setWallet] = useState<any>({ balance: 250, referralCode: 'EMN-DEMO-2026' });
 
-  // Handle deep-link tab param (e.g. ?tab=wallet)
+  // Handle deep-link tab param (e.g. ?tab=wallet, ?tab=support)
   useEffect(() => {
-    if (tab === 'wallet' || tab === 'addresses' || tab === 'history') {
+    if (tab === 'wallet' || tab === 'addresses' || tab === 'history' || tab === 'support') {
       setActiveTab(tab as any);
     }
   }, [tab]);
@@ -506,6 +506,15 @@ export default function CustomerDashboard() {
             Wallet
           </Text>
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.tabBtn, activeTab === 'support' && styles.tabBtnActive]}
+          onPress={() => setActiveTab('support')}
+        >
+          <Text style={[styles.tabBtnText, activeTab === 'support' && styles.tabBtnTextActive]}>
+            Support
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView
@@ -951,6 +960,71 @@ export default function CustomerDashboard() {
                   </Text>
                 </View>
               )}
+            </View>
+          </View>
+        )}
+
+        {/* TAB 4: DEDICATED HELPLINE & SUPPORT */}
+        {activeTab === 'support' && (
+          <View>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Customer Support & Helpline</Text>
+            </View>
+
+            {/* Helpline Box */}
+            <View style={styles.supportHelplineCard}>
+              <View style={styles.supportHeaderRow}>
+                <View style={styles.supportIconWrap}>
+                  <Text style={{ fontSize: 22 }}>📞</Text>
+                </View>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={styles.supportCardTitle}>Dedicated Helpline (7 AM – 7 PM)</Text>
+                  <Text style={styles.supportCardSubtitle}>
+                    Calling hours: Morning 7:00 AM to Evening 7:00 PM
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.supportLinksList}>
+                {/* Phone Call Link */}
+                <TouchableOpacity
+                  style={styles.supportRowBtn}
+                  onPress={() => Linking.openURL('tel:9970734425')}
+                  activeOpacity={0.7}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={{ fontSize: 16 }}>☎️</Text>
+                    <Text style={styles.supportRowLabel}>Helpline Number</Text>
+                  </View>
+                  <Text style={styles.supportRowValue}>+91 9970734425</Text>
+                </TouchableOpacity>
+
+                {/* Email Support Link */}
+                <TouchableOpacity
+                  style={styles.supportRowBtn}
+                  onPress={() => Linking.openURL('mailto:eminence.support.helpline@gmail.com')}
+                  activeOpacity={0.7}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={{ fontSize: 16 }}>✉️</Text>
+                    <Text style={styles.supportRowLabel}>Support Email</Text>
+                  </View>
+                  <Text style={styles.supportRowEmailText}>eminence.support.helpline@gmail.com</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Live Trip Help Card */}
+            <View style={styles.supportHelpCard}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+                <Text style={{ fontSize: 18 }}>ℹ️</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.supportHelpTitle}>Live Trip & Booking Assistance</Text>
+                  <Text style={styles.supportHelpDesc}>
+                    Need to reschedule or update your pickup address? Call our helpline during operational hours or email our support desk with your Booking ID for prompt dispatch assistance.
+                  </Text>
+                </View>
+              </View>
             </View>
           </View>
         )}
@@ -2108,5 +2182,88 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 12,
     fontWeight: '700',
+  },
+  supportHelplineCard: {
+    backgroundColor: '#293243',
+    borderRadius: 16,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#2f3a4e',
+    marginBottom: 16,
+  },
+  supportHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  supportIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: 'rgba(232, 99, 49, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(232, 99, 49, 0.3)',
+  },
+  supportCardTitle: {
+    color: '#f4f6f8',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  supportCardSubtitle: {
+    color: '#a2b2c7',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  supportLinksList: {
+    gap: 10,
+  },
+  supportRowBtn: {
+    backgroundColor: '#1b2331',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: '#2f3a4e',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  supportRowLabel: {
+    color: '#c9d3df',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  supportRowValue: {
+    color: '#f08b65',
+    fontSize: 13,
+    fontWeight: '700',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  supportRowEmailText: {
+    color: '#c9d3df',
+    fontSize: 11,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    flexShrink: 1,
+  },
+  supportHelpCard: {
+    backgroundColor: 'rgba(41, 50, 67, 0.6)',
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#2f3a4e',
+  },
+  supportHelpTitle: {
+    color: '#f4f6f8',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  supportHelpDesc: {
+    color: '#a2b2c7',
+    fontSize: 12,
+    lineHeight: 18,
   },
 });

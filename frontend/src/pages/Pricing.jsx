@@ -44,17 +44,6 @@ const Pricing = () => {
       perTon: "₹25/ton",
       features: ["Industrial transport", "Heavy machinery", "Verified Driver", "Live Tracking"],
       popular: false
-    },
-    {
-      name: "5 Ton",
-      desc: "Max Large Fleet Capacity",
-      tempoType: "large",
-      weight: "Up to 5000 kg",
-      numericWeight: "5000",
-      price: "₹1200",
-      perTon: "₹30/ton",
-      features: ["Heavy industrial transport", "Large materials", "Verified Driver", "Live Tracking"],
-      popular: false
     }
   ];
 
@@ -101,7 +90,7 @@ const Pricing = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {plans.map((plan, idx) => (
             <motion.div
               initial={{ opacity: 0, y: 20 }}

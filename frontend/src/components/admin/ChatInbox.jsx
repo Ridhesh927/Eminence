@@ -23,6 +23,13 @@ const ChatInbox = ({ activeTab, token }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatMessages, selectedChat]);
 
+  const isChatClosed = (chat) => {
+    const s = (chat?.status || '').toLowerCase();
+    return s === 'closed' || s === 'resolved';
+  };
+
+  const isChatActive = (chat) => !isChatClosed(chat);
+
   const filteredChats = activeChats.filter((chat) => {
     if (filterType === 'sos') return chat.isSos || chat.type === 'sos';
     if (filterType === 'tickets') return (chat.isTicket || chat.ticketId) && !chat.isSos && chat.type !== 'sos';
@@ -30,8 +37,10 @@ const ChatInbox = ({ activeTab, token }) => {
     return true;
   });
 
-  const sosCount = activeChats.filter(c => c.isSos || c.type === 'sos').length;
-  const ticketCount = activeChats.filter(c => (c.isTicket || c.ticketId) && !c.isSos && c.type !== 'sos').length;
+  const activeSosCount = activeChats.filter(c => (c.isSos || c.type === 'sos') && isChatActive(c)).length;
+  const totalSosCount = activeChats.filter(c => c.isSos || c.type === 'sos').length;
+  const activeTicketCount = activeChats.filter(c => (c.isTicket || c.ticketId) && !c.isSos && c.type !== 'sos' && isChatActive(c)).length;
+  const totalTicketCount = activeChats.filter(c => (c.isTicket || c.ticketId) && !c.isSos && c.type !== 'sos').length;
 
   return (
     <div className="space-y-4 h-[82vh] flex flex-col">
@@ -42,10 +51,10 @@ const ChatInbox = ({ activeTab, token }) => {
           <p className="text-xs text-loft-400">Manage real-time customer support tickets, driver queries, and emergency SOS alerts.</p>
         </div>
 
-        {sosCount > 0 && (
+        {activeSosCount > 0 && (
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-red-500/20 border border-red-500/40 text-red-400 text-xs font-bold animate-pulse">
             <ShieldAlert className="w-4 h-4 text-red-400" />
-            <span>{sosCount} Active Driver SOS Alert{sosCount > 1 ? 's' : ''}</span>
+            <span>{activeSosCount} Active Driver SOS Alert{activeSosCount > 1 ? 's' : ''}</span>
           </div>
         )}
       </div>
@@ -135,18 +144,20 @@ const ChatInbox = ({ activeTab, token }) => {
                   : 'bg-loft-800/60 text-loft-400 hover:text-loft-200'
               }`}
             >
-              Tickets ({ticketCount})
+              Tickets ({activeTicketCount > 0 ? activeTicketCount : totalTicketCount})
             </button>
             <button
               onClick={() => setFilterType('sos')}
               className={`px-3 py-1.5 rounded-xl transition-all whitespace-nowrap flex items-center gap-1 cursor-pointer ${
                 filterType === 'sos'
                   ? 'bg-red-600 text-white font-bold shadow-sm'
-                  : 'bg-loft-800/60 text-red-400 hover:text-red-300'
+                  : activeSosCount > 0
+                  ? 'bg-red-500/20 text-red-400 border border-red-500/30 font-bold'
+                  : 'bg-loft-800/60 text-loft-400 hover:text-loft-200'
               }`}
             >
-              <AlertTriangle className="w-3 h-3" />
-              SOS ({sosCount})
+              <AlertTriangle className={`w-3 h-3 ${activeSosCount > 0 ? 'text-red-400' : 'text-loft-400'}`} />
+              SOS ({activeSosCount > 0 ? `${activeSosCount} Active` : totalSosCount})
             </button>
           </div>
 
@@ -162,6 +173,7 @@ const ChatInbox = ({ activeTab, token }) => {
                 const lastMsg = chat.messages?.[chat.messages.length - 1];
                 const isSos = chat.isSos || chat.type === 'sos';
                 const isTicket = chat.isTicket || chat.ticketId;
+                const isClosed = isChatClosed(chat);
 
                 return (
                   <button
@@ -169,18 +181,22 @@ const ChatInbox = ({ activeTab, token }) => {
                     onClick={() => selectChatRoom(chat)}
                     className={`w-full text-left p-3.5 hover:bg-loft-800/50 transition-all block cursor-pointer relative ${
                       isSelected
-                        ? isSos
+                        ? isSos && !isClosed
                           ? 'bg-red-950/40 border-l-4 border-red-500'
                           : 'bg-loft-800/90 border-l-4 border-copper-500'
-                        : isSos
+                        : isSos && !isClosed
                         ? 'bg-red-950/20 hover:bg-red-950/30'
+                        : isClosed
+                        ? 'opacity-70 hover:opacity-100'
                         : ''
                     }`}
                   >
                     <div className="flex items-center justify-between gap-1 mb-1">
                       <div className="flex items-center gap-1.5 min-w-0">
                         {isSos ? (
-                          <span className="p-1 rounded bg-red-500 text-white flex-shrink-0 animate-pulse">
+                          <span className={`p-1 rounded flex-shrink-0 ${
+                            isClosed ? 'bg-loft-800 text-loft-400 border border-loft-700' : 'bg-red-500 text-white animate-pulse'
+                          }`}>
                             <AlertTriangle className="w-3 h-3" />
                           </span>
                         ) : isTicket ? (
@@ -188,7 +204,7 @@ const ChatInbox = ({ activeTab, token }) => {
                             #{chat.ticketNumber || 'TKT'}
                           </span>
                         ) : null}
-                        <p className={`font-bold text-xs truncate ${isSos ? 'text-red-300' : 'text-loft-100'}`}>
+                        <p className={`font-bold text-xs truncate ${isSos && !isClosed ? 'text-red-300' : 'text-loft-100'}`}>
                           {chat.userName || chat.customerName}
                         </p>
                       </div>
@@ -196,12 +212,14 @@ const ChatInbox = ({ activeTab, token }) => {
                       {chat.status && (
                         <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${
                           chat.status === 'resolved'
-                            ? 'bg-emerald-500/20 text-emerald-400'
+                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                            : chat.status === 'closed'
+                            ? 'bg-loft-800 text-loft-400 border border-loft-700'
                             : chat.status === 'in_progress'
-                            ? 'bg-blue-500/20 text-blue-400'
+                            ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
                             : isSos
-                            ? 'bg-red-500 text-white'
-                            : 'bg-amber-500/20 text-amber-400'
+                            ? 'bg-red-500 text-white font-black animate-pulse'
+                            : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
                         }`}>
                           {chat.status}
                         </span>
@@ -232,7 +250,9 @@ const ChatInbox = ({ activeTab, token }) => {
               <div className="p-3.5 border-b border-loft-800 bg-loft-950/60 flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-3">
                   <div className={`p-2 rounded-xl ${
-                    selectedChat.isSos ? 'bg-red-600 text-white animate-pulse' : 'bg-loft-800 text-copper-400'
+                    selectedChat.isSos && !isChatClosed(selectedChat)
+                      ? 'bg-red-600 text-white animate-pulse'
+                      : 'bg-loft-800 text-copper-400'
                   }`}>
                     {selectedChat.isSos ? <AlertTriangle className="w-5 h-5" /> : <MessageSquare className="w-5 h-5" />}
                   </div>
