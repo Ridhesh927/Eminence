@@ -28,7 +28,7 @@ const getNotificationScope = (user) => {
 // Get all notifications for the authenticated user/admin
 const getNotifications = async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit, 10) || 50;
+const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 100);
     const scope = getNotificationScope(req.user);
 
     const whereClause = {
