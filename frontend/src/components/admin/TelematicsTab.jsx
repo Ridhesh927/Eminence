@@ -36,12 +36,14 @@ const TelematicsTab = ({ activeTab, token }) => {
           <p className="text-loft-400 mt-2">
             {status.simulated ? 'Starting the demo telemetry simulator.' : 'Waiting for a connected vehicle telemetry provider.'}
           </p>
-          <button
-            onClick={forceStartDemo}
-            className="mt-6 px-5 py-2.5 bg-copper-500 hover:bg-copper-600 text-loft-950 font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-lg shadow-copper-500/20"
-          >
-            Launch Demo Telematics Now
-          </button>
+{import.meta.env.DEV && import.meta.env.VITE_ENABLE_TEST_AUTH === 'true' && (
+            <button
+              onClick={forceStartDemo}
+              className="mt-6 px-5 py-2.5 bg-copper-500 hover:bg-copper-600 text-loft-950 font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-lg shadow-copper-500/20"
+            >
+              Launch Demo Telematics Now
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-6">
