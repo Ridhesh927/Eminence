@@ -14,6 +14,9 @@ router.use(apiLimiter);
 router.use(authMiddleware);
 router.use(authorize('admin'));
 
+// Register Admin Device Push Token (for background/offline SOS buzz notifications)
+router.post('/push-token', adminAuthController.registerPushToken);
+
 const { validateDriver, validateCustomer, validateVehicle } = require('../middleware/requestValidator');
 
 // Driver routes

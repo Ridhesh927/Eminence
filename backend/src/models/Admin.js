@@ -32,6 +32,14 @@ const Admin = sequelize.define('Admin', {
   isPrimary: {
     type: DataTypes.BOOLEAN,
     defaultValue: false
+  },
+  phone: {
+    type: DataTypes.STRING,
+    allowNull: true,
+  },
+  pushToken: {
+    type: DataTypes.STRING,
+    allowNull: true,
   }
 }, {
   timestamps: true,

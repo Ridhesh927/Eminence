@@ -193,6 +193,8 @@ const bootstrapDatabase = async () => {
       await addSqliteColumn('Bookings', 'cancelledBy', 'VARCHAR(50)');
       await addSqliteColumn('Admins', 'role', "VARCHAR(50) DEFAULT 'Support Admin'");
       await addSqliteColumn('Admins', 'isPrimary', 'BOOLEAN DEFAULT 0');
+      await addSqliteColumn('Admins', 'phone', 'VARCHAR(20)');
+      await addSqliteColumn('Admins', 'pushToken', 'VARCHAR(255)');
       await addSqliteColumn('Notifications', 'recipientRole', "VARCHAR(50) DEFAULT 'customer'");
       await addSqliteColumn('Notifications', 'metadata', 'TEXT');
     }

@@ -1,27 +1,158 @@
+const https = require('https');
 const crypto = require('crypto');
-const { Notification } = require('../models');
+const { Notification, Admin } = require('../models');
+
+/**
+ * Safely retrieve the initialized Socket.io instance
+ */
+let getIo = null;
+try {
+  getIo = require('../socket').getIo;
+} catch (_err) {
+  // Socket module not yet loaded or in test env
+}
 
 /**
  * Safely retrieve the initialized Socket.io instance
  */
 const getSocketIo = () => {
   try {
-    const { getIo } = require('../socket');
-    return getIo();
+    return getIo ? getIo() : null;
   } catch (_err) {
     return null;
   }
 };
 
 /**
+ * Dispatch Push Notification via Expo Push API (works out of the box for Expo Mobile apps)
+ * Supported for ExponentPushToken[...]
+ */
+const sendExpoPushNotification = (tokens, { title, body, data }) => {
+  if (!tokens || tokens.length === 0) return Promise.resolve(null);
+
+  const messages = tokens.map((token) => ({
+    to: token,
+    sound: 'default',
+    priority: 'high',
+    title: title || '🚨 DRIVER SOS EMERGENCY',
+    body: body || 'A driver has triggered an emergency alert.',
+    data: data || {},
+    channelId: 'sos_emergency_channel',
+    // Vibration pattern for strong SOS buzz: wait 0ms, buzz 500ms, pause 200ms, buzz 500ms, pause 200ms, buzz 1000ms
+    _displayInForeground: true,
+  }));
+
+  return new Promise((resolve) => {
+    try {
+      const dataString = JSON.stringify(messages);
+      const req = https.request(
+        {
+          hostname: 'exp.host',
+          path: '/--/api/v2/push/send',
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(dataString),
+          },
+        },
+        (res) => {
+          let resData = '';
+          res.on('data', (chunk) => (resData += chunk));
+          res.on('end', () => {
+            try {
+              const parsed = JSON.parse(resData);
+              console.log('[Push Notification] Expo Push dispatched:', parsed?.data?.length || 0, 'deliveries');
+              resolve(parsed);
+            } catch {
+              resolve(null);
+            }
+          });
+        }
+      );
+      req.on('error', (err) => {
+        console.warn('[Push Notification] Expo Push HTTP failed:', err.message);
+        resolve(null);
+      });
+      req.write(dataString);
+      req.end();
+    } catch (err) {
+      console.warn('[Push Notification] Expo send error:', err.message);
+      resolve(null);
+    }
+  });
+};
+
+/**
+ * Sends Offline Emergency Buzz & Push Notification to all registered Admin mobile devices
+ */
+const sendAdminEmergencyPushNotification = async ({ title, body, data, location, driverName }) => {
+  try {
+    // 1. Fetch all admins who have a device pushToken
+    const admins = await Admin.findAll({
+      attributes: ['id', 'email', 'name', 'phone', 'pushToken'],
+    });
+
+    const expoTokens = [];
+    const phoneNumbers = [];
+
+    admins.forEach((admin) => {
+      if (admin.pushToken && admin.pushToken.startsWith('ExponentPushToken')) {
+        expoTokens.push(admin.pushToken);
+      }
+      if (admin.phone) {
+        phoneNumbers.push(admin.phone);
+      }
+    });
+
+    // 2. Dispatch High-Priority OS Push Notification with vibration channel
+    if (expoTokens.length > 0) {
+      console.log(`[Push Notification] Broadcasting SOS buzz to ${expoTokens.length} offline Admin mobile devices...`);
+      await sendExpoPushNotification(expoTokens, {
+        title: title || `🚨 DRIVER SOS: ${driverName || 'Driver'}`,
+        body: body || 'Emergency assistance needed! Tap to open live tracker.',
+        data: {
+          ...data,
+          isSos: true,
+          channelId: 'sos_emergency_channel',
+          timestamp: new Date().toISOString(),
+        },
+      });
+    } else {
+      console.log('[Push Notification] No Admin device push tokens registered yet.');
+    }
+
+    // 3. Fast2SMS Offline Emergency SMS Failover (Configured for toggle)
+    // As requested: Toggleable via FAST2SMS_ENABLED or FAST2SMS_API_KEY environment variable.
+    // Currently OFF to save balance; activates automatically when FAST2SMS_ENABLED=true or during presentation.
+    const isFast2SmsActive = process.env.FAST2SMS_ENABLED === 'true' && Boolean(process.env.FAST2SMS_API_KEY);
+    const superAdminPhone = process.env.SUPER_ADMIN_PHONE || '9970734425';
+
+    if (isFast2SmsActive) {
+      try {
+        const { sendSMS } = require('./smsService');
+        const recipients = [...new Set([superAdminPhone, ...phoneNumbers])].filter(Boolean);
+        const emergencyText = `🚨 EMINENCE SOS ALERT: Driver ${driverName || 'Driver'} triggered emergency at ${location?.address || 'GPS'}. Check admin dashboard immediately!`;
+
+        for (const phone of recipients) {
+          console.log(`[SOS SMS FAILOVER] Dispatching urgent SMS to Admin (+91 ${phone})...`);
+          await sendSMS(phone, emergencyText);
+        }
+      } catch (smsErr) {
+        console.warn('[SOS SMS FAILOVER] SMS dispatch skipped or failed:', smsErr.message);
+      }
+    } else {
+      console.log(`[SOS SMS FAILOVER] Fast2SMS is currently OFF (Cost saving mode). Ready to activate via FAST2SMS_ENABLED=true for presentation.`);
+    }
+
+    return { success: true, pushDelivered: expoTokens.length, smsActive: isFast2SmsActive };
+  } catch (error) {
+    console.error('[Emergency Push] Error sending offline emergency push to admins:', error.message);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
  * Creates and emits a notification in real-time
- * @param {Object} params
- * @param {string} [params.userId] - Recipient user UUID (optional for admin-wide broadcasts)
- * @param {string} [params.recipientRole] - 'customer' | 'admin' | 'driver' | 'all'
- * @param {string} params.title - Notification title
- * @param {string} params.message - Notification message body
- * @param {string} params.type - 'order_created' | 'driver_assigned' | 'arrived' | 'in_transit' | 'completed' | 'cancelled' | 'expired' | 'sos' | 'support' | 'system'
- * @param {Object} [params.metadata] - Extra metadata like bookingId, ticketId, url
  */
 const createAndEmitNotification = async ({
   userId = null,
@@ -86,5 +217,7 @@ const createAndEmitNotification = async ({
 
 module.exports = {
   createAndEmitNotification,
+  sendAdminEmergencyPushNotification,
+  sendExpoPushNotification,
   getSocketIo,
 };

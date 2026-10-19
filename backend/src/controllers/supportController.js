@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const { SupportTicket, Notification, Customer, Driver, Booking } = require('../models');
-const { createAndEmitNotification } = require('../services/notificationService');
+const { createAndEmitNotification, sendAdminEmergencyPushNotification } = require('../services/notificationService');
 
 // Helper to sanitize strings
 const sanitizeString = (str) => {
@@ -191,6 +191,22 @@ exports.triggerDriverSos = async (req, res) => {
       metadata: { ticketId: ticket.id, ticketNumber, driverId: resolvedDriverId, isSos: true, location: locationData }
     }).catch(notifErr => console.warn('Could not emit emergency notification:', notifErr.message));
 
+    // Send High-Priority Mobile Push (with OS vibration/buzzing) & SMS Failover to offline Admin mobile
+    sendAdminEmergencyPushNotification({
+      title: `🚨 DRIVER SOS: ${driverName}`,
+      body: `CRITICAL ALERT: ${emergencyReason} at ${locationData.address || 'Live GPS'}. Tap to track driver immediately!`,
+      data: {
+        ticketId: ticket.id,
+        ticketNumber,
+        driverId: resolvedDriverId,
+        bookingId: bookingId || null,
+        lat: locationData.lat,
+        lng: locationData.lng,
+      },
+      location: locationData,
+      driverName,
+    }).catch(pushErr => console.warn('Could not emit emergency push notification:', pushErr.message));
+
     res.status(201).json({
       success: true,
       message: '🚨 Emergency SOS broadcasted to Eminence Fleet Dispatch Support & Command Center!',
@@ -366,6 +382,7 @@ exports.updateTicketStatus = async (req, res) => {
     const io = getSocketIo(req);
     if (io) {
       io.to(`ticket_${ticket.id}`).emit('ticket_status_updated', { id, status });
+      io.to('admin_inbox').emit('ticket_status_updated', { id, status });
       io.to('admin_inbox').emit('chat_list_update', await getAllSupportItems());
     }
 

@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import AdminMenuModal from '../../components/AdminMenuModal';
+import { registerAdminPushNotifications } from '../../services/notificationService';
 
 interface OverviewStats {
   revenue: string;
@@ -98,6 +99,8 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchAdminData();
+    // Register Admin device for high-priority emergency SOS push & buzzing
+    registerAdminPushNotifications(user?.phone);
   }, []);
 
   const onRefresh = () => {
