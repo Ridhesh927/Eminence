@@ -102,6 +102,12 @@ describe('Phase 2C — Rate Limiting, AI API Protection & Cost Control Suite', (
 
     test('3. Server-verified req.user.id isolates rate limits for different authenticated users', async () => {
       const testApp = express();
+      const preAuthLimiter = createRateLimiter({
+        windowMs: 60 * 1000,
+        max: 100,
+        message: 'Too many authentication attempts'
+      });
+
       const authHeaderParser = (req, res, next) => {
         const auth = req.headers.authorization;
         if (auth && auth.startsWith('Bearer ')) {
@@ -118,7 +124,7 @@ describe('Phase 2C — Rate Limiting, AI API Protection & Cost Control Suite', (
         message: 'User quota exceeded'
       });
 
-      testApp.get('/api/user-resource', authHeaderParser, userLimiter, (req, res) => {
+      testApp.get('/api/user-resource', preAuthLimiter, authHeaderParser, userLimiter, (req, res) => {
         res.json({ success: true, user: req.user?.id });
       });
 
