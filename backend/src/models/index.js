@@ -174,6 +174,7 @@ const bootstrapDatabase = async () => {
           ALTER COLUMN "userId" DROP NOT NULL,
           ALTER COLUMN "type" TYPE VARCHAR(50) USING "type"::text,
           ADD COLUMN IF NOT EXISTS "recipientRole" VARCHAR(50) DEFAULT 'customer',
+          ADD COLUMN IF NOT EXISTS "dismissedFromBell" BOOLEAN DEFAULT false,
           ADD COLUMN IF NOT EXISTS "metadata" JSONB;
       `).catch(() => {});
     } else if (dialect === 'sqlite') {

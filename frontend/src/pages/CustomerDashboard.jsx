@@ -1808,19 +1808,21 @@ const CustomerDashboard = ({ initialTab = 'history', autoOpenTopup = false }) =>
                     {filteredTrackingBookings.map((b) => {
                       const badge = getStatusBadge(b.status);
                       const isCompleted = b.status === 'completed';
+                      const isCancelledOrExpired = b.status === 'cancelled' || b.status === 'expired';
+                      const isActive = !isCompleted && !isCancelledOrExpired;
                       const tripOtp = getBookingOtp(b);
                       return (
                         <div
                           key={b.id}
-                          className="card p-5 bg-loft-900 border border-loft-800 hover:border-loft-700 transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-4"
+                          className="card p-5 bg-loft-900 border border-loft-800 hover:border-loft-700/80 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                         >
-                          <div className="flex-1 space-y-2">
-                            <div className="flex flex-wrap items-center gap-3">
-                              <span className="font-mono font-bold text-loft-50 text-sm">
+                          <div className="flex-1 min-w-0 space-y-2.5">
+                            <div className="flex flex-wrap items-center gap-2.5">
+                              <span className="font-mono font-bold text-loft-50 text-sm tracking-wide">
                                 #{b.id?.slice(0, 8).toUpperCase()}
                               </span>
                               <span
-                                className={`px-2 py-0.5 rounded text-[11px] font-bold uppercase border flex items-center gap-1.5 ${badge.bg} ${badge.text} ${badge.border}`}
+                                className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider border flex items-center gap-1.5 ${badge.bg} ${badge.text} ${badge.border}`}
                               >
                                 {badge.pulse && (
                                   <span className="relative flex h-1.5 w-1.5">
@@ -1839,66 +1841,80 @@ const CustomerDashboard = ({ initialTab = 'history', autoOpenTopup = false }) =>
                               </span>
 
                               {isCompleted && (
-                                <span className="text-[10px] bg-moss-500/15 text-moss-400 font-mono px-2 py-0.5 rounded border border-moss-500/30 flex items-center gap-1">
-                                  <ShieldCheck className="w-3 h-3 text-moss-400" /> PoD Verified
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wide bg-moss-500/15 text-moss-300 border border-moss-500/30">
+                                  <ShieldCheck className="w-3.5 h-3.5 text-moss-400 shrink-0" />
+                                  <span>PoD Verified</span>
                                 </span>
                               )}
 
-                              {!isCompleted && b.status !== 'cancelled' && (
-                                <span className="text-[10px] bg-copper-500/15 text-copper-300 font-mono px-2 py-0.5 rounded border border-copper-500/30 flex items-center gap-1">
+                              {isActive && tripOtp && (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider bg-copper-500/15 text-copper-300 border border-copper-500/30">
                                   OTP: {tripOtp}
                                 </span>
                               )}
                             </div>
 
                             {/* Route */}
-                            <div className="text-xs text-loft-300 flex items-center gap-2">
+                            <div className="text-xs text-loft-300 flex items-center gap-2 pt-0.5">
                               <MapPin className="w-3.5 h-3.5 text-copper-400 shrink-0" />
-                              <span className="truncate max-w-xs">{b.pickupAddress || 'Pune Pickup'}</span>
-                              <span className="text-loft-500">&rarr;</span>
-                              <span className="truncate max-w-xs">{b.dropAddress || (Array.isArray(b.drops) ? b.drops.join(' → ') : 'Drop')}</span>
+                              <span className="truncate max-w-[200px] sm:max-w-xs md:max-w-md font-medium text-loft-200" title={b.pickupAddress}>
+                                {b.pickupAddress || 'Pune Pickup'}
+                              </span>
+                              <span className="text-loft-500 font-bold shrink-0">&rarr;</span>
+                              <span className="truncate max-w-[200px] sm:max-w-xs md:max-w-md font-medium text-loft-200" title={b.dropAddress || (Array.isArray(b.drops) ? b.drops.join(' → ') : 'Drop')}>
+                                {b.dropAddress || (Array.isArray(b.drops) ? b.drops.join(' → ') : 'Drop')}
+                              </span>
                             </div>
 
                             {/* Metadata Chips */}
-                            <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-loft-400">
-                              <span className="bg-loft-950 px-2 py-0.5 rounded border border-loft-800">
+                            <div className="flex flex-wrap items-center gap-2 pt-0.5 text-[11px] text-loft-400">
+                              <span className="bg-loft-950 px-2.5 py-0.5 rounded-md border border-loft-800 font-medium">
                                 {b.vehicle?.type || b.tempoType || 'Tempo'}
                               </span>
                               {b.totalDistance && (
-                                <span className="bg-loft-950 px-2 py-0.5 rounded border border-loft-800">
+                                <span className="bg-loft-950 px-2.5 py-0.5 rounded-md border border-loft-800 font-medium">
                                   {b.totalDistance} km
                                 </span>
                               )}
                               {b.driver?.name && (
-                                <span className="bg-loft-950 px-2 py-0.5 rounded border border-loft-800 text-loft-300">
+                                <span className="bg-loft-950 px-2.5 py-0.5 rounded-md border border-loft-800 text-loft-300 font-medium">
                                   Driver: {b.driver.name}
                                 </span>
                               )}
-                              <span className="font-bold text-loft-200">
+                              <span className="font-bold text-loft-100 font-mono text-xs">
                                 ₹{parseFloat(b.estimatedFare || 0).toLocaleString('en-IN')}
                               </span>
                             </div>
                           </div>
 
                           {/* Action Buttons */}
-                          <div className="flex items-center gap-2.5 self-end lg:self-center shrink-0">
+                          <div className="flex items-center gap-2.5 sm:self-center shrink-0">
                             <button
                               onClick={() => setSelectedTrip(b)}
-                              className="btn-secondary py-2 px-3 text-xs cursor-pointer"
+                              className="px-3.5 py-2 rounded-xl text-xs font-semibold text-loft-200 bg-loft-950 hover:bg-loft-800 hover:text-white border border-loft-700/80 hover:border-loft-600 transition-all cursor-pointer flex items-center justify-center shadow-sm"
                             >
                               Details
                             </button>
-                            <Link
-                              to={`/tracking/${b.id}`}
-                              className={`py-2 px-3.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                                isCompleted
-                                  ? 'bg-loft-800 hover:bg-loft-700 text-loft-100 border border-loft-700'
-                                  : 'bg-copper-500 hover:bg-copper-400 text-white shadow-md shadow-copper-500/20'
-                              }`}
-                            >
-                              <Navigation className="w-3.5 h-3.5" />
-                              <span>{isCompleted ? 'View Route & PoD' : 'Track Live Map'}</span>
-                            </Link>
+
+                            {isCompleted && (
+                              <Link
+                                to={`/tracking/${b.id}`}
+                                className="px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer bg-moss-500/15 hover:bg-moss-500/25 text-moss-300 hover:text-white border border-moss-500/35 hover:border-moss-500/60 shadow-sm shadow-moss-500/10"
+                              >
+                                <ShieldCheck className="w-3.5 h-3.5 text-moss-400 shrink-0" />
+                                <span>View Route & PoD</span>
+                              </Link>
+                            )}
+
+                            {isActive && (
+                              <Link
+                                to={`/tracking/${b.id}`}
+                                className="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer bg-gradient-to-r from-copper-600 to-copper-500 hover:from-copper-500 hover:to-copper-400 text-white shadow-md shadow-copper-500/25 border border-copper-400/30"
+                              >
+                                <Navigation className="w-3.5 h-3.5 text-white shrink-0" />
+                                <span>Track Live Map</span>
+                              </Link>
+                            )}
                           </div>
                         </div>
                       );
