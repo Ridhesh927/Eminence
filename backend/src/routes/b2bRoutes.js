@@ -11,11 +11,11 @@ const upload = multer({
   storage: multer.memoryStorage()
 });
 
-router.post('/register', protect, apiLimiter, b2bController.registerBusiness);
-router.post('/contracts', protect, apiLimiter, b2bController.requestContract);
-router.get('/contracts', protect, apiLimiter, b2bController.getContracts);
-router.get('/invoices', protect, apiLimiter, b2bController.getInvoices);
-router.post('/batch-bookings', protect, batchBookingLimiter, (req, res, next) => {
+router.post('/register', apiLimiter, protect, b2bController.registerBusiness);
+router.post('/contracts', apiLimiter, protect, b2bController.requestContract);
+router.get('/contracts', apiLimiter, protect, b2bController.getContracts);
+router.get('/invoices', apiLimiter, protect, b2bController.getInvoices);
+router.post('/batch-bookings', batchBookingLimiter, protect, (req, res, next) => {
   upload.single('file')(req, res, (err) => {
     if (err) {
       return res.status(400).json({ success: false, message: err.message || 'File upload error' });

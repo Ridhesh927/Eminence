@@ -6,10 +6,10 @@ const authorize = require('../middleware/roleMiddleware');
 const { apiLimiter } = require('../middleware/rateLimiter');
 
 // 1. Ticket Management
-router.post('/tickets', protect, apiLimiter, supportController.createTicket);
-router.get('/tickets', protect, apiLimiter, supportController.getTickets);
-router.get('/tickets/:id', protect, apiLimiter, supportController.getTicketById);
-router.post('/tickets/:id/messages', protect, apiLimiter, supportController.addTicketMessage);
+router.post('/tickets', apiLimiter, protect, supportController.createTicket);
+router.get('/tickets', apiLimiter, protect, supportController.getTickets);
+router.get('/tickets/:id', apiLimiter, protect, supportController.getTicketById);
+router.post('/tickets/:id/messages', apiLimiter, protect, supportController.addTicketMessage);
 
 // 2. Driver SOS Emergency Alert (Available with or without token in case of driver device emergency)
 router.post('/sos', apiLimiter, (req, res, next) => {
@@ -21,10 +21,10 @@ router.post('/sos', apiLimiter, (req, res, next) => {
 }, supportController.triggerDriverSos);
 
 // 3. Admin Ticket Management
-router.put('/tickets/:id/status', protect, authorize('admin'), apiLimiter, supportController.updateTicketStatus);
+router.put('/tickets/:id/status', apiLimiter, protect, authorize('admin'), supportController.updateTicketStatus);
 
 // 4. Admin Unified Support Stream (Chats + Tickets + SOS)
-router.get('/unified', protect, authorize('admin'), apiLimiter, async (req, res) => {
+router.get('/unified', apiLimiter, protect, authorize('admin'), async (req, res) => {
   try {
     const items = await supportController.getAllSupportItems();
     res.status(200).json({ success: true, count: items.length, items });

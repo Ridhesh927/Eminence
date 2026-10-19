@@ -10,14 +10,14 @@ const { z } = require('zod');
 const router = express.Router();
 
 // Razorpay Payment Endpoints (protected by authentication & per-user rate limiting)
-router.post('/payment/create-order', protect, paymentLimiter, createOrder);
-router.post('/razorpay-order', protect, paymentLimiter, createOrder);
-router.post('/payment/verify', protect, paymentLimiter, verifyPayment);
-router.post('/razorpay-verify', protect, paymentLimiter, verifyPayment);
+router.post('/payment/create-order', paymentLimiter, protect, createOrder);
+router.post('/razorpay-order', paymentLimiter, protect, createOrder);
+router.post('/payment/verify', paymentLimiter, protect, verifyPayment);
+router.post('/razorpay-verify', paymentLimiter, protect, verifyPayment);
 router.post('/razorpay-webhook', webhookLimiter, razorpayWebhook);
 
 // Invoices (protected by authentication: requires valid bearer token, cookie, or query token)
-router.get('/invoice/:bookingId', protect, apiLimiter, generateInvoice);
+router.get('/invoice/:bookingId', apiLimiter, protect, generateInvoice);
 
 // WhatsApp Webhooks
 router.get('/whatsapp-webhook', webhookLimiter, (req, res) => {

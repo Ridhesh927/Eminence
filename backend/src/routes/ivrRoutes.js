@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const jwt = require('jsonwebtoken');
-const rateLimit = require('express-rate-limit');
 const ivrController = require('../controllers/ivrController');
+const { voiceQueryLimiter, webhookLimiter } = require('../middleware/rateLimiter');
 
 // Multer memory storage (up to 10MB audio)
 const upload = multer({
@@ -33,13 +33,11 @@ const optionalAuth = (req, _res, next) => {
   next();
 };
 
-const { voiceQueryLimiter, webhookLimiter } = require('../middleware/rateLimiter');
-
 // Health & Status
 router.get('/health', ivrController.getHealth);
 
-// REST Voice Query (Mobile / Web Support Chat mic recording, optionalAuth runs first to authenticate user for rate limiting)
-router.post('/voice-query', optionalAuth, voiceQueryLimiter, upload.single('audio'), ivrController.handleVoiceQuery);
+// REST Voice Query (Mobile / Web Support Chat mic recording, rate limiter runs first to protect against DoS)
+router.post('/voice-query', voiceQueryLimiter, optionalAuth, upload.single('audio'), ivrController.handleVoiceQuery);
 
 // Telephony Webhooks (Twilio / Exotel Inbound Call & Recording)
 router.post('/webhook', webhookLimiter, ivrController.handleIncomingWebhook);

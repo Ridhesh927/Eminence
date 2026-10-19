@@ -45,7 +45,7 @@ const createOrder = async (req, res) => {
       return res.status(200).json({
         success: true,
         order: {
-          id: 'order_mock_' + Math.floor(Math.random() * 1000000),
+          id: 'order_mock_' + crypto.randomInt(100000, 1000000),
           amount: options.amount,
           currency: 'INR'
         }

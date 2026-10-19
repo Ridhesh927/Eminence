@@ -36,7 +36,7 @@ exports.createTicket = async (req, res) => {
     const customerId = userRole === 'customer' ? user.id : null;
     const driverId = userRole === 'driver' ? user.id : null;
 
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const randomSuffix = crypto.randomInt(1000, 10000);
     const ticketNumber = `TKT-${randomSuffix}`;
 
     const initialMessage = {
@@ -113,7 +113,7 @@ exports.triggerDriverSos = async (req, res) => {
       }
     }
 
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const randomSuffix = crypto.randomInt(1000, 10000);
     const ticketNumber = `SOS-${randomSuffix}`;
 
     const emergencyReason = sanitizeString(reason || 'Urgent Road Emergency');

@@ -5,10 +5,10 @@ const authMiddleware = require('../middleware/authMiddleware');
 const authorize = require('../middleware/roleMiddleware');
 const { adminReportsLimiter } = require('../middleware/rateLimiter');
 
-// Apply auth, admin authorization, and report rate limiting to all routes in this router
+// Apply report rate limiting, auth, and admin authorization to all routes in this router
+router.use(adminReportsLimiter);
 router.use(authMiddleware);
 router.use(authorize('admin'));
-router.use(adminReportsLimiter);
 
 // Aggregation endpoints
 router.get('/overview', adminController.getOverviewStats);

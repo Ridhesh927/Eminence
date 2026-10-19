@@ -8,7 +8,7 @@ const path = require('path');
 dotenv.config({ path: path.resolve(__dirname, '../.env.local') });
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 const helmet = require('helmet');
-const { publicReadLimiter } = require('./middleware/rateLimiter');
+const { apiLimiter, publicReadLimiter } = require('./middleware/rateLimiter');
 
 const app = express();
 
@@ -105,6 +105,9 @@ const ivrRoutes = require('./routes/ivrRoutes');
 const supportRoutes = require('./routes/supportRoutes');
 
 const customerRoutes = require('./routes/customerRoutes');
+
+// Base API rate limiter protects all /api routes from denial-of-service
+app.use('/api', apiLimiter);
 
 app.use('/api/auth', authRoutes);
 app.use('/api/customer', customerRoutes);

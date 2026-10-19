@@ -118,7 +118,7 @@ describe('Phase 2C — Rate Limiting, AI API Protection & Cost Control Suite', (
         message: 'User quota exceeded'
       });
 
-      testApp.get('/api/user-resource', authHeaderParser, userLimiter, (req, res) => {
+      testApp.get('/api/user-resource', userLimiter, authHeaderParser, (req, res) => {
         res.json({ success: true, user: req.user?.id });
       });
 
@@ -172,7 +172,7 @@ describe('Phase 2C — Rate Limiting, AI API Protection & Cost Control Suite', (
         next();
       };
       const userLimiter = createRateLimiter({ windowMs: 60 * 1000, max: 1 });
-      testApp.post('/api/expensive', authHeaderParser, userLimiter, (_req, res) => res.json({ success: true }));
+      testApp.post('/api/expensive', userLimiter, authHeaderParser, (_req, res) => res.json({ success: true }));
 
       const tokenA = jwt.sign({ id: 'expensive-user-a', role: 'customer' }, JWT_SECRET);
       const tokenB = jwt.sign({ id: 'expensive-user-b', role: 'customer' }, JWT_SECRET);

@@ -4,12 +4,12 @@ const bookingController = require('../controllers/bookingController');
 const protect = require('../middleware/authMiddleware');
 const { bookingsLimiter, bookingCreateLimiter, aiBookingLimiter } = require('../middleware/rateLimiter');
 
-router.post('/', protect, bookingCreateLimiter, bookingController.createBooking);
-router.get('/', protect, bookingsLimiter, bookingController.getAllBookings);
-router.get('/:id', protect, bookingsLimiter, bookingController.getBookingById);
-router.put('/:id/status', protect, bookingsLimiter, bookingController.updateBookingStatus);
-router.post('/:id/cancel', protect, bookingsLimiter, bookingController.cancelBooking);
-router.post('/:id/complete', protect, bookingsLimiter, bookingController.completeBooking);
-router.post('/ai-booking', protect, aiBookingLimiter, bookingController.aiVoiceBooking);
+router.post('/', bookingCreateLimiter, protect, bookingController.createBooking);
+router.get('/', bookingsLimiter, protect, bookingController.getAllBookings);
+router.get('/:id', bookingsLimiter, protect, bookingController.getBookingById);
+router.put('/:id/status', bookingsLimiter, protect, bookingController.updateBookingStatus);
+router.post('/:id/cancel', bookingsLimiter, protect, bookingController.cancelBooking);
+router.post('/:id/complete', bookingsLimiter, protect, bookingController.completeBooking);
+router.post('/ai-booking', aiBookingLimiter, protect, bookingController.aiVoiceBooking);
 
 module.exports = router;

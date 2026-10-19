@@ -9,10 +9,10 @@ const { apiLimiter, authLimiter, adminReportsLimiter } = require('../middleware/
 // Public route for admin login
 router.post('/login', authLimiter, adminAuthController.adminLogin);
 
-// Apply auth, admin role verification, and rate limiting to all protected routes
+// Apply rate limiting, auth, and admin role verification to all protected routes
+router.use(apiLimiter);
 router.use(authMiddleware);
 router.use(authorize('admin'));
-router.use(apiLimiter);
 
 const { validateDriver, validateCustomer, validateVehicle } = require('../middleware/requestValidator');
 

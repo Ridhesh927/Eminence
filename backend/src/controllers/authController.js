@@ -521,7 +521,7 @@ const phoneLogin = async (req, res) => {
       const { Customer } = require('../models');
       let customer = await Customer.findOne({ where: { phone: [cleanPhone, String(phone).trim()], isBusiness } });
       if (!customer) {
-        const refCode = 'EMINENCE-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+        const refCode = 'EMINENCE-' + crypto.randomBytes(3).toString('hex').toUpperCase();
         customer = await Customer.create({
           phone: cleanPhone,
           isPhoneVerified: false,
@@ -633,7 +633,7 @@ const phoneVerify = async (req, res) => {
           customer = await Customer.findOne({ where: { phone: phoneCandidates } });
         }
         if (!customer) {
-          const refCode = 'EMINENCE-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+          const refCode = 'EMINENCE-' + crypto.randomBytes(3).toString('hex').toUpperCase();
           customer = await Customer.create({ phone: cleanPhone, isPhoneVerified: true, referralCode: refCode, isBusiness: isBusiness ? true : false, name: isBusiness ? 'Business' : 'User' });
           const { Wallet } = require('../models');
           await Wallet.create({ customerId: customer.id, balance: 0.0 });

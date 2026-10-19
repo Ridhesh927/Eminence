@@ -4,9 +4,9 @@ const customerController = require('../controllers/customerController');
 const authMiddleware = require('../middleware/authMiddleware');
 const { apiLimiter, paymentLimiter } = require('../middleware/rateLimiter');
 
-// All customer routes are protected (auth runs first to ensure per-user rate attribution)
-router.use(authMiddleware);
+// All customer routes are protected by rate limiting and authentication
 router.use(apiLimiter);
+router.use(authMiddleware);
 
 // Eminence Pro Subscription routes
 router.get('/pro/status', customerController.getProStatus);

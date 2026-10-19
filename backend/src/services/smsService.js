@@ -166,7 +166,7 @@ const sendSMS = async (to, body) => {
     }
     return { success: false, data: result };
   } catch (error) {
-    console.error(`[Fast2SMS ERROR] Failed to send SMS to +91 ${maskPhone(cleanPhone)}:`, error.message);
+    console.error('[Fast2SMS ERROR] Failed to send SMS to recipient:', error.message);
     if (process.env.NODE_ENV !== 'production') {
       const otpCode = extractOtp(body);
       if (otpCode) console.log(`[DEV OTP FALLBACK CONSOLE] Phone: +91 ${maskPhone(cleanPhone)} | Code: ${otpCode}`);

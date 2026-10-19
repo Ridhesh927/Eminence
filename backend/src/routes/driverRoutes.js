@@ -7,7 +7,7 @@ const authorize = require('../middleware/roleMiddleware');
 const { apiLimiter, locationTrackingLimiter } = require('../middleware/rateLimiter');
 
 // Add heatmap route (protected for driver or admin)
-router.get('/heatmap', protect, authorize('driver', 'admin'), apiLimiter, (req, res) => {
+router.get('/heatmap', apiLimiter, protect, authorize('driver', 'admin'), (req, res) => {
   try {
     const data = getSurgeHeatmap();
     res.status(200).json({ success: true, data });
@@ -19,7 +19,7 @@ router.get('/heatmap', protect, authorize('driver', 'admin'), apiLimiter, (req, 
 const { Inventory } = require('../models');
 
 // Inventory scanning route for WMS (protected)
-router.all('/scan-inventory', protect, authorize('driver', 'admin'), apiLimiter, async (req, res) => {
+router.all('/scan-inventory', apiLimiter, protect, authorize('driver', 'admin'), async (req, res) => {
   try {
     const barcode = req.body.barcode || req.query.barcode;
 
@@ -66,14 +66,14 @@ router.all('/scan-inventory', protect, authorize('driver', 'admin'), apiLimiter,
   }
 });
 
-router.get('/', protect, authorize('driver', 'admin'), apiLimiter, driverController.getAllDrivers);
-router.post('/', protect, authorize('admin'), apiLimiter, driverController.createDriver);
-router.patch('/:id/toggle', protect, authorize('driver', 'admin'), apiLimiter, driverController.toggleAvailability);
-router.post('/location', protect, authorize('driver'), locationTrackingLimiter, driverController.updateLocation);
-router.get('/:id/metrics', protect, authorize('driver', 'admin'), apiLimiter, driverController.getDriverMetrics);
-router.get('/:id/queue', protect, authorize('driver', 'admin'), apiLimiter, driverController.getDriverQueue);
-router.put('/:id/queue/activate/:bookingId', protect, authorize('driver', 'admin'), apiLimiter, driverController.activateQueuedTrip);
-router.get('/:id/payslip', protect, authorize('driver', 'admin'), apiLimiter, driverController.generatePayslip);
-router.get('/:id/payslip/download', protect, authorize('driver', 'admin'), apiLimiter, driverController.downloadPayslip);
+router.get('/', apiLimiter, protect, authorize('driver', 'admin'), driverController.getAllDrivers);
+router.post('/', apiLimiter, protect, authorize('admin'), driverController.createDriver);
+router.patch('/:id/toggle', apiLimiter, protect, authorize('driver', 'admin'), driverController.toggleAvailability);
+router.post('/location', locationTrackingLimiter, protect, authorize('driver'), driverController.updateLocation);
+router.get('/:id/metrics', apiLimiter, protect, authorize('driver', 'admin'), driverController.getDriverMetrics);
+router.get('/:id/queue', apiLimiter, protect, authorize('driver', 'admin'), driverController.getDriverQueue);
+router.put('/:id/queue/activate/:bookingId', apiLimiter, protect, authorize('driver', 'admin'), driverController.activateQueuedTrip);
+router.get('/:id/payslip', apiLimiter, protect, authorize('driver', 'admin'), driverController.generatePayslip);
+router.get('/:id/payslip/download', apiLimiter, protect, authorize('driver', 'admin'), driverController.downloadPayslip);
 
 module.exports = router;

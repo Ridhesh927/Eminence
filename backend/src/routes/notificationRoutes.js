@@ -4,8 +4,8 @@ const notificationController = require('../controllers/notificationController');
 const protect = require('../middleware/authMiddleware');
 const { apiLimiter } = require('../middleware/rateLimiter');
 
-router.use(protect);
 router.use(apiLimiter);
+router.use(protect);
 
 router.get('/', notificationController.getNotifications);
 router.put('/mark-all-read', notificationController.markAllAsRead);

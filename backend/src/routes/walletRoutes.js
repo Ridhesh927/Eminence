@@ -9,9 +9,9 @@ const {
 const authMiddleware = require('../middleware/authMiddleware');
 const { apiLimiter, authLimiter } = require('../middleware/rateLimiter');
 
-// Apply auth middleware before rate limiting so getClientKey uses req.user.id
-router.use(authMiddleware);
+// Apply rate limiting before auth middleware
 router.use(apiLimiter);
+router.use(authMiddleware);
 
 router.get('/', getWallet);
 router.post('/referral', authLimiter, applyReferralCode);
