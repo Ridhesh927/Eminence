@@ -23,11 +23,6 @@ const getClientKey = (req) => {
   if (req.user && req.user.id) {
     return `usr_${req.user.id}`;
   }
-  const authHeader = req.headers && req.headers.authorization;
-  if (authHeader && typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
-    const token = authHeader.slice(7).trim();
-    if (token) return `tok_${token.slice(-16)}`;
-  }
   return req.ip || req.socket?.remoteAddress || '127.0.0.1';
 };
 
