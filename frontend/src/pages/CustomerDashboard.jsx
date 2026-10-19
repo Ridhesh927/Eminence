@@ -5,7 +5,7 @@ import {
   Package, CheckCircle, Wallet, MapPin, Plus, Gift, Copy, 
   Crown, Target, Star, Leaf, Truck, Bell, Check, AlertCircle, RefreshCw, Lock, Eye, EyeOff,
   CreditCard, X, ShieldCheck, FileText, Home, Headphones, User,
-  Radio, Navigation, ArrowRight, Clock, Search, Activity, Phone
+  Radio, Navigation, ArrowRight, Clock, Search, Activity, Phone, Download
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../services/api';
@@ -720,22 +720,53 @@ const CustomerDashboard = ({ initialTab = 'history', autoOpenTopup = false }) =>
     }
   };
 
-  const handleDownloadInvoice = (id) => {
-    console.log('Downloading invoice for id:', id);
-    setDownloadingInvoice(id);
-    setTimeout(() => {
+  const handleDownloadInvoice = async (id, openInNewTab = false) => {
+    try {
+      setDownloadingInvoice(id);
+      let res;
+      try {
+        res = await api.get(`/api/bookings/${id}/receipt`, {
+          responseType: 'blob'
+        });
+      } catch (primaryErr) {
+        // Fallback to integrations endpoint
+        res = await api.get(`/api/integrations/invoice/${id}`, {
+          responseType: 'blob'
+        });
+      }
+
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+
+      if (openInNewTab) {
+        window.open(url, '_blank');
+      } else {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Eminence_Receipt_INV-${id.slice(0, 8).toUpperCase()}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+      setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+    } catch (err) {
+      console.error('Invoice download error:', err);
+      alert('Could not download receipt PDF. Please verify that the booking exists and try again.');
+    } finally {
       setDownloadingInvoice(null);
-      
-      const blob = new Blob(['Invoice Data'], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `INV-${id}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }, 500);
+    }
+  };
+
+  const handleDownloadAllInvoices = async () => {
+    const completed = bookings.filter((b) => b.status === 'completed');
+    if (completed.length === 0) {
+      alert('No completed trip invoices available to download.');
+      return;
+    }
+    for (const b of completed) {
+      await handleDownloadInvoice(b.id, false);
+      await new Promise((r) => setTimeout(r, 600));
+    }
   };
 
   return (
@@ -1852,15 +1883,27 @@ const CustomerDashboard = ({ initialTab = 'history', autoOpenTopup = false }) =>
 
           {activeTab === 'notifications' && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold text-loft-50">Notifications</h3>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+                <div>
+                  <h3 className="text-xl font-bold text-loft-50 flex items-center gap-2">
+                    <span>Notifications</span>
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-loft-800 text-loft-400 border border-loft-700">
+                      30-Day Activity History
+                    </span>
+                  </h3>
+                  <p className="text-xs text-loft-400 mt-0.5">
+                    Completed notifications are securely stored for 30 days before automatic archival.
+                  </p>
+                </div>
                 {unreadCount > 0 && (
-                  <button onClick={markAllRead} className="text-copper-500 text-sm font-medium hover:text-copper-400">Mark all as read</button>
+                  <button onClick={markAllRead} className="text-copper-400 text-xs font-semibold hover:text-copper-300 self-start sm:self-center px-3 py-1.5 rounded-lg bg-copper-500/10 border border-copper-500/20 cursor-pointer">
+                    Mark all as done
+                  </button>
                 )}
               </div>
               <div className="card bg-loft-900 border-loft-800 overflow-hidden p-6">
                 {notifications.length === 0 ? (
-                  <div className="text-center py-8 text-loft-400">No notifications yet.</div>
+                  <div className="text-center py-8 text-loft-400">No notifications in the last 30 days.</div>
                 ) : (
                   <div className="space-y-4">
                     {notifications.map((notification) => (

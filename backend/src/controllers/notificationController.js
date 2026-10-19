@@ -28,12 +28,23 @@ const getNotificationScope = (user) => {
 // Get all notifications for the authenticated user/admin
 const getNotifications = async (req, res) => {
   try {
-const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 100);
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 100);
     const scope = getNotificationScope(req.user);
+    const isBellOnly = req.query.bellOnly === 'true';
+
+    // Notifications live for at least 30 days in the Customer Tab
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     const whereClause = {
       ...scope,
+      createdAt: { [Op.gte]: thirtyDaysAgo },
     };
+
+    // If request is from the top-bar notification bell dropdown, exclude dismissed items
+    if (isBellOnly) {
+      whereClause.dismissedFromBell = false;
+    }
 
     if (req.query.unread === 'true') {
       whereClause.isRead = false;
@@ -53,6 +64,7 @@ const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 100);
       where: {
         ...scope,
         isRead: false,
+        ...(isBellOnly ? { dismissedFromBell: false } : {}),
       },
     });
 
@@ -136,21 +148,24 @@ const deleteNotification = async (req, res) => {
   }
 };
 
-// Clear all read notifications
+// Clear read notifications from Bell dropdown (keeps records alive for 30 days in dashboard tab)
 const clearReadNotifications = async (req, res) => {
   try {
     const scope = getNotificationScope(req.user);
 
-    await Notification.destroy({
-      where: {
-        ...scope,
-        isRead: true,
-      },
-    });
+    await Notification.update(
+      { dismissedFromBell: true, isRead: true },
+      {
+        where: {
+          ...scope,
+          isRead: true,
+        },
+      }
+    );
 
-    res.status(200).json({ success: true, message: 'Read notifications cleared' });
+    res.status(200).json({ success: true, message: 'Read notifications cleared from bell' });
   } catch (error) {
-    console.error('Error clearing read notifications:', error);
+    console.error('Error clearing read notifications from bell:', error);
     res.status(500).json({ success: false, message: 'Server error clearing notifications' });
   }
 };

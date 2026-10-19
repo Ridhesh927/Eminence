@@ -73,7 +73,7 @@ const NotificationBell = ({ role: overrideRole, variant = 'navbar' }) => {
   const fetchNotifications = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api.get('/api/notifications?limit=40');
+      const res = await api.get('/api/notifications?limit=40&bellOnly=true');
       if (res?.data?.success && Array.isArray(res.data?.notifications)) {
         setNotifications(res.data.notifications);
         setUnreadCount(res.data.unreadCount ?? res.data.notifications.filter(n => !n.isRead).length);
@@ -142,6 +142,22 @@ const NotificationBell = ({ role: overrideRole, variant = 'navbar' }) => {
           }
         };
         handleIncomingNotification(notifObj);
+      });
+
+      socket.on('ticket_status_updated', ({ id, status }) => {
+        if (status === 'closed' || status === 'resolved') {
+          setNotifications(prev =>
+            prev.map(n => {
+              if (
+                String(n.metadata?.ticketId) === String(id) ||
+                n.id === `sos-${id}`
+              ) {
+                return { ...n, isRead: true, isResolved: true };
+              }
+              return n;
+            })
+          );
+        }
       });
     }
 

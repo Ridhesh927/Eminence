@@ -196,6 +196,7 @@ const bootstrapDatabase = async () => {
       await addSqliteColumn('Admins', 'phone', 'VARCHAR(20)');
       await addSqliteColumn('Admins', 'pushToken', 'VARCHAR(255)');
       await addSqliteColumn('Notifications', 'recipientRole', "VARCHAR(50) DEFAULT 'customer'");
+      await addSqliteColumn('Notifications', 'dismissedFromBell', 'BOOLEAN DEFAULT 0');
       await addSqliteColumn('Notifications', 'metadata', 'TEXT');
     }
   } catch (e) {

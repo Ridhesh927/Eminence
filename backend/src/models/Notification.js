@@ -31,6 +31,10 @@ const Notification = sequelize.define('Notification', {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
   },
+  dismissedFromBell: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
   metadata: {
     type: DataTypes.JSON,
     allowNull: true,
