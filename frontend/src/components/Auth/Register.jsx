@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { ArrowRight, Phone, User, Eye, EyeOff, Gift } from 'lucide-react';
+import { ArrowRight, Phone, User, Eye, EyeOff, Gift, CheckCircle, AlertCircle } from 'lucide-react';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../../config/firebase';
 import { useDispatch } from 'react-redux';
@@ -24,6 +24,8 @@ const Register = () => {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isTermsOpen, setIsTermsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successInfo, setSuccessInfo] = useState(null);
   const [activeTab] = useState('customer');
   const navigate = useNavigate();
   const location = useLocation();
@@ -33,6 +35,7 @@ const Register = () => {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    if (errorMessage) setErrorMessage('');
   };
 
   const handleRegisterSubmit = async (e) => {
@@ -41,6 +44,7 @@ const Register = () => {
     if (!termsAccepted) return;
     
     setIsLoading(true);
+    setErrorMessage('');
     try {
       const response = await api.post('/api/auth/register', { 
         name: formData.name,
@@ -54,19 +58,22 @@ const Register = () => {
       setIsLoading(false);
       
       if (response.data.success) {
-        alert('Registration successful! Please log in.');
-        navigate('/login', { state: location.state });
+        setSuccessInfo({
+          message: response.data.message || 'Account created successfully! You can now log in to access your dashboard.',
+          hasBonus: Boolean(formData.referralCode?.trim())
+        });
       }
     } catch (error) {
       console.error('Registration submit error:', error);
       setIsLoading(false);
-      alert(error.response?.data?.message || 'Error initiating registration. Please try again.');
+      setErrorMessage(error.response?.data?.message || 'Error initiating registration. Please try again.');
     }
   };
 
   const handleGoogleSignUp = async () => {
     try {
       setIsLoading(true);
+      setErrorMessage('');
       const result = await signInWithPopup(auth, googleProvider);
       const idToken = await result.user.getIdToken();
       
@@ -101,7 +108,7 @@ const Register = () => {
     } catch (error) {
       console.error("Google Sign-Up Error", error);
       setIsLoading(false);
-      alert(error.response?.data?.message || 'Google sign up failed. Please try again.');
+      setErrorMessage(error.response?.data?.message || 'Google sign up failed. Please try again.');
     }
   };
 
@@ -126,6 +133,18 @@ const Register = () => {
             Are you a driver? Driver credentials are appointed directly by Fleet Admins. Please log in via the <Link to="/login" className="text-copper-400 font-semibold hover:underline">Sign In</Link> portal.
           </p>
         </div>
+
+        {/* Error Notification */}
+        {errorMessage && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-sm flex items-start gap-3"
+          >
+            <AlertCircle className="w-5 h-5 flex-shrink-0 text-red-400 mt-0.5" />
+            <span className="flex-1 leading-relaxed">{errorMessage}</span>
+          </motion.div>
+        )}
 
         <button 
           onClick={handleGoogleSignUp}
@@ -316,6 +335,53 @@ const Register = () => {
           </Link>
         </div>
       </motion.div>
+
+      {/* Registration Success Modal Dialog */}
+      <AnimatePresence>
+        {successInfo && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 16 }}
+              className="bg-loft-900 border border-copper-500/40 rounded-2xl shadow-[0_16px_48px_rgba(0,0,0,0.8)] max-w-md w-full p-6 md:p-8 text-center relative overflow-hidden"
+            >
+              <div className="absolute -top-12 -right-12 w-32 h-32 bg-copper-500/10 rounded-full blur-2xl pointer-events-none" />
+              <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-moss-500/10 rounded-full blur-2xl pointer-events-none" />
+
+              <div className="w-16 h-16 rounded-full bg-moss-500/15 border border-moss-500/30 flex items-center justify-center mx-auto mb-5 text-moss-400 shadow-[0_0_20px_rgba(34,197,94,0.15)]">
+                <CheckCircle className="w-8 h-8" />
+              </div>
+
+              <h3 className="text-2xl font-serif font-bold text-loft-50 mb-2">
+                Registration Successful!
+              </h3>
+
+              <p className="text-loft-300 text-sm mb-6 leading-relaxed">
+                {successInfo.message}
+              </p>
+
+              {successInfo.hasBonus && (
+                <div className="mb-6 p-3 rounded-xl bg-copper-500/10 border border-copper-500/25 flex items-center justify-center gap-2 text-copper-400 text-xs font-semibold">
+                  <Gift className="w-4 h-4" />
+                  <span>₹100 Welcome Bonus has been reserved for your wallet!</span>
+                </div>
+              )}
+
+              <button
+                onClick={() => {
+                  setSuccessInfo(null);
+                  navigate('/login', { state: location.state });
+                }}
+                className="btn-primary w-full py-3.5 text-base flex items-center justify-center gap-2 shadow-lg"
+              >
+                Proceed to Sign In
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
