@@ -2,7 +2,10 @@ import axios from 'axios';
 import { getToken, removeToken } from './tokenService';
 
 const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
-const apiBaseUrl = configuredApiUrl || (import.meta.env.DEV ? 'http://localhost:3000' : '');
+if (!configuredApiUrl && !import.meta.env.DEV) {
+  throw new Error('VITE_API_URL is required outside development builds.');
+}
+const apiBaseUrl = configuredApiUrl || 'http://localhost:3000';
 
 const api = axios.create({
   baseURL: apiBaseUrl,
