@@ -1,7 +1,7 @@
 const http = require('http');
+const app = require('./app');
 const validateEnv = require('./config/validateEnv');
 validateEnv();
-const app = require('./app');
 const { syncDatabase } = require('./models');
 const process = require('node:process');
 const { handleSupportMessage } = require('./services/supportBotService');
