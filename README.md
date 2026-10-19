@@ -2,14 +2,16 @@
 
 > **Next-Generation Commercial Freight Logistics, Real-Time Fleet Telematics & B2B Transport Platform**
 
-[![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
-[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev/)
+[![Node.js](https://img.shields.io/badge/Node.js-20%2B-339933?logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![React Native](https://img.shields.io/badge/React_Native-Expo_57-000020?logo=expo&logoColor=white)](https://expo.dev/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-NeonDB-4169E1?logo=postgresql&logoColor=white)](https://neon.tech/)
 [![Socket.io](https://img.shields.io/badge/Socket.io-v4-010101?logo=socketdotio&logoColor=white)](https://socket.io/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-v4-38B2AC?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
 
 [![Setup Guide](https://img.shields.io/badge/Setup-Guide-green.svg)](CONTRIBUTING.md)
 [![Documentation](https://img.shields.io/badge/Docs-Full%20Reference-blue.svg)](DOCUMENTATION.md)
+[![Tech Stack](https://img.shields.io/badge/Tech%20Stack-Architecture%20Guide-orange.svg)](TECH_STACK.md)
 
 ---
 
@@ -30,7 +32,6 @@
 - [Security & Responsible Disclosure](#security--responsible-disclosure)
 - [Detailed Setup Guide](#detailed-setup-guide)
 
-
 ---
 
 ## 🎯 Overview
@@ -48,7 +49,7 @@
 ## 🌟 Key Features & Capabilities
 
 ### 1. Customer Booking & Dispatch Experience
-- **Multi-Stop Trip Builder**: Book pickups with arbitrary intermediate drop destinations, automatic route optimization, and vehicle payload matching (2W, 3W, Pickup, 14ft Commercial Truck).
+- **Multi-Stop Trip Builder**: Book pickups with arbitrary intermediate drop destinations, automatic route optimization, and vehicle payload matching (Tata Ace, 2 Ton, 3 Ton Commercial Trucks).
 - **Live Driver GPS Tracking**: Real-time geospatial tracking powered by Socket.io and OpenStreetMap/Leaflet integration.
 - **ESG Emissions Intelligence**: Dynamic carbon offset and emissions savings computations displayed on ride receipts.
 - **Customer Address Book**: Instant auto-fill for frequent commercial drop locations.
@@ -85,17 +86,21 @@
 
 ---
 
-## 💻 Tech Stack
+## 💻 Tech Stack Summary
 
-| Domain | Technologies Used |
+> 📘 **For the deep-dive architectural documentation, package versions, AI models, and testing setup, see [TECH_STACK.md](TECH_STACK.md).**
+
+| Domain | Technologies & Libraries |
 |---|---|
-| **Backend API** | Node.js (v18+), Express.js 4.x, Sequelize ORM |
-| **Databases** | PostgreSQL (NeonDB serverless) & Zero-Config SQLite (Local Development) |
-| **Real-Time Layer**| Socket.io (WebSocket), Redis / In-Memory LRU fallback |
-| **Frontend Web** | React 18, Vite, Tailwind CSS, Redux Toolkit, Leaflet / OpenStreetMap, Recharts |
-| **Mobile App** | React Native, Expo 57, Expo Router, Lucide Icons, Expo SecureStore, Expo Location |
-| **Security** | Helmet, Express Rate Limit, Cookie-Parser, Cryptographic HMAC-SHA256, DPDP Filtering |
-| **Third-Party APIs**| Razorpay (Payments), Fast2SMS (OTP Delivery), Groq Cloud AI |
+| **Backend API** | Node.js (v20+), Express.js 5, Sequelize ORM, Node-Cron, PDFKit, Nodemailer |
+| **Databases & Cache** | PostgreSQL (NeonDB Serverless), SQLite3 (Local/Test), Redis (`ioredis`) |
+| **Real-Time & Telephony** | Socket.io v4 (`@socket.io/postgres-adapter`), PeerJS (WebRTC Voice Calls), Twilio / Fast2SMS IVR |
+| **AI & NLP** | Google Gemini AI (`@google/genai`), Groq Cloud SDK (`groq-sdk`), Deterministic NLP Fallback |
+| **Frontend Web** | React 19, Vite 8, Tailwind CSS v4, Redux Toolkit, Leaflet / React-Leaflet, Recharts, Framer Motion |
+| **Mobile App** | React Native (0.86), Expo SDK 57, Expo Router 4, Expo Location, Expo Camera, Expo SQLite |
+| **Testing & QA** | Jest, Supertest, Vitest, React Testing Library, Playwright E2E, Oxlint, TypeScript (`tsc`) |
+| **Security & Privacy** | Helmet, Express Rate Limit, Cookie-Parser, HMAC-SHA256 PoD Hashing, DPDP Data Scrubbers |
+| **Third-Party APIs** | Razorpay (Payments), Fast2SMS (OTP Delivery), OpenStreetMap / OSRM (Routing) |
 
 ---
 
@@ -112,22 +117,23 @@ Eminence/
 │   │   ├── routes/           # REST endpoint definitions
 │   │   └── services/         # Telematics simulator, pricing engine, notifications
 │   └── tests/                # Jest integration test suites
-├── frontend/                 # React 18 + Vite Web Application
+├── frontend/                 # React 19 + Vite Web Application
 │   ├── src/
 │   │   ├── components/admin/ # Modular tab components (Overview, Telematics, Fleet)
 │   │   ├── hooks/            # Custom state & WebSocket subscription hooks
 │   │   ├── pages/            # Admin, Customer, Driver, and Booking pages
 │   │   └── services/         # Centralized Axios API configuration
 │   └── vite.config.js        # Vite compilation and code-splitting setup
-├── mobile/                   # React Native (Expo) Universal Application
+├── mobile/                   # React Native (Expo 57) Universal Application
 │   ├── src/
 │   │   ├── app/              # File-based routing for mobile screens
 │   │   └── services/         # SQLite offline sync, push notifications, GPS telemetry
 │   └── tests/                # 31-case automated mobile QA integration test suite
+├── TECH_STACK.md             # Complete technical stack and architecture reference
 ├── run_all_tests.js          # Unified pre-commit test runner (Scorecard)
 ├── CONTRIBUTING.md           # Complete setup & installation guide
 ├── SECURITY.md               # Security policy & defense architecture
-└── README.md                 # Project documentation
+└── README.md                 # Project overview
 ```
 
 ---
@@ -135,7 +141,7 @@ Eminence/
 ## 🚀 Setup & Quick Start
 
 ### Prerequisites
-- **Node.js**: v18.0.0 or higher
+- **Node.js**: v20.0.0 or higher
 - **npm**: v9.0.0 or higher
 - **Git**: Installed on your system
 
@@ -250,8 +256,4 @@ Security is fundamental to Eminence. Please report any potential vulnerabilities
 
 ## 📖 Detailed Setup Guide
 
-For comprehensive installation instructions, zero-config SQLite mode, production PostgreSQL/NeonDB setup, default demo credentials, and troubleshooting FAQs, please refer to our complete **[Setup Guide](CONTRIBUTING.md)**.
-
----
-
-
+For comprehensive installation instructions, zero-config SQLite mode, production PostgreSQL/NeonDB setup, default demo credentials, and troubleshooting FAQs, please refer to our complete **[Setup Guide](CONTRIBUTING.md)** and **[Full Documentation](DOCUMENTATION.md)**.

@@ -77,6 +77,11 @@ jobs:
         ram: 4096
         threads: 2
         db-location: ./codeql-db
+        config: |
+          paths-ignore:
+            - '**/tests/**'
+            - '**/*.test.js'
+            - '**/*.spec.js'
 
     - name: Run manual build steps
       if: matrix.build-mode == 'manual'

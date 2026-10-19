@@ -748,7 +748,7 @@ const CustomerDashboard = ({ initialTab = 'history', autoOpenTopup = false }) =>
         a.click();
         document.body.removeChild(a);
       }
-      setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+      setTimeout(() => window.URL.revokeObjectURL(url), 60000);
     } catch (err) {
       console.error('Invoice download error:', err);
       alert('Could not download receipt PDF. Please verify that the booking exists and try again.');
@@ -1102,6 +1102,17 @@ const CustomerDashboard = ({ initialTab = 'history', autoOpenTopup = false }) =>
                             </button>
                           )
                         )}
+                        {isCompleted && (
+                          <button
+                            onClick={() => handleDownloadInvoice(booking.id, false)}
+                            disabled={downloadingInvoice === booking.id}
+                            className="btn-secondary py-1.5 px-2.5 text-xs text-copper-400 border-copper-500/30 hover:border-copper-500/60 flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                            title="Download Official Tax Receipt & Invoice"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>{downloadingInvoice === booking.id ? 'Downloading...' : 'Receipt'}</span>
+                          </button>
+                        )}
                         <button 
                           onClick={() => setSelectedTrip(booking)}
                           className="btn-secondary py-1.5 px-3 text-xs"
@@ -1119,39 +1130,62 @@ const CustomerDashboard = ({ initialTab = 'history', autoOpenTopup = false }) =>
 
           {activeTab === 'invoices' && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold text-loft-50">Invoices & Receipts</h3>
-                <button className="text-copper-500 text-sm font-medium hover:text-copper-400">Download All</button>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+                <div>
+                  <h3 className="text-xl font-bold text-loft-50 font-serif">Invoices & Delivery Receipts</h3>
+                  <p className="text-xs text-loft-400 mt-0.5">Download official GST tax invoices, consignment manifests, and tamper-evident PoD receipts.</p>
+                </div>
+                <button
+                  onClick={handleDownloadAllInvoices}
+                  className="px-3.5 py-2 rounded-xl bg-copper-500/15 hover:bg-copper-500/25 text-copper-400 hover:text-copper-300 text-xs font-bold flex items-center gap-1.5 transition-all self-start sm:self-auto cursor-pointer"
+                  title="Download all completed trip receipts"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download All</span>
+                </button>
               </div>
-              <div className="card bg-loft-900 border-loft-800 overflow-hidden">
+              <div className="card bg-loft-900 border-loft-800 overflow-hidden shadow-xl rounded-2xl">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm text-loft-300">
-                    <thead className="bg-loft-950/50 text-xs uppercase font-medium">
+                    <thead className="bg-loft-950/70 text-xs uppercase font-medium text-loft-400 border-b border-loft-800">
                       <tr>
                         <th className="px-6 py-4">Invoice No.</th>
                         <th className="px-6 py-4">Date</th>
                         <th className="px-6 py-4">Booking Ref</th>
                         <th className="px-6 py-4">Amount</th>
-                        <th className="px-6 py-4">Action</th>
+                        <th className="px-6 py-4 text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-loft-800">
+                    <tbody className="divide-y divide-loft-800/60">
                       {bookings.filter(b => b.status === 'completed').length === 0 ? (
                         <tr><td colSpan="5" className="px-6 py-8 text-center text-loft-500 text-sm">No invoices yet. Completed bookings will appear here.</td></tr>
                       ) : bookings.filter(b => b.status === 'completed').map((booking, idx) => (
-                        <tr key={idx} className="hover:bg-loft-800/50 transition-colors">
-                          <td className="px-6 py-4 font-medium text-loft-200 font-mono text-sm">INV-{booking.id?.slice(0,8).toUpperCase()}</td>
-                          <td className="px-6 py-4">{new Date(booking.updatedAt || booking.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-                          <td className="px-6 py-4 font-mono text-sm">{booking.id?.slice(0,8).toUpperCase()}</td>
-                          <td className="px-6 py-4 font-bold text-loft-100">₹{parseFloat(booking.estimatedFare || 0).toLocaleString('en-IN')}</td>
-                          <td className="px-6 py-4">
-                            <button 
-                              onClick={() => handleDownloadInvoice(booking.id)}
-                              disabled={downloadingInvoice === booking.id}
-                              className="text-copper-500 hover:text-copper-400 font-medium text-xs flex items-center gap-1 disabled:opacity-50"
-                            >
-                              {downloadingInvoice === booking.id ? 'Downloading...' : 'Download PDF'}
-                            </button>
+                        <tr key={idx} className="hover:bg-loft-800/40 transition-colors">
+                          <td className="px-6 py-4 font-semibold text-loft-100 font-mono text-xs">INV-{booking.id?.slice(0,8).toUpperCase()}</td>
+                          <td className="px-6 py-4 text-xs">{new Date(booking.updatedAt || booking.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                          <td className="px-6 py-4 font-mono text-xs text-loft-400">#{booking.id?.slice(0,8).toUpperCase()}</td>
+                          <td className="px-6 py-4 font-bold text-loft-50">₹{parseFloat(booking.estimatedFare || 0).toLocaleString('en-IN')}</td>
+                          <td className="px-6 py-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button 
+                                onClick={() => handleDownloadInvoice(booking.id, false)}
+                                disabled={downloadingInvoice === booking.id}
+                                className="px-3 py-1.5 rounded-lg bg-copper-500/15 hover:bg-copper-500/25 text-copper-400 hover:text-copper-300 font-semibold text-xs flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+                                title="Download PDF to device"
+                              >
+                                <Download className="w-3.5 h-3.5" />
+                                <span>{downloadingInvoice === booking.id ? 'Downloading...' : 'Download PDF'}</span>
+                              </button>
+                              <button 
+                                onClick={() => handleDownloadInvoice(booking.id, true)}
+                                disabled={downloadingInvoice === booking.id}
+                                className="px-2.5 py-1.5 rounded-lg bg-loft-800 hover:bg-loft-700 text-loft-300 hover:text-loft-100 font-medium text-xs flex items-center gap-1 transition-all disabled:opacity-50 cursor-pointer"
+                                title="Open PDF in new tab"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>View</span>
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -2304,6 +2338,7 @@ const CustomerDashboard = ({ initialTab = 'history', autoOpenTopup = false }) =>
         isOpen={Boolean(selectedTrip)}
         onClose={() => setSelectedTrip(null)}
         onCancelBooking={(trip) => setCancelModalBooking(trip)}
+        onDownloadInvoice={handleDownloadInvoice}
       />
 
       {/* Add Funds to Wallet Modal */}

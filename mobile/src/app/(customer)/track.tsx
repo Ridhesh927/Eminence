@@ -622,25 +622,48 @@ export default function TrackingScreen() {
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
               <Text style={{ fontSize: 16 }}>📞</Text>
-              <Text style={styles.trackSupportTitle}>Dedicated Helpline (7 AM – 7 PM)</Text>
+              <Text style={styles.trackSupportTitle}>
+                {booking?.driver?.phone ? 'Driver & Dispatch Contact' : 'Dedicated Helpline (7 AM – 7 PM)'}
+              </Text>
             </View>
           </View>
           <Text style={styles.trackSupportSubtitle}>
-            Need immediate help with this trip? Call dispatch or email us:
+            {booking?.driver?.phone
+              ? `Call driver directly for pickup/drop updates. If driver is not responding, call admin dispatch:`
+              : `Need immediate help with this trip? Call dispatch or email us:`}
           </Text>
           <View style={styles.trackSupportActionRow}>
-            <TouchableOpacity
-              style={styles.trackCallBtn}
-              onPress={() => Linking.openURL('tel:9970734425')}
-            >
-              <Text style={styles.trackCallBtnText}>Call: +91 9970734425</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.trackMailBtn}
-              onPress={() => Linking.openURL('mailto:eminence.support.helpline@gmail.com')}
-            >
-              <Text style={styles.trackMailBtnText}>Email Support</Text>
-            </TouchableOpacity>
+            {booking?.driver?.phone ? (
+              <>
+                <TouchableOpacity
+                  style={[styles.trackCallBtn, { backgroundColor: '#10b981' }]}
+                  onPress={() => Linking.openURL(`tel:${booking.driver.phone}`)}
+                >
+                  <Text style={styles.trackCallBtnText}>Call Driver: +91 {booking.driver.phone}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.trackMailBtn, { borderColor: '#e86331' }]}
+                  onPress={() => Linking.openURL('tel:9970734425')}
+                >
+                  <Text style={[styles.trackMailBtnText, { color: '#e86331' }]}>Admin Support</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <TouchableOpacity
+                  style={styles.trackCallBtn}
+                  onPress={() => Linking.openURL('tel:9970734425')}
+                >
+                  <Text style={styles.trackCallBtnText}>Call: +91 9970734425</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.trackMailBtn}
+                  onPress={() => Linking.openURL('mailto:eminence.support.helpline@gmail.com')}
+                >
+                  <Text style={styles.trackMailBtnText}>Email Support</Text>
+                </TouchableOpacity>
+              </>
+            )}
           </View>
         </View>
       </ScrollView>

@@ -141,7 +141,9 @@ const bootstrapDatabase = async () => {
       await sequelize.query(`
         ALTER TABLE "Admins"
           ADD COLUMN IF NOT EXISTS "role" VARCHAR(50) DEFAULT 'Support Admin',
-          ADD COLUMN IF NOT EXISTS "isPrimary" BOOLEAN DEFAULT false;
+          ADD COLUMN IF NOT EXISTS "isPrimary" BOOLEAN DEFAULT false,
+          ADD COLUMN IF NOT EXISTS "phone" VARCHAR(255),
+          ADD COLUMN IF NOT EXISTS "pushToken" VARCHAR(255);
       `);
 
       // Database-level constraint preventing multiple referral rewards for one customer's wallet

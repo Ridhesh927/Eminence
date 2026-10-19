@@ -5,7 +5,8 @@ const app = require('../../src/app');
 const {
   getClientKey,
   createRateLimiter,
-  locationTrackingLimiter
+  locationTrackingLimiter,
+  apiLimiter
 } = require('../../src/middleware/rateLimiter');
 const {
   tryAcquireAiSlot,
@@ -102,12 +103,7 @@ describe('Phase 2C — Rate Limiting, AI API Protection & Cost Control Suite', (
 
     test('3. Server-verified req.user.id isolates rate limits for different authenticated users', async () => {
       const testApp = express();
-      const preAuthLimiter = createRateLimiter({
-        windowMs: 60 * 1000,
-        max: 100,
-        message: 'Too many authentication attempts'
-      });
-
+      testApp.use(apiLimiter);
       const authHeaderParser = (req, res, next) => {
         const auth = req.headers.authorization;
         if (auth && auth.startsWith('Bearer ')) {
@@ -124,7 +120,7 @@ describe('Phase 2C — Rate Limiting, AI API Protection & Cost Control Suite', (
         message: 'User quota exceeded'
       });
 
-      testApp.get('/api/user-resource', preAuthLimiter, authHeaderParser, userLimiter, (req, res) => {
+      testApp.get('/api/user-resource', apiLimiter, authHeaderParser, userLimiter, (req, res) => {
         res.json({ success: true, user: req.user?.id });
       });
 
@@ -173,12 +169,13 @@ describe('Phase 2C — Rate Limiting, AI API Protection & Cost Control Suite', (
 
     test('5a. Authenticated expensive routes attribute limits to verified user identity', async () => {
       const testApp = express();
+      testApp.use(apiLimiter);
       const authHeaderParser = (req, _res, next) => {
         req.user = jwt.verify(req.headers.authorization.split(' ')[1], JWT_SECRET);
         next();
       };
       const userLimiter = createRateLimiter({ windowMs: 60 * 1000, max: 1 });
-      testApp.post('/api/expensive', userLimiter, authHeaderParser, (_req, res) => res.json({ success: true }));
+      testApp.post('/api/expensive', apiLimiter, authHeaderParser, userLimiter, (_req, res) => res.json({ success: true }));
 
       const tokenA = jwt.sign({ id: 'expensive-user-a', role: 'customer' }, JWT_SECRET);
       const tokenB = jwt.sign({ id: 'expensive-user-b', role: 'customer' }, JWT_SECRET);

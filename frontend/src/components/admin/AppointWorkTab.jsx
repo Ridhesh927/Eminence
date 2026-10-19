@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { 
   UserCheck, Clock, Truck, CheckCircle2, 
-  Search, RefreshCw, AlertCircle, ArrowRight, ShieldCheck, MapPin, AlertTriangle
+  Search, RefreshCw, AlertCircle, ArrowRight, ShieldCheck, MapPin, AlertTriangle,
+  X, Filter, ArrowUpDown, Layers
 } from 'lucide-react';
 import { adminApi } from '../../services/adminApi';
 
@@ -13,6 +14,8 @@ const AppointWorkTab = () => {
   const [assigningId, setAssigningId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('pending'); // 'pending' | 'active' | 'completed' | 'expired' | 'all'
+  const [vehicleFilter, setVehicleFilter] = useState('all'); // 'all' | 'small' | 'medium' | 'large'
+  const [sortBy, setSortBy] = useState('newest'); // 'newest' | 'oldest' | 'fare_high' | 'fare_low'
   const [feedback, setFeedback] = useState(null); // { type: 'success' | 'error', message: string }
 
   const fetchData = async () => {
@@ -174,9 +177,9 @@ const AppointWorkTab = () => {
     };
   }, [bookings, assignableDrivers, drivers]);
 
-  // Filtered bookings
+  // Filtered and sorted bookings
   const filteredBookings = useMemo(() => {
-    return bookings.filter(b => {
+    const list = bookings.filter(b => {
       // Status filter
       if (statusFilter === 'pending') {
         if (!isBookingPending(b)) return false;
@@ -186,6 +189,12 @@ const AppointWorkTab = () => {
         if (!isBookingCompleted(b)) return false;
       } else if (statusFilter === 'expired') {
         if (!isBookingExpired(b)) return false;
+      }
+
+      // Vehicle filter
+      if (vehicleFilter !== 'all') {
+        const tempo = (b.tempoType || b.vehicle?.type || '').toLowerCase();
+        if (tempo !== vehicleFilter.toLowerCase()) return false;
       }
 
       // Search query filter
@@ -204,7 +213,21 @@ const AppointWorkTab = () => {
 
       return true;
     });
-  }, [bookings, statusFilter, searchQuery]);
+
+    // Sort order
+    return list.sort((a, b) => {
+      if (sortBy === 'newest') {
+        return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+      } else if (sortBy === 'oldest') {
+        return new Date(a.createdAt || 0) - new Date(b.createdAt || 0);
+      } else if (sortBy === 'fare_high') {
+        return (Number(b.estimatedFare) || 0) - (Number(a.estimatedFare) || 0);
+      } else if (sortBy === 'fare_low') {
+        return (Number(a.estimatedFare) || 0) - (Number(b.estimatedFare) || 0);
+      }
+      return 0;
+    });
+  }, [bookings, statusFilter, vehicleFilter, sortBy, searchQuery]);
 
   return (
     <div className="space-y-6">
@@ -384,104 +407,184 @@ const AppointWorkTab = () => {
         </div>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="card bg-loft-900 border-loft-800 p-4 rounded-2xl flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-        {/* Status Filter Tabs */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
+      {/* Modern Filter and Search Bar */}
+      <div className="card bg-loft-900 border-loft-800 p-4 rounded-2xl space-y-3.5 shadow-lg">
+        {/* Row 1: Status Filter Tabs (Flex Wrap - No Native Scrollbars) */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Pending Dispatch */}
           <button
             onClick={() => setStatusFilter('pending')}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap cursor-pointer transition-colors flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border cursor-pointer ${
               statusFilter === 'pending'
-                ? 'bg-copper-500 text-white shadow-lg shadow-copper-500/20'
-                : 'bg-loft-800/60 text-loft-400 hover:text-loft-100 hover:bg-loft-800'
+                ? 'bg-copper-500 text-white border-copper-400 shadow-md shadow-copper-500/25 ring-2 ring-copper-500/20'
+                : 'bg-loft-950/70 text-loft-300 border-loft-800/80 hover:bg-loft-800/80 hover:text-loft-100'
             }`}
           >
-            Pending Dispatch
+            <Clock className={`w-3.5 h-3.5 ${statusFilter === 'pending' ? 'text-white' : 'text-copper-400'}`} />
+            <span>Pending Dispatch</span>
             {stats.pending > 0 && (
-              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                statusFilter === 'pending' ? 'bg-white/20 text-white' : 'bg-copper-500/20 text-copper-400'
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black tracking-wide ${
+                statusFilter === 'pending' ? 'bg-white/20 text-white' : 'bg-copper-500/20 text-copper-400 border border-copper-500/30 animate-pulse'
               }`}>
                 {stats.pending}
               </span>
             )}
           </button>
 
+          {/* Assigned / In Transit */}
           <button
             onClick={() => setStatusFilter('active')}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap cursor-pointer transition-colors flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border cursor-pointer ${
               statusFilter === 'active'
-                ? 'bg-copper-500 text-white shadow-lg shadow-copper-500/20'
-                : 'bg-loft-800/60 text-loft-400 hover:text-loft-100 hover:bg-loft-800'
+                ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-500/25 ring-2 ring-blue-500/20'
+                : 'bg-loft-950/70 text-loft-300 border-loft-800/80 hover:bg-loft-800/80 hover:text-loft-100'
             }`}
           >
-            Assigned / In Transit
+            <Truck className={`w-3.5 h-3.5 ${statusFilter === 'active' ? 'text-white' : 'text-blue-400'}`} />
+            <span>Assigned / In Transit</span>
             {stats.inProgress > 0 && (
-              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                statusFilter === 'active' ? 'bg-white/20 text-white' : 'bg-blue-500/20 text-blue-400'
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black tracking-wide ${
+                statusFilter === 'active' ? 'bg-white/20 text-white' : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
               }`}>
                 {stats.inProgress}
               </span>
             )}
           </button>
 
+          {/* Completed */}
           <button
             onClick={() => setStatusFilter('completed')}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap cursor-pointer transition-colors flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border cursor-pointer ${
               statusFilter === 'completed'
-                ? 'bg-copper-500 text-white shadow-lg shadow-copper-500/20'
-                : 'bg-loft-800/60 text-loft-400 hover:text-loft-100 hover:bg-loft-800'
+                ? 'bg-emerald-600 text-white border-emerald-500 shadow-md shadow-emerald-500/25 ring-2 ring-emerald-500/20'
+                : 'bg-loft-950/70 text-loft-300 border-loft-800/80 hover:bg-loft-800/80 hover:text-loft-100'
             }`}
           >
-            Completed
+            <CheckCircle2 className={`w-3.5 h-3.5 ${statusFilter === 'completed' ? 'text-white' : 'text-emerald-400'}`} />
+            <span>Completed</span>
             {stats.completed > 0 && (
-              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                statusFilter === 'completed' ? 'bg-white/20 text-white' : 'bg-moss-500/20 text-moss-400'
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black tracking-wide ${
+                statusFilter === 'completed' ? 'bg-white/20 text-white' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
               }`}>
                 {stats.completed}
               </span>
             )}
           </button>
 
+          {/* Expired */}
           <button
             onClick={() => setStatusFilter('expired')}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap cursor-pointer transition-colors flex items-center gap-2 ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border cursor-pointer ${
               statusFilter === 'expired'
-                ? 'bg-copper-500 text-white shadow-lg shadow-copper-500/20'
-                : 'bg-loft-800/60 text-loft-400 hover:text-loft-100 hover:bg-loft-800'
+                ? 'bg-amber-600 text-white border-amber-500 shadow-md shadow-amber-500/25 ring-2 ring-amber-500/20'
+                : 'bg-loft-950/70 text-loft-300 border-loft-800/80 hover:bg-loft-800/80 hover:text-loft-100'
             }`}
           >
-            Expired
+            <AlertTriangle className={`w-3.5 h-3.5 ${statusFilter === 'expired' ? 'text-white' : 'text-amber-400'}`} />
+            <span>Expired</span>
             {stats.expired > 0 && (
-              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                statusFilter === 'expired' ? 'bg-white/20 text-white' : 'bg-amber-500/20 text-amber-400'
+              <span className={`px-2 py-0.5 rounded-full text-[10px] font-black tracking-wide ${
+                statusFilter === 'expired' ? 'bg-white/20 text-white' : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
               }`}>
                 {stats.expired}
               </span>
             )}
           </button>
 
+          {/* All Bookings */}
           <button
             onClick={() => setStatusFilter('all')}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold whitespace-nowrap cursor-pointer transition-colors ${
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 border cursor-pointer ${
               statusFilter === 'all'
-                ? 'bg-copper-500 text-white shadow-lg shadow-copper-500/20'
-                : 'bg-loft-800/60 text-loft-400 hover:text-loft-100 hover:bg-loft-800'
+                ? 'bg-loft-800 text-white border-loft-700 shadow-md shadow-loft-800/30 ring-2 ring-loft-700/30'
+                : 'bg-loft-950/70 text-loft-400 border-loft-800/80 hover:bg-loft-800/80 hover:text-loft-200'
             }`}
           >
-            All Bookings ({bookings.length})
+            <Layers className="w-3.5 h-3.5 text-loft-400" />
+            <span>All Bookings</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+              statusFilter === 'all' ? 'bg-white/20 text-white' : 'bg-loft-800 text-loft-400'
+            }`}>
+              {bookings.length}
+            </span>
           </button>
         </div>
 
-        {/* Search input */}
-        <div className="relative min-w-[260px]">
-          <Search className="w-4 h-4 text-loft-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search ID, route, customer..."
-            className="input-field py-2 pl-9 pr-3 text-xs w-full bg-loft-950 border-loft-800"
-          />
+        {/* Row 2: Search Input, Vehicle Filter, Sort & Reset Bar */}
+        <div className="pt-3 border-t border-loft-800/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2.5 flex-1">
+            {/* Search Input */}
+            <div className="relative flex-1 min-w-[220px] max-w-md">
+              <Search className="w-4 h-4 text-loft-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by ID, route, customer, driver..."
+                className="w-full bg-loft-950 border border-loft-800/90 rounded-xl pl-9 pr-8 py-2 text-xs text-loft-100 placeholder-loft-500 focus:outline-none focus:border-copper-500 transition-colors shadow-inner"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-loft-400 hover:text-loft-100 p-0.5 rounded-md hover:bg-loft-800 transition-colors cursor-pointer"
+                  title="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            {/* Vehicle Type Filter Dropdown */}
+            <div className="flex items-center gap-1.5">
+              <Filter className="w-3.5 h-3.5 text-loft-400" />
+              <select
+                value={vehicleFilter}
+                onChange={(e) => setVehicleFilter(e.target.value)}
+                className="bg-loft-950 text-loft-200 text-xs rounded-xl px-2.5 py-2 border border-loft-800 focus:outline-none focus:border-copper-500 cursor-pointer"
+              >
+                <option value="all">All Fleet Types</option>
+                <option value="small">Small (Tata Ace / Chotta Hatti)</option>
+                <option value="medium">Medium (Ashok Leyland Dost)</option>
+                <option value="large">Large (Bolero Pickup)</option>
+              </select>
+            </div>
+
+            {/* Sort Dropdown */}
+            <div className="flex items-center gap-1.5">
+              <ArrowUpDown className="w-3.5 h-3.5 text-loft-400" />
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="bg-loft-950 text-loft-200 text-xs rounded-xl px-2.5 py-2 border border-loft-800 focus:outline-none focus:border-copper-500 cursor-pointer"
+              >
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+                <option value="fare_high">Fare: High to Low</option>
+                <option value="fare_low">Fare: Low to High</option>
+              </select>
+            </div>
+
+            {/* Reset Filters Button if any active */}
+            {(searchQuery || vehicleFilter !== 'all' || sortBy !== 'newest' || statusFilter !== 'pending') && (
+              <button
+                onClick={() => {
+                  setSearchQuery('');
+                  setVehicleFilter('all');
+                  setSortBy('newest');
+                  setStatusFilter('pending');
+                }}
+                className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold text-copper-400 hover:text-copper-300 hover:bg-copper-500/10 transition-colors flex items-center gap-1 cursor-pointer"
+              >
+                <X className="w-3 h-3" />
+                Reset
+              </button>
+            )}
+          </div>
+
+          {/* Results Summary Counter */}
+          <div className="text-[11px] font-medium text-loft-400 whitespace-nowrap self-end sm:self-center">
+            Showing <span className="font-bold text-loft-100">{filteredBookings.length}</span> of <span className="font-bold text-loft-100">{bookings.length}</span>
+          </div>
         </div>
       </div>
 

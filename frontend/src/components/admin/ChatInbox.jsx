@@ -1,4 +1,4 @@
-import { MessageSquare, Send, AlertTriangle, Phone, MapPin, Clock, ShieldAlert, X } from 'lucide-react';
+import { MessageSquare, Send, AlertTriangle, Phone, MapPin, Clock, ShieldAlert, ShieldCheck, CheckCircle2, X } from 'lucide-react';
 import { useAdminChat } from '../../hooks/useAdminChat';
 import { useRef, useEffect, useState } from 'react';
 
@@ -24,7 +24,7 @@ const ChatInbox = ({ activeTab, token }) => {
   }, [chatMessages, selectedChat]);
 
   const isChatClosed = (chat) => {
-    const s = (chat?.status || '').toLowerCase();
+    const s = (chat?.status || '').toLowerCase().trim();
     return s === 'closed' || s === 'resolved';
   };
 
@@ -35,6 +35,25 @@ const ChatInbox = ({ activeTab, token }) => {
     if (filterType === 'tickets') return (chat.isTicket || chat.ticketId) && !chat.isSos && chat.type !== 'sos';
     if (filterType === 'chats') return !chat.isTicket && !chat.isSos;
     return true;
+  });
+
+  const sortedChats = [...filteredChats].sort((a, b) => {
+    // 1. Active SOS always on top
+    const aIsActiveSos = (a.isSos || a.type === 'sos') && isChatActive(a);
+    const bIsActiveSos = (b.isSos || b.type === 'sos') && isChatActive(b);
+    if (aIsActiveSos && !bIsActiveSos) return -1;
+    if (!aIsActiveSos && bIsActiveSos) return 1;
+
+    // 2. Open tickets next
+    const aIsOpen = isChatActive(a);
+    const bIsOpen = isChatActive(b);
+    if (aIsOpen && !bIsOpen) return -1;
+    if (!aIsOpen && bIsOpen) return 1;
+
+    // 3. Newest updated first
+    const aTime = new Date(a.updatedAt || a.createdAt || 0).getTime();
+    const bTime = new Date(b.updatedAt || b.createdAt || 0).getTime();
+    return bTime - aTime;
   });
 
   const activeSosCount = activeChats.filter(c => (c.isSos || c.type === 'sos') && isChatActive(c)).length;
@@ -51,12 +70,17 @@ const ChatInbox = ({ activeTab, token }) => {
           <p className="text-xs text-loft-400">Manage real-time customer support tickets, driver queries, and emergency SOS alerts.</p>
         </div>
 
-        {activeSosCount > 0 && (
+        {activeSosCount > 0 ? (
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-red-500/20 border border-red-500/40 text-red-400 text-xs font-bold animate-pulse">
             <ShieldAlert className="w-4 h-4 text-red-400" />
             <span>{activeSosCount} Active Driver SOS Alert{activeSosCount > 1 ? 's' : ''}</span>
           </div>
-        )}
+        ) : totalSosCount > 0 ? (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            <span>All Driver SOS Alerts Resolved & Closed</span>
+          </div>
+        ) : null}
       </div>
 
       {/* Emergency SOS Banner if triggered in real-time */}
@@ -144,31 +168,42 @@ const ChatInbox = ({ activeTab, token }) => {
                   : 'bg-loft-800/60 text-loft-400 hover:text-loft-200'
               }`}
             >
-              Tickets ({activeTicketCount > 0 ? activeTicketCount : totalTicketCount})
+              Tickets ({activeTicketCount > 0 ? `${activeTicketCount} Open` : totalTicketCount})
             </button>
             <button
               onClick={() => setFilterType('sos')}
-              className={`px-3 py-1.5 rounded-xl transition-all whitespace-nowrap flex items-center gap-1 cursor-pointer ${
+              className={`px-3 py-1.5 rounded-xl transition-all whitespace-nowrap flex items-center gap-1.5 cursor-pointer ${
                 filterType === 'sos'
-                  ? 'bg-red-600 text-white font-bold shadow-sm'
+                  ? activeSosCount > 0
+                    ? 'bg-red-600 text-white font-bold shadow-sm'
+                    : 'bg-loft-800 text-white font-bold border border-loft-700'
                   : activeSosCount > 0
                   ? 'bg-red-500/20 text-red-400 border border-red-500/30 font-bold'
                   : 'bg-loft-800/60 text-loft-400 hover:text-loft-200'
               }`}
             >
-              <AlertTriangle className={`w-3 h-3 ${activeSosCount > 0 ? 'text-red-400' : 'text-loft-400'}`} />
-              SOS ({activeSosCount > 0 ? `${activeSosCount} Active` : totalSosCount})
+              <AlertTriangle className={`w-3.5 h-3.5 ${activeSosCount > 0 ? 'text-red-400' : 'text-loft-400'}`} />
+              <span>SOS</span>
+              {activeSosCount > 0 ? (
+                <span className="px-1.5 py-0.5 rounded-full bg-red-500 text-white text-[10px] font-black animate-pulse">
+                  {activeSosCount} Active
+                </span>
+              ) : (
+                <span className="px-1.5 py-0.5 rounded-full bg-loft-800 text-loft-400 text-[10px] font-medium border border-loft-700">
+                  {totalSosCount > 0 ? `${totalSosCount} Closed` : '0'}
+                </span>
+              )}
             </button>
           </div>
 
           {/* Conversations Items */}
           <div className="flex-1 overflow-y-auto divide-y divide-loft-800/40">
-            {filteredChats.length === 0 ? (
+            {sortedChats.length === 0 ? (
               <div className="p-8 text-center text-loft-500 text-xs">
                 No active {filterType === 'all' ? 'conversations or tickets' : filterType}.
               </div>
             ) : (
-              filteredChats.map((chat) => {
+              sortedChats.map((chat) => {
                 const isSelected = selectedChat?.customerId === chat.customerId;
                 const lastMsg = chat.messages?.[chat.messages.length - 1];
                 const isSos = chat.isSos || chat.type === 'sos';
@@ -187,7 +222,7 @@ const ChatInbox = ({ activeTab, token }) => {
                         : isSos && !isClosed
                         ? 'bg-red-950/20 hover:bg-red-950/30'
                         : isClosed
-                        ? 'opacity-70 hover:opacity-100'
+                        ? 'opacity-75 hover:opacity-100 bg-loft-950/30'
                         : ''
                     }`}
                   >
@@ -195,7 +230,9 @@ const ChatInbox = ({ activeTab, token }) => {
                       <div className="flex items-center gap-1.5 min-w-0">
                         {isSos ? (
                           <span className={`p-1 rounded flex-shrink-0 ${
-                            isClosed ? 'bg-loft-800 text-loft-400 border border-loft-700' : 'bg-red-500 text-white animate-pulse'
+                            isClosed
+                              ? 'bg-loft-800 text-loft-400 border border-loft-700'
+                              : 'bg-red-500 text-white animate-pulse'
                           }`}>
                             <AlertTriangle className="w-3 h-3" />
                           </span>
@@ -211,11 +248,11 @@ const ChatInbox = ({ activeTab, token }) => {
 
                       {chat.status && (
                         <span className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${
-                          chat.status === 'resolved'
-                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                            : chat.status === 'closed'
-                            ? 'bg-loft-800 text-loft-400 border border-loft-700'
-                            : chat.status === 'in_progress'
+                          isClosed
+                            ? (chat.status || '').toLowerCase().trim() === 'resolved'
+                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                              : 'bg-loft-800 text-loft-400 border border-loft-700'
+                            : (chat.status || '').toLowerCase().trim() === 'in_progress'
                             ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
                             : isSos
                             ? 'bg-red-500 text-white font-black animate-pulse'
@@ -227,7 +264,9 @@ const ChatInbox = ({ activeTab, token }) => {
                     </div>
 
                     {chat.subject && (
-                      <p className="text-[11px] font-semibold text-loft-200 truncate mb-0.5">
+                      <p className={`text-[11px] truncate mb-0.5 ${
+                        isSos && !isClosed ? 'font-bold text-red-200' : 'font-semibold text-loft-300'
+                      }`}>
                         {chat.subject}
                       </p>
                     )}
@@ -252,12 +291,14 @@ const ChatInbox = ({ activeTab, token }) => {
                   <div className={`p-2 rounded-xl ${
                     selectedChat.isSos && !isChatClosed(selectedChat)
                       ? 'bg-red-600 text-white animate-pulse'
+                      : isChatClosed(selectedChat)
+                      ? 'bg-loft-800 text-loft-400 border border-loft-700'
                       : 'bg-loft-800 text-copper-400'
                   }`}>
                     {selectedChat.isSos ? <AlertTriangle className="w-5 h-5" /> : <MessageSquare className="w-5 h-5" />}
                   </div>
                   <div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-bold text-loft-50 font-serif text-sm">
                         {selectedChat.userName || selectedChat.customerName}
                       </p>
@@ -267,8 +308,20 @@ const ChatInbox = ({ activeTab, token }) => {
                         </span>
                       )}
                       {selectedChat.category && (
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-copper-500/20 text-copper-300 font-bold capitalize">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold capitalize ${
+                          selectedChat.category === 'emergency' && !isChatClosed(selectedChat)
+                            ? 'bg-red-500/20 text-red-300 border border-red-500/30'
+                            : isChatClosed(selectedChat)
+                            ? 'bg-loft-800 text-loft-400 border border-loft-700'
+                            : 'bg-copper-500/20 text-copper-300'
+                        }`}>
                           {selectedChat.category}
+                        </span>
+                      )}
+                      {isChatClosed(selectedChat) && (
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Resolved & Closed
                         </span>
                       )}
                     </div>
@@ -302,7 +355,7 @@ const ChatInbox = ({ activeTab, token }) => {
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] text-loft-400 font-medium">Status:</span>
                     <select
-                      value={selectedChat.status || 'open'}
+                      value={(selectedChat.status || 'open').toLowerCase().trim()}
                       onChange={(e) => updateTicketStatus(selectedChat.ticketId, e.target.value)}
                       className="bg-loft-800 text-loft-100 text-xs rounded-xl px-2.5 py-1.5 border border-loft-700 focus:outline-none focus:border-copper-500 cursor-pointer"
                     >
@@ -326,13 +379,16 @@ const ChatInbox = ({ activeTab, token }) => {
                   chatMessages.map((msg, index) => {
                     const isMe = msg.sender === 'admin';
                     const isEmergency = msg.isAlert;
+                    const isClosed = isChatClosed(selectedChat);
 
                     return (
                       <div
                         key={msg.id || index}
                         className={`max-w-[80%] sm:max-w-[70%] rounded-2xl p-3 text-xs leading-relaxed ${
                           isEmergency
-                            ? 'bg-red-950/80 border-2 border-red-500/80 text-red-100 self-center w-full max-w-[95%] shadow-[0_0_15px_rgba(239,68,68,0.2)]'
+                            ? isClosed
+                              ? 'bg-loft-900 border border-loft-700/80 text-loft-200 self-center w-full max-w-[95%] shadow-sm'
+                              : 'bg-red-950/80 border-2 border-red-500/80 text-red-100 self-center w-full max-w-[95%] shadow-[0_0_15px_rgba(239,68,68,0.2)]'
                             : isMe
                             ? 'bg-copper-600 text-white self-end rounded-tr-none shadow-sm'
                             : 'bg-loft-900 text-loft-100 border border-loft-800 self-start rounded-tl-none shadow-sm'
@@ -340,10 +396,22 @@ const ChatInbox = ({ activeTab, token }) => {
                       >
                         <div className="flex items-center justify-between gap-2 mb-1">
                           <p className={`font-bold text-[10px] ${
-                            isEmergency ? 'text-red-300 flex items-center gap-1' : isMe ? 'text-white/80' : 'text-copper-400'
+                            isEmergency
+                              ? isClosed
+                                ? 'text-loft-400 flex items-center gap-1 font-semibold'
+                                : 'text-red-300 flex items-center gap-1 font-bold'
+                              : isMe
+                              ? 'text-white/80'
+                              : 'text-copper-400'
                           }`}>
-                            {isEmergency && <AlertTriangle className="w-3 h-3 text-red-400" />}
-                            {isMe ? 'Admin Support' : msg.name || msg.sender}
+                            {isEmergency && <AlertTriangle className={`w-3 h-3 ${isClosed ? 'text-loft-400' : 'text-red-400'}`} />}
+                            {isEmergency
+                              ? isClosed
+                                ? 'Driver Emergency SOS (Resolved & Closed)'
+                                : '🚨 Critical Driver SOS Alert'
+                              : isMe
+                              ? 'Admin Support'
+                              : msg.name || msg.sender}
                           </p>
                           <span className="text-[9px] opacity-60">
                             {msg.time || (msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '')}

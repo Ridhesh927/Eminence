@@ -175,6 +175,11 @@ const Tracking = () => {
     socket.on('booking_status_updated', (data) => {
       if (isMounted && data.bookingId === (bookingId || effectiveBookingId)) {
         setStatus(data.status);
+        if (data.booking) {
+          setBooking(prev => ({ ...prev, ...data.booking }));
+        } else {
+          resolveAndLoadBooking();
+        }
         if (data.status === 'completed') {
           setIsReviewModalOpen(true);
         }
@@ -718,13 +723,23 @@ const Tracking = () => {
                 <div className="text-[11px] font-mono text-copper-300 mt-0.5 font-bold">
                   {booking?.vehicle?.registrationNumber || 'Assigned Tempo'}
                 </div>
+                {booking.driver.phone && (
+                  <p className="text-xs font-mono text-emerald-400 font-semibold mt-0.5">
+                    +91 {booking.driver.phone}
+                  </p>
+                )}
               </div>
             </div>
             
             {booking.driver.phone && (
               <div className="flex gap-2">
-                <a href={`tel:${booking.driver.phone}`} className="w-9 h-9 rounded-full bg-moss-500 text-white flex items-center justify-center shadow-md shadow-moss-500/20 hover:bg-moss-400 transition-colors">
-                  <Phone className="w-4 h-4" />
+                <a 
+                  href={`tel:${booking.driver.phone}`} 
+                  className="px-3 py-1.5 rounded-xl bg-moss-500 hover:bg-moss-400 text-white flex items-center gap-1.5 shadow-md shadow-moss-500/20 text-xs font-bold transition-all cursor-pointer"
+                  title={`Call Driver (${booking.driver.name})`}
+                >
+                  <Phone className="w-3.5 h-3.5" />
+                  <span>Call Driver</span>
                 </a>
               </div>
             )}
@@ -781,8 +796,46 @@ const Tracking = () => {
         </div>
 
         {/* Helpline Footer */}
-        <div className="mt-auto pt-2 text-center text-xs text-loft-400 border-t border-loft-800/40">
-          Need help? <a href="tel:9970734425" className="text-copper-400 font-bold hover:underline">Call IVR Helpline (+91 9970734425)</a>
+        <div className="mt-auto pt-2.5 text-center text-xs text-loft-400 border-t border-loft-800/40 space-y-1">
+          {booking?.driver?.phone ? (
+            <>
+              <div className="flex items-center justify-center gap-1.5 text-loft-200">
+                <span>Need help?</span>
+                <a 
+                  href={`tel:${booking.driver.phone}`} 
+                  className="text-emerald-400 font-bold hover:underline inline-flex items-center gap-1"
+                >
+                  <Phone className="w-3.5 h-3.5" />
+                  <span>Call Driver ({booking.driver.name || 'Assigned Driver'}): +91 {booking.driver.phone}</span>
+                </a>
+              </div>
+              <p className="text-[11px] text-loft-500">
+                Driver not responding?{' '}
+                <a 
+                  href="tel:9970734425" 
+                  className="text-copper-400 hover:text-copper-300 font-semibold underline"
+                >
+                  Call Admin Support (+91 9970734425)
+                </a>
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-center gap-1.5">
+                <span>Need help?</span>
+                <a 
+                  href="tel:9970734425" 
+                  className="text-copper-400 font-bold hover:underline inline-flex items-center gap-1"
+                >
+                  <Phone className="w-3.5 h-3.5" />
+                  <span>Call Admin Support (+91 9970734425)</span>
+                </a>
+              </div>
+              <p className="text-[11px] text-loft-500">
+                (Driver allocation in progress • Admin support standing by)
+              </p>
+            </>
+          )}
         </div>
 
       </div>

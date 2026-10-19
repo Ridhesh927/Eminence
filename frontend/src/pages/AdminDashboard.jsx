@@ -7,16 +7,16 @@ import {
   ShieldAlert, Activity, MessageSquare, UserCheck, Tag
 } from 'lucide-react';
 
-import OverviewTab from '../components/admin/OverviewTab';
-import TelematicsTab from '../components/admin/TelematicsTab';
-import UsersTab from '../components/admin/UsersTab';
-import DriversTab from '../components/admin/DriversTab';
-import AppointWorkTab from '../components/admin/AppointWorkTab';
-import VehiclesTab from '../components/admin/VehiclesTab';
-import AnalyticsTab from '../components/admin/AnalyticsTab';
-import ChatInbox from '../components/admin/ChatInbox';
-import SettingsTab from '../components/admin/SettingsTab';
-import PromoCodesTab from '../components/admin/PromoCodesTab';
+import OverviewTab from '../components/Admin/OverviewTab';
+import TelematicsTab from '../components/Admin/TelematicsTab';
+import UsersTab from '../components/Admin/UsersTab';
+import DriversTab from '../components/Admin/DriversTab';
+import AppointWorkTab from '../components/Admin/AppointWorkTab';
+import VehiclesTab from '../components/Admin/VehiclesTab';
+import AnalyticsTab from '../components/Admin/AnalyticsTab';
+import ChatInbox from '../components/Admin/ChatInbox';
+import SettingsTab from '../components/Admin/SettingsTab';
+import PromoCodesTab from '../components/Admin/PromoCodesTab';
 
 const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');

@@ -55,7 +55,45 @@ export const useAdminChat = (activeTab, token) => {
     });
 
     socket.on('chat_list_update', (list) => {
-      if (Array.isArray(list)) setActiveChats(list);
+      if (Array.isArray(list)) {
+        setActiveChats(list);
+        if (selectedChatRef.current) {
+          const match = list.find(
+            (c) =>
+              String(c.ticketId || c.id || c.customerId) ===
+              String(selectedChatRef.current.ticketId || selectedChatRef.current.id || selectedChatRef.current.customerId)
+          );
+          if (match && match.status !== selectedChatRef.current.status) {
+            setSelectedChat((prev) => ({ ...prev, status: match.status }));
+          }
+        }
+      }
+    });
+
+    // Real-time status update broadcast from backend
+    socket.on('ticket_status_updated', ({ id, status }) => {
+      setActiveChats((prev) =>
+        prev.map((c) =>
+          String(c.ticketId) === String(id) ||
+          String(c.id) === String(id) ||
+          String(c.customerId) === String(id)
+            ? { ...c, status }
+            : c
+        )
+      );
+      if (
+        selectedChatRef.current &&
+        (String(selectedChatRef.current.ticketId) === String(id) ||
+          String(selectedChatRef.current.id) === String(id) ||
+          String(selectedChatRef.current.customerId) === String(id))
+      ) {
+        setSelectedChat((prev) => ({ ...prev, status }));
+      }
+      if (status === 'closed' || status === 'resolved') {
+        setEmergencyAlerts((prev) =>
+          prev.filter((a) => String(a.ticketId) !== String(id))
+        );
+      }
     });
 
     // High Priority Driver Emergency SOS listener
@@ -136,13 +174,26 @@ export const useAdminChat = (activeTab, token) => {
       const res = await api.put(`/api/support/tickets/${ticketId}/status`, { status });
       if (res.data?.success) {
         setActiveChats((prev) =>
-          prev.map((c) => (c.ticketId === ticketId ? { ...c, status } : c))
+          prev.map((c) =>
+            String(c.ticketId) === String(ticketId) ||
+            String(c.id) === String(ticketId) ||
+            String(c.customerId) === String(ticketId)
+              ? { ...c, status }
+              : c
+          )
         );
-        if (selectedChat?.ticketId === ticketId) {
+        if (
+          selectedChat &&
+          (String(selectedChat.ticketId) === String(ticketId) ||
+            String(selectedChat.id) === String(ticketId) ||
+            String(selectedChat.customerId) === String(ticketId))
+        ) {
           setSelectedChat((prev) => ({ ...prev, status }));
         }
         if (status === 'closed' || status === 'resolved') {
-          setEmergencyAlerts((prev) => prev.filter(a => a.ticketId !== ticketId));
+          setEmergencyAlerts((prev) =>
+            prev.filter((a) => String(a.ticketId) !== String(ticketId))
+          );
         }
       }
     } catch (err) {
