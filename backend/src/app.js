@@ -65,6 +65,8 @@ app.use(express.json({
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // Basic route
+app.get('/', publicReadLimiter, (_req, res) => res.status(200).json({ success: true, message: 'EMINENCE API is live' }));
+
 app.get('/api/health', publicReadLimiter, (_req, res) => {
   const mem = process.memoryUsage();
   res.status(200).json({ 
