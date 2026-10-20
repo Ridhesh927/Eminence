@@ -78,8 +78,8 @@ const Contact = () => {
               </div>
               <div>
                 <h3 className="text-xl font-bold text-loft-50 mb-2">IVR Helpline</h3>
-                <p className="text-loft-300 mb-2">Call to book a tempo instantly.</p>
-                <a href="tel:18001234567" className="text-copper-400 font-bold text-lg">1800-EMINENCE</a>
+                <p className="text-loft-300 mb-2">Call to book a tempo instantly (7:00 AM – 7:00 PM).</p>
+                <a href="tel:9970734425" className="text-copper-400 font-bold text-lg font-mono">+91 9970734425</a>
               </div>
             </div>
 

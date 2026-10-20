@@ -1,7 +1,11 @@
 const { Customer, Booking, Driver, Vehicle } = require('../models');
 const { handleSupportMessage, isOffTopicQuery, OFF_TOPIC_REFUSAL_MESSAGE } = require('./supportBotService');
+const { tryAcquireAiSlot, executeWithBoundedTimeout } = require('./aiUsageManager');
 let Groq;
 let groqClient = null;
+const getSupportContact = () => process.env.SUPPORT_PHONE
+  ? `dial ${process.env.SUPPORT_PHONE}`
+  : 'use the in-app support channel';
 
 function getGroqClient() {
   if (groqClient) return groqClient;
@@ -25,7 +29,7 @@ function getGroqClient() {
  * @param {string} [mimeType='audio/wav'] - MIME type of the audio
  * @returns {Promise<{ text: string, model: string }>}
  */
-async function transcribeAudio(audioBuffer, filename = 'recording.wav', mimeType = 'audio/wav') {
+async function transcribeAudio(audioBuffer, filename = 'recording.wav', mimeType = 'audio/wav', usageKey = 'ivr:anonymous') {
   if (!audioBuffer || audioBuffer.length === 0) {
     throw new Error('Audio buffer is empty or missing');
   }
@@ -35,25 +39,49 @@ async function transcribeAudio(audioBuffer, filename = 'recording.wav', mimeType
     throw new Error('Groq client is not configured or GROQ_API_KEY is missing');
   }
 
+  const slot = tryAcquireAiSlot(usageKey);
+  if (!slot.allowed) {
+    const error = new Error(slot.message || 'AI voice service is temporarily unavailable');
+    error.code = slot.reason === 'CONCURRENCY_LIMIT' || slot.reason === 'USER_RATE_LIMITED'
+      ? 'AI_RATE_LIMITED'
+      : slot.reason;
+    error.status = 429;
+    throw error;
+  }
+
+  const startTime = Date.now();
+  let outcome = 'error';
+
   try {
     const GroqModule = require('groq-sdk');
     const uploadableFile = await GroqModule.toFile(audioBuffer, filename, { type: mimeType });
 
-    const response = await client.audio.transcriptions.create({
+    const response = await executeWithBoundedTimeout(() => client.audio.transcriptions.create({
       file: uploadableFile,
       model: 'whisper-large-v3-turbo',
       prompt: 'Eminence Logistics, tempo, driver, delivery, booking, Swargate, Pune, Maharashtra, Chhota Hathi',
       response_format: 'json',
       temperature: 0.0
-    });
+    }), { timeoutMs: Number.parseInt(process.env.AI_TRANSCRIPTION_TIMEOUT_MS || '10000', 10) });
+
+    outcome = 'success';
 
     return {
       text: (response.text || '').trim(),
       model: 'whisper-large-v3-turbo'
     };
   } catch (error) {
+    outcome = error.code === 'AI_TIMEOUT' ? 'timeout' : 'error';
     console.error('Groq Whisper Transcription Error:', error.message);
     throw error;
+  } finally {
+    slot.release({
+      outcome,
+      durationMs: Date.now() - startTime,
+      model: 'whisper-large-v3-turbo',
+      inputChars: audioBuffer.length,
+      outputTokens: 0
+    });
   }
 }
 
@@ -94,16 +122,16 @@ async function findCustomerByPhone(rawPhone) {
  * @param {string} [params.customerId]
  * @returns {Promise<Object>}
  */
-async function processVoiceHelplineQuery({ audioBuffer, filename = 'speech.wav', mimeType = 'audio/wav', phoneNumber, customerId }) {
+async function processVoiceHelplineQuery({ audioBuffer, filename = 'speech.wav', mimeType = 'audio/wav', phoneNumber, customerId, requestKey }) {
   // 1. Transcribe speech to text
-  const transcription = await transcribeAudio(audioBuffer, filename, mimeType);
+  const transcription = await transcribeAudio(audioBuffer, filename, mimeType, requestKey || customerId || 'ivr:anonymous');
   const speechText = transcription.text;
 
   if (!speechText) {
     return {
       success: true,
       transcription: '',
-      reply: 'We could not detect any speech in your voice message. Please speak clearly or dial our customer helpline at +1234567890.',
+      reply: `We could not detect any speech in your voice message. Please speak clearly or ${getSupportContact()}.`,
       isOffTopic: false,
       customer: null
     };

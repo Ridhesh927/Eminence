@@ -2,6 +2,7 @@ const crypto = require('crypto');
 
 module.exports = {
   up: (queryInterface, _Sequelize) => {
+    if (process.env.NODE_ENV === 'production') return Promise.resolve();
     return queryInterface.bulkInsert('Customers', [{
       id: crypto.randomUUID(),
       name: 'Demo User',
@@ -16,6 +17,7 @@ module.exports = {
   },
 
   down: (queryInterface, _Sequelize) => {
+    if (process.env.NODE_ENV === 'production') return Promise.resolve();
     return queryInterface.bulkDelete('Customers', { email: 'demo@example.com' }, {});
   }
 };

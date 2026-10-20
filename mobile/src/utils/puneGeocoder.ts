@@ -301,7 +301,8 @@ export async function calculateMobileRoute(
   // Try OSRM with a fast abort controller and silent SSL error guard
   try {
     const coordStr = valid.map((p) => `${p.lng},${p.lat}`).join(';');
-    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${coordStr}?overview=false`;
+    const osrmBaseUrl = (process.env.EXPO_PUBLIC_OSRM_BASE_URL || 'https://router.project-osrm.org').replace(/\/$/, '');
+    const osrmUrl = `${osrmBaseUrl}/route/v1/driving/${coordStr}?overview=false`;
 
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 2500);

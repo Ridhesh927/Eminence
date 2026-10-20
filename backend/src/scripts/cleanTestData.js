@@ -9,6 +9,9 @@ const { Op } = require('sequelize');
  * preserving real user accounts, registered drivers, and real bookings.
  */
 async function cleanDatabase(sequelizeInstance, label = 'Active Database') {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Refusing to run test-data cleanup while NODE_ENV=production.');
+  }
   console.log(`\n--- Cleaning Test Data for [${label}] ---`);
   
   const {

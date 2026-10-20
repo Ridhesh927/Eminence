@@ -5,7 +5,7 @@ import {
   Package, CheckCircle, Wallet, MapPin, Plus, Gift, Copy, 
   Crown, Target, Star, Leaf, Truck, Bell, Check, AlertCircle, RefreshCw, Lock, Eye, EyeOff,
   CreditCard, X, ShieldCheck, FileText, Home, Headphones, User,
-  Radio, Navigation, ArrowRight, Clock, Search, Activity, Phone
+  Radio, Navigation, ArrowRight, Clock, Search, Activity, Phone, Download
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../services/api';
@@ -582,9 +582,15 @@ const CustomerDashboard = ({ initialTab = 'history', autoOpenTopup = false }) =>
 
       const res = await api.post('/api/wallet/create-order', { amount: amountNum });
       const { order, keyId } = res.data;
+      const razorpayKey = keyId || import.meta.env.VITE_RAZORPAY_KEY_ID;
+      if (!razorpayKey) {
+        setTopupError('Payment gateway is not configured. Please contact support.');
+        setIsProcessingTopup(false);
+        return;
+      }
 
       const options = {
-        key: keyId || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_mock',
+        key: razorpayKey,
         amount: order.amount,
         currency: order.currency || 'INR',
         name: 'Eminence Logistics',
@@ -651,9 +657,15 @@ const CustomerDashboard = ({ initialTab = 'history', autoOpenTopup = false }) =>
 
       const res = await api.post('/api/customer/pro/create-order');
       const { order, keyId } = res.data;
+      const razorpayKey = keyId || import.meta.env.VITE_RAZORPAY_KEY_ID;
+      if (!razorpayKey) {
+        setTopupError('Payment gateway is not configured. Please contact support.');
+        setIsProcessingPro(false);
+        return;
+      }
 
       const options = {
-        key: keyId || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_mock',
+        key: razorpayKey,
         amount: order.amount,
         currency: order.currency || 'INR',
         name: 'Eminence Logistics',
@@ -708,22 +720,53 @@ const CustomerDashboard = ({ initialTab = 'history', autoOpenTopup = false }) =>
     }
   };
 
-  const handleDownloadInvoice = (id) => {
-    console.log('Downloading invoice for id:', id);
-    setDownloadingInvoice(id);
-    setTimeout(() => {
+  const handleDownloadInvoice = async (id, openInNewTab = false) => {
+    try {
+      setDownloadingInvoice(id);
+      let res;
+      try {
+        res = await api.get(`/api/bookings/${id}/receipt`, {
+          responseType: 'blob'
+        });
+      } catch (primaryErr) {
+        // Fallback to integrations endpoint
+        res = await api.get(`/api/integrations/invoice/${id}`, {
+          responseType: 'blob'
+        });
+      }
+
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+
+      if (openInNewTab) {
+        window.open(url, '_blank');
+      } else {
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Eminence_Receipt_INV-${id.slice(0, 8).toUpperCase()}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+      setTimeout(() => window.URL.revokeObjectURL(url), 60000);
+    } catch (err) {
+      console.error('Invoice download error:', err);
+      alert('Could not download receipt PDF. Please verify that the booking exists and try again.');
+    } finally {
       setDownloadingInvoice(null);
-      
-      const blob = new Blob(['Invoice Data'], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `INV-${id}.pdf`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    }, 500);
+    }
+  };
+
+  const handleDownloadAllInvoices = async () => {
+    const completed = bookings.filter((b) => b.status === 'completed');
+    if (completed.length === 0) {
+      alert('No completed trip invoices available to download.');
+      return;
+    }
+    for (const b of completed) {
+      await handleDownloadInvoice(b.id, false);
+      await new Promise((r) => setTimeout(r, 600));
+    }
   };
 
   return (
@@ -1059,6 +1102,17 @@ const CustomerDashboard = ({ initialTab = 'history', autoOpenTopup = false }) =>
                             </button>
                           )
                         )}
+                        {isCompleted && (
+                          <button
+                            onClick={() => handleDownloadInvoice(booking.id, false)}
+                            disabled={downloadingInvoice === booking.id}
+                            className="btn-secondary py-1.5 px-2.5 text-xs text-copper-400 border-copper-500/30 hover:border-copper-500/60 flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                            title="Download Official Tax Receipt & Invoice"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>{downloadingInvoice === booking.id ? 'Downloading...' : 'Receipt'}</span>
+                          </button>
+                        )}
                         <button 
                           onClick={() => setSelectedTrip(booking)}
                           className="btn-secondary py-1.5 px-3 text-xs"
@@ -1076,39 +1130,62 @@ const CustomerDashboard = ({ initialTab = 'history', autoOpenTopup = false }) =>
 
           {activeTab === 'invoices' && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold text-loft-50">Invoices & Receipts</h3>
-                <button className="text-copper-500 text-sm font-medium hover:text-copper-400">Download All</button>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+                <div>
+                  <h3 className="text-xl font-bold text-loft-50 font-serif">Invoices & Delivery Receipts</h3>
+                  <p className="text-xs text-loft-400 mt-0.5">Download official GST tax invoices, consignment manifests, and tamper-evident PoD receipts.</p>
+                </div>
+                <button
+                  onClick={handleDownloadAllInvoices}
+                  className="px-3.5 py-2 rounded-xl bg-copper-500/15 hover:bg-copper-500/25 text-copper-400 hover:text-copper-300 text-xs font-bold flex items-center gap-1.5 transition-all self-start sm:self-auto cursor-pointer"
+                  title="Download all completed trip receipts"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download All</span>
+                </button>
               </div>
-              <div className="card bg-loft-900 border-loft-800 overflow-hidden">
+              <div className="card bg-loft-900 border-loft-800 overflow-hidden shadow-xl rounded-2xl">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-sm text-loft-300">
-                    <thead className="bg-loft-950/50 text-xs uppercase font-medium">
+                    <thead className="bg-loft-950/70 text-xs uppercase font-medium text-loft-400 border-b border-loft-800">
                       <tr>
                         <th className="px-6 py-4">Invoice No.</th>
                         <th className="px-6 py-4">Date</th>
                         <th className="px-6 py-4">Booking Ref</th>
                         <th className="px-6 py-4">Amount</th>
-                        <th className="px-6 py-4">Action</th>
+                        <th className="px-6 py-4 text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-loft-800">
+                    <tbody className="divide-y divide-loft-800/60">
                       {bookings.filter(b => b.status === 'completed').length === 0 ? (
                         <tr><td colSpan="5" className="px-6 py-8 text-center text-loft-500 text-sm">No invoices yet. Completed bookings will appear here.</td></tr>
                       ) : bookings.filter(b => b.status === 'completed').map((booking, idx) => (
-                        <tr key={idx} className="hover:bg-loft-800/50 transition-colors">
-                          <td className="px-6 py-4 font-medium text-loft-200 font-mono text-sm">INV-{booking.id?.slice(0,8).toUpperCase()}</td>
-                          <td className="px-6 py-4">{new Date(booking.updatedAt || booking.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
-                          <td className="px-6 py-4 font-mono text-sm">{booking.id?.slice(0,8).toUpperCase()}</td>
-                          <td className="px-6 py-4 font-bold text-loft-100">₹{parseFloat(booking.estimatedFare || 0).toLocaleString('en-IN')}</td>
-                          <td className="px-6 py-4">
-                            <button 
-                              onClick={() => handleDownloadInvoice(booking.id)}
-                              disabled={downloadingInvoice === booking.id}
-                              className="text-copper-500 hover:text-copper-400 font-medium text-xs flex items-center gap-1 disabled:opacity-50"
-                            >
-                              {downloadingInvoice === booking.id ? 'Downloading...' : 'Download PDF'}
-                            </button>
+                        <tr key={idx} className="hover:bg-loft-800/40 transition-colors">
+                          <td className="px-6 py-4 font-semibold text-loft-100 font-mono text-xs">INV-{booking.id?.slice(0,8).toUpperCase()}</td>
+                          <td className="px-6 py-4 text-xs">{new Date(booking.updatedAt || booking.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</td>
+                          <td className="px-6 py-4 font-mono text-xs text-loft-400">#{booking.id?.slice(0,8).toUpperCase()}</td>
+                          <td className="px-6 py-4 font-bold text-loft-50">₹{parseFloat(booking.estimatedFare || 0).toLocaleString('en-IN')}</td>
+                          <td className="px-6 py-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              <button 
+                                onClick={() => handleDownloadInvoice(booking.id, false)}
+                                disabled={downloadingInvoice === booking.id}
+                                className="px-3 py-1.5 rounded-lg bg-copper-500/15 hover:bg-copper-500/25 text-copper-400 hover:text-copper-300 font-semibold text-xs flex items-center gap-1.5 transition-all disabled:opacity-50 cursor-pointer"
+                                title="Download PDF to device"
+                              >
+                                <Download className="w-3.5 h-3.5" />
+                                <span>{downloadingInvoice === booking.id ? 'Downloading...' : 'Download PDF'}</span>
+                              </button>
+                              <button 
+                                onClick={() => handleDownloadInvoice(booking.id, true)}
+                                disabled={downloadingInvoice === booking.id}
+                                className="px-2.5 py-1.5 rounded-lg bg-loft-800 hover:bg-loft-700 text-loft-300 hover:text-loft-100 font-medium text-xs flex items-center gap-1 transition-all disabled:opacity-50 cursor-pointer"
+                                title="Open PDF in new tab"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                                <span>View</span>
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))}
@@ -1731,19 +1808,21 @@ const CustomerDashboard = ({ initialTab = 'history', autoOpenTopup = false }) =>
                     {filteredTrackingBookings.map((b) => {
                       const badge = getStatusBadge(b.status);
                       const isCompleted = b.status === 'completed';
+                      const isCancelledOrExpired = b.status === 'cancelled' || b.status === 'expired';
+                      const isActive = !isCompleted && !isCancelledOrExpired;
                       const tripOtp = getBookingOtp(b);
                       return (
                         <div
                           key={b.id}
-                          className="card p-5 bg-loft-900 border border-loft-800 hover:border-loft-700 transition-all flex flex-col lg:flex-row lg:items-center justify-between gap-4"
+                          className="card p-5 bg-loft-900 border border-loft-800 hover:border-loft-700/80 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                         >
-                          <div className="flex-1 space-y-2">
-                            <div className="flex flex-wrap items-center gap-3">
-                              <span className="font-mono font-bold text-loft-50 text-sm">
+                          <div className="flex-1 min-w-0 space-y-2.5">
+                            <div className="flex flex-wrap items-center gap-2.5">
+                              <span className="font-mono font-bold text-loft-50 text-sm tracking-wide">
                                 #{b.id?.slice(0, 8).toUpperCase()}
                               </span>
                               <span
-                                className={`px-2 py-0.5 rounded text-[11px] font-bold uppercase border flex items-center gap-1.5 ${badge.bg} ${badge.text} ${badge.border}`}
+                                className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider border flex items-center gap-1.5 ${badge.bg} ${badge.text} ${badge.border}`}
                               >
                                 {badge.pulse && (
                                   <span className="relative flex h-1.5 w-1.5">
@@ -1762,66 +1841,80 @@ const CustomerDashboard = ({ initialTab = 'history', autoOpenTopup = false }) =>
                               </span>
 
                               {isCompleted && (
-                                <span className="text-[10px] bg-moss-500/15 text-moss-400 font-mono px-2 py-0.5 rounded border border-moss-500/30 flex items-center gap-1">
-                                  <ShieldCheck className="w-3 h-3 text-moss-400" /> PoD Verified
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold tracking-wide bg-moss-500/15 text-moss-300 border border-moss-500/30">
+                                  <ShieldCheck className="w-3.5 h-3.5 text-moss-400 shrink-0" />
+                                  <span>PoD Verified</span>
                                 </span>
                               )}
 
-                              {!isCompleted && b.status !== 'cancelled' && (
-                                <span className="text-[10px] bg-copper-500/15 text-copper-300 font-mono px-2 py-0.5 rounded border border-copper-500/30 flex items-center gap-1">
+                              {isActive && tripOtp && (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold tracking-wider bg-copper-500/15 text-copper-300 border border-copper-500/30">
                                   OTP: {tripOtp}
                                 </span>
                               )}
                             </div>
 
                             {/* Route */}
-                            <div className="text-xs text-loft-300 flex items-center gap-2">
+                            <div className="text-xs text-loft-300 flex items-center gap-2 pt-0.5">
                               <MapPin className="w-3.5 h-3.5 text-copper-400 shrink-0" />
-                              <span className="truncate max-w-xs">{b.pickupAddress || 'Pune Pickup'}</span>
-                              <span className="text-loft-500">&rarr;</span>
-                              <span className="truncate max-w-xs">{b.dropAddress || (Array.isArray(b.drops) ? b.drops.join(' → ') : 'Drop')}</span>
+                              <span className="truncate max-w-[200px] sm:max-w-xs md:max-w-md font-medium text-loft-200" title={b.pickupAddress}>
+                                {b.pickupAddress || 'Pune Pickup'}
+                              </span>
+                              <span className="text-loft-500 font-bold shrink-0">&rarr;</span>
+                              <span className="truncate max-w-[200px] sm:max-w-xs md:max-w-md font-medium text-loft-200" title={b.dropAddress || (Array.isArray(b.drops) ? b.drops.join(' → ') : 'Drop')}>
+                                {b.dropAddress || (Array.isArray(b.drops) ? b.drops.join(' → ') : 'Drop')}
+                              </span>
                             </div>
 
                             {/* Metadata Chips */}
-                            <div className="flex flex-wrap items-center gap-2 pt-1 text-[11px] text-loft-400">
-                              <span className="bg-loft-950 px-2 py-0.5 rounded border border-loft-800">
+                            <div className="flex flex-wrap items-center gap-2 pt-0.5 text-[11px] text-loft-400">
+                              <span className="bg-loft-950 px-2.5 py-0.5 rounded-md border border-loft-800 font-medium">
                                 {b.vehicle?.type || b.tempoType || 'Tempo'}
                               </span>
                               {b.totalDistance && (
-                                <span className="bg-loft-950 px-2 py-0.5 rounded border border-loft-800">
+                                <span className="bg-loft-950 px-2.5 py-0.5 rounded-md border border-loft-800 font-medium">
                                   {b.totalDistance} km
                                 </span>
                               )}
                               {b.driver?.name && (
-                                <span className="bg-loft-950 px-2 py-0.5 rounded border border-loft-800 text-loft-300">
+                                <span className="bg-loft-950 px-2.5 py-0.5 rounded-md border border-loft-800 text-loft-300 font-medium">
                                   Driver: {b.driver.name}
                                 </span>
                               )}
-                              <span className="font-bold text-loft-200">
+                              <span className="font-bold text-loft-100 font-mono text-xs">
                                 ₹{parseFloat(b.estimatedFare || 0).toLocaleString('en-IN')}
                               </span>
                             </div>
                           </div>
 
                           {/* Action Buttons */}
-                          <div className="flex items-center gap-2.5 self-end lg:self-center shrink-0">
+                          <div className="flex items-center gap-2.5 sm:self-center shrink-0">
                             <button
                               onClick={() => setSelectedTrip(b)}
-                              className="btn-secondary py-2 px-3 text-xs cursor-pointer"
+                              className="px-3.5 py-2 rounded-xl text-xs font-semibold text-loft-200 bg-loft-950 hover:bg-loft-800 hover:text-white border border-loft-700/80 hover:border-loft-600 transition-all cursor-pointer flex items-center justify-center shadow-sm"
                             >
                               Details
                             </button>
-                            <Link
-                              to={`/tracking/${b.id}`}
-                              className={`py-2 px-3.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                                isCompleted
-                                  ? 'bg-loft-800 hover:bg-loft-700 text-loft-100 border border-loft-700'
-                                  : 'bg-copper-500 hover:bg-copper-400 text-white shadow-md shadow-copper-500/20'
-                              }`}
-                            >
-                              <Navigation className="w-3.5 h-3.5" />
-                              <span>{isCompleted ? 'View Route & PoD' : 'Track Live Map'}</span>
-                            </Link>
+
+                            {isCompleted && (
+                              <Link
+                                to={`/tracking/${b.id}`}
+                                className="px-3.5 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer bg-moss-500/15 hover:bg-moss-500/25 text-moss-300 hover:text-white border border-moss-500/35 hover:border-moss-500/60 shadow-sm shadow-moss-500/10"
+                              >
+                                <ShieldCheck className="w-3.5 h-3.5 text-moss-400 shrink-0" />
+                                <span>View Route & PoD</span>
+                              </Link>
+                            )}
+
+                            {isActive && (
+                              <Link
+                                to={`/tracking/${b.id}`}
+                                className="px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer bg-gradient-to-r from-copper-600 to-copper-500 hover:from-copper-500 hover:to-copper-400 text-white shadow-md shadow-copper-500/25 border border-copper-400/30"
+                              >
+                                <Navigation className="w-3.5 h-3.5 text-white shrink-0" />
+                                <span>Track Live Map</span>
+                              </Link>
+                            )}
                           </div>
                         </div>
                       );
@@ -1840,15 +1933,27 @@ const CustomerDashboard = ({ initialTab = 'history', autoOpenTopup = false }) =>
 
           {activeTab === 'notifications' && (
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold text-loft-50">Notifications</h3>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+                <div>
+                  <h3 className="text-xl font-bold text-loft-50 flex items-center gap-2">
+                    <span>Notifications</span>
+                    <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-loft-800 text-loft-400 border border-loft-700">
+                      30-Day Activity History
+                    </span>
+                  </h3>
+                  <p className="text-xs text-loft-400 mt-0.5">
+                    Completed notifications are securely stored for 30 days before automatic archival.
+                  </p>
+                </div>
                 {unreadCount > 0 && (
-                  <button onClick={markAllRead} className="text-copper-500 text-sm font-medium hover:text-copper-400">Mark all as read</button>
+                  <button onClick={markAllRead} className="text-copper-400 text-xs font-semibold hover:text-copper-300 self-start sm:self-center px-3 py-1.5 rounded-lg bg-copper-500/10 border border-copper-500/20 cursor-pointer">
+                    Mark all as done
+                  </button>
                 )}
               </div>
               <div className="card bg-loft-900 border-loft-800 overflow-hidden p-6">
                 {notifications.length === 0 ? (
-                  <div className="text-center py-8 text-loft-400">No notifications yet.</div>
+                  <div className="text-center py-8 text-loft-400">No notifications in the last 30 days.</div>
                 ) : (
                   <div className="space-y-4">
                     {notifications.map((notification) => (
@@ -2249,6 +2354,7 @@ const CustomerDashboard = ({ initialTab = 'history', autoOpenTopup = false }) =>
         isOpen={Boolean(selectedTrip)}
         onClose={() => setSelectedTrip(null)}
         onCancelBooking={(trip) => setCancelModalBooking(trip)}
+        onDownloadInvoice={handleDownloadInvoice}
       />
 
       {/* Add Funds to Wallet Modal */}
@@ -2410,8 +2516,8 @@ const CustomerDashboard = ({ initialTab = 'history', autoOpenTopup = false }) =>
             setReviewTrip(null);
           }}
           bookingId={reviewTrip.id}
-          driverId={reviewTrip.driverId || 'd1234567-89ab-cdef-0123-456789abcdef'}
-          driverName={reviewTrip.driverName || 'Ramesh Kumar'}
+          driverId={reviewTrip.driverId}
+          driverName={reviewTrip.driverName}
         />
       )}
 

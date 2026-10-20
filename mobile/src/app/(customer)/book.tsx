@@ -537,6 +537,11 @@ export default function BookScreen() {
 
   const handleRazorpaySuccess = async () => {
     if (!currentBookingId) return;
+    if (!(__DEV__ && process.env.EXPO_PUBLIC_ENABLE_TEST_AUTH === 'true')) {
+      setErrorMessage('Payment confirmation must come from the configured provider.');
+      setShowRazorpay(false);
+      return;
+    }
     setIsSubmitting(true);
     try {
       const payload = {
@@ -640,6 +645,10 @@ export default function BookScreen() {
   };
 
   const verifyWalletTopUpPayment = async (orderId?: string, amountNum?: number) => {
+    if (!(__DEV__ && process.env.EXPO_PUBLIC_ENABLE_TEST_AUTH === 'true')) {
+      setTopUpError('Payment confirmation must come from the configured provider.');
+      return;
+    }
     const amt = amountNum || parseFloat(topUpAmount);
     const oid = orderId || currentTopUpOrder?.id || ('topup_order_' + Date.now());
 

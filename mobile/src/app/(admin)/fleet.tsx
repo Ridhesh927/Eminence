@@ -69,27 +69,13 @@ export default function FleetManagementScreen() {
       if (driversRes.status === 'fulfilled' && driversRes.value.data?.drivers) {
         setDrivers(driversRes.value.data.drivers);
       } else {
-        // Fallback default
-        setDrivers([
-          { id: 'drv-1', name: 'Ramesh Kumar', phone: '9876543210', licenseNumber: 'MH12-2018-0099', status: 'active', rating: 4.8 },
-          { id: 'drv-2', name: 'Suresh Patil', phone: '9822334455', licenseNumber: 'MH14-2020-4411', status: 'active', rating: 4.6 },
-        ]);
+        setDrivers([]);
       }
 
       if (vehiclesRes.status === 'fulfilled' && vehiclesRes.value.data?.vehicles) {
         setVehicles(vehiclesRes.value.data.vehicles);
       } else {
-        // 8 Limited Company Fleet Tempos
-        setVehicles([
-          { id: 'veh-bolero-1', registrationNumber: 'MH-12-BL-0001', type: 'Bolero Maxi (Medium)', model: 'Mahindra Bolero Pickup', fuelType: 'Diesel', capacityWeight: 1750, status: 'active' },
-          { id: 'veh-dost-1', registrationNumber: 'MH-12-DT-0002', type: 'Dost (Medium)', model: 'Ashok Leyland Dost', fuelType: 'Diesel', capacityWeight: 1500, status: 'active' },
-          { id: 'veh-ace-petrol-1', registrationNumber: 'MH-12-TC-0003', type: 'Tata Ace (Small)', model: 'Tata Ace Gold', fuelType: 'Petrol', capacityWeight: 750, status: 'active' },
-          { id: 'veh-ace-cng-1', registrationNumber: 'MH-12-TC-0004', type: 'Tata Ace (Small)', model: 'Tata Ace Gold CNG', fuelType: 'CNG', capacityWeight: 750, status: 'active' },
-          { id: 'veh-ace-cng-2', registrationNumber: 'MH-12-TC-0005', type: 'Tata Ace (Small)', model: 'Tata Ace Gold CNG', fuelType: 'CNG', capacityWeight: 750, status: 'active' },
-          { id: 'veh-ace-cng-3', registrationNumber: 'MH-12-TC-0006', type: 'Tata Ace (Small)', model: 'Tata Ace Gold CNG', fuelType: 'CNG', capacityWeight: 750, status: 'active' },
-          { id: 'veh-chotta-1', registrationNumber: 'MH-12-CH-0007', type: 'Tata Ace (Small)', model: 'Mahindra Chotta Hatti', fuelType: 'Diesel', capacityWeight: 750, status: 'active' },
-          { id: 'veh-chotta-2', registrationNumber: 'MH-12-CH-0008', type: 'Tata Ace (Small)', model: 'Mahindra Chotta Hatti', fuelType: 'Diesel', capacityWeight: 750, status: 'active' },
-        ]);
+        setVehicles([]);
       }
     } catch (err) {
       console.error('Error fetching fleet:', err);

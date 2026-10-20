@@ -147,6 +147,9 @@ const generatePayslip = async (req, res) => {
 const downloadPayslip = async (req, res) => {
   try {
     const { id } = req.params;
+    if (req.user?.role !== 'admin' && String(req.user?.id) !== String(id)) {
+      return res.status(403).json({ success: false, message: 'Unauthorized access to payslip' });
+    }
     const driver = await Driver.findByPk(id);
     if (!driver) return res.status(404).json({ success: false, message: 'Driver not found' });
     

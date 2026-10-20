@@ -69,7 +69,7 @@ const WebRTCWrapper = () => {
     return <WebRTCAdminReceiver />;
   }
   
-  return <WebRTCCaller />;
+  return null;
 };
 
 function App() {

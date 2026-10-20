@@ -1,15 +1,18 @@
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Menu, Phone, LogOut, X } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout } from '../../redux/slices/authSlice';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import NotificationBell from './NotificationBell';
 
 
 const Navbar = () => {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
+  const isDashboard = location.pathname.includes('/dashboard') || location.pathname === '/wallet';
   const [ivrCopied, setIvrCopied] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { t, i18n } = useTranslation();
@@ -72,26 +75,29 @@ const Navbar = () => {
               <option value="mr">मराठी</option>
             </select>
 
-            <button 
-              onClick={(e) => {
-                e.preventDefault();
-                navigator.clipboard.writeText('18001234567');
-                setIvrCopied(true);
-                setTimeout(() => setIvrCopied(false), 2000);
-              }}
-              className="flex items-center gap-2 px-4 py-2 bg-moss-500/10 border border-moss-500/20 rounded-full text-moss-300 hover:bg-moss-500/20 transition-all cursor-pointer"
-            >
-              <Phone className="w-4 h-4" />
-              <span className="font-semibold text-sm tracking-wide hidden lg:inline">
-                {ivrCopied ? t('navbar.copied') : t('navbar.ivrHelpline')}
-              </span>
-              <span className="font-semibold text-sm tracking-wide lg:hidden">
-                {ivrCopied ? t('navbar.copied') : 'IVR'}
-              </span>
-            </button>
+            {!isDashboard && (
+              <button 
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigator.clipboard.writeText('9970734425');
+                  setIvrCopied(true);
+                  setTimeout(() => setIvrCopied(false), 2000);
+                }}
+                className="flex items-center gap-2 px-4 py-2 bg-moss-500/10 border border-moss-500/20 rounded-full text-moss-300 hover:bg-moss-500/20 transition-all cursor-pointer"
+              >
+                <Phone className="w-4 h-4" />
+                <span className="font-semibold text-sm tracking-wide hidden lg:inline">
+                  {ivrCopied ? t('navbar.copied') : t('navbar.ivrHelpline')}
+                </span>
+                <span className="font-semibold text-sm tracking-wide lg:hidden">
+                  {ivrCopied ? t('navbar.copied') : 'IVR'}
+                </span>
+              </button>
+            )}
 
             {isAuthenticated ? (
               <div className="flex items-center gap-3">
+                <NotificationBell role={user?.role} />
                 <Link to={`/${user?.role || 'customer'}/dashboard`} className="btn-secondary rounded-xl py-2.5 px-6 whitespace-nowrap">
                   {t('navbar.dashboard')}
                 </Link>
@@ -115,7 +121,8 @@ const Navbar = () => {
             )}
           </div>
 
-          <div className="md:hidden flex items-center gap-4">
+          <div className="md:hidden flex items-center gap-2">
+            {isAuthenticated && <NotificationBell role={user?.role} />}
             <button 
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
               className="p-2 text-loft-300 hover:text-loft-50 focus:outline-none bg-loft-900 rounded-lg transition-colors"

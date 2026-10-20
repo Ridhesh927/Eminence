@@ -290,14 +290,23 @@ const AuthModal = ({ isOpen, onClose, onSuccess, initialMode = 'login', message 
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-loft-200 mb-1">Phone Number (Optional)</label>
-                <input
-                  type="tel"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  placeholder="10-digit number"
-                  className="input-field text-sm py-2.5"
-                />
+                <label className="block text-xs font-medium text-loft-200 mb-1">Mobile Number (+91)</label>
+                <div className="relative flex">
+                  <div className="flex items-center px-2.5 rounded-l-xl bg-loft-800 border border-r-0 border-loft-700/60 text-loft-300 text-xs font-medium">
+                    🇮🇳 +91
+                  </div>
+                  <input
+                    type="tel"
+                    maxLength={10}
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                    placeholder="10-digit mobile"
+                    className="input-field rounded-l-none text-sm py-2.5"
+                  />
+                </div>
+                {phone && phone.length > 0 && !/^[6-9]/.test(phone) && (
+                  <p className="text-[10px] text-amber-400 mt-1">Must start with 6, 7, 8, or 9</p>
+                )}
               </div>
 
               <div>

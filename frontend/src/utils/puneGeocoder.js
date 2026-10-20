@@ -340,7 +340,8 @@ export const fetchOsrmRoute = async (points) => {
 
   try {
     const coordString = validPoints.map(p => `${p.lng},${p.lat}`).join(';');
-    const url = `https://router.project-osrm.org/route/v1/driving/${coordString}?overview=full&geometries=geojson`;
+    const osrmBaseUrl = (import.meta.env.VITE_OSRM_BASE_URL || 'https://router.project-osrm.org').replace(/\/$/, '');
+    const url = `${osrmBaseUrl}/route/v1/driving/${coordString}?overview=full&geometries=geojson`;
 
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 6000);
@@ -717,5 +718,4 @@ export const getPunePincode = (addressOrLocality, rawObj = null) => {
 
   return '';
 };
-
 

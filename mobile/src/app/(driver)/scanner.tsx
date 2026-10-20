@@ -61,15 +61,18 @@ export default function WmsScannerScreen() {
       }
     } catch (err: any) {
       console.error('Scan error:', err);
-      // Fallback simulation for reliable offline demo
-      const fallbackItem: ScannedItem = {
-        barcode: code,
-        itemName: 'Simulated Cargo Container',
-        status: 'Loaded',
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      };
-      setLastScanned(fallbackItem);
-      setScanHistory((prev) => [fallbackItem, ...prev]);
+      if (__DEV__ && process.env.EXPO_PUBLIC_ENABLE_TEST_AUTH === 'true') {
+        const fallbackItem: ScannedItem = {
+          barcode: code,
+          itemName: 'Test Fixture Cargo Container',
+          status: 'Loaded',
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        };
+        setLastScanned(fallbackItem);
+        setScanHistory((prev) => [fallbackItem, ...prev]);
+      } else {
+        Alert.alert('Scan Unavailable', 'The inventory service could not verify this barcode.');
+      }
     } finally {
       setLoading(false);
     }

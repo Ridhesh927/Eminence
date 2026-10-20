@@ -3,7 +3,7 @@ import { ShieldAlert } from 'lucide-react';
 import { useTelematics } from '../../hooks/useTelematics';
 
 const TelematicsTab = ({ activeTab, token }) => {
-  const { telemetry, history, status } = useTelematics(activeTab, token);
+  const { telemetry, history, status, forceStartDemo } = useTelematics(activeTab, token);
 
   return (
     <div className="space-y-8">
@@ -14,11 +14,18 @@ const TelematicsTab = ({ activeTab, token }) => {
             {status.simulated ? 'Simulation mode — generated vehicle telemetry for demos and testing.' : 'Real-time telemetry from connected fleet devices.'}
           </p>
         </div>
-        <div className="flex items-center gap-2 bg-moss-500/10 text-moss-500 px-4 py-2 rounded-full border border-moss-500/20">
+        <div className="flex items-center gap-3">
+          {telemetry?.vehicleId && (
+            <span className="hidden sm:inline-flex text-xs font-mono bg-loft-900 text-copper-400 px-3 py-1.5 rounded-full border border-loft-800">
+              Vehicle: {telemetry.vehicleId}
+            </span>
+          )}
+          <div className="flex items-center gap-2 bg-moss-500/10 text-moss-500 px-4 py-2 rounded-full border border-moss-500/20">
           <div className="w-2 h-2 rounded-full bg-moss-500 animate-pulse"></div>
           <span className="text-xs font-bold uppercase tracking-wider">
             {status.simulated ? 'Simulation Active' : status.connected ? 'Device Stream Active' : 'No Device Stream'}
           </span>
+        </div>
         </div>
       </div>
 
@@ -29,6 +36,14 @@ const TelematicsTab = ({ activeTab, token }) => {
           <p className="text-loft-400 mt-2">
             {status.simulated ? 'Starting the demo telemetry simulator.' : 'Waiting for a connected vehicle telemetry provider.'}
           </p>
+{import.meta.env.DEV && import.meta.env.VITE_ENABLE_TEST_AUTH === 'true' && (
+            <button
+              onClick={forceStartDemo}
+              className="mt-6 px-5 py-2.5 bg-copper-500 hover:bg-copper-600 text-loft-950 font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-lg shadow-copper-500/20"
+            >
+              Launch Demo Telematics Now
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-6">

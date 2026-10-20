@@ -27,13 +27,13 @@ export default function TelematicsScreen() {
   const router = useRouter();
   const { token } = useAuth();
   const [telemetry, setTelemetry] = useState<TelemetryUpdate>({
-    vehicleId: 'VEH-1234',
+    vehicleId: '',
     timestamp: new Date().toISOString(),
-    speed: 48,
-    engineTemp: 92,
-    fuelLevel: 82.4,
-    rpm: 2150,
-    healthScore: 94.2,
+    speed: 0,
+    engineTemp: 0,
+    fuelLevel: 0,
+    rpm: 0,
+    healthScore: 0,
     alert: null,
   });
   const [connected, setConnected] = useState(false);
@@ -85,7 +85,7 @@ export default function TelematicsScreen() {
           const alert = healthScore < 50 ? 'PREDICTIVE_MAINTENANCE_WARNING' : null;
 
           return {
-            vehicleId: 'VEH-1234',
+            vehicleId: prev.vehicleId,
             timestamp: new Date().toISOString(),
             speed,
             engineTemp,
@@ -122,7 +122,7 @@ export default function TelematicsScreen() {
         <View style={styles.vehicleBar}>
           <View>
             <Text style={styles.vehicleLabel}>Connected Commercial Asset</Text>
-            <Text style={styles.vehicleId}>{telemetry.vehicleId} • Tata 407 (Heavy Cargo)</Text>
+            <Text style={styles.vehicleId}>{telemetry.vehicleId || 'No vehicle telemetry connected'}</Text>
           </View>
           <Text style={styles.timestampText}>
             {new Date(telemetry.timestamp).toLocaleTimeString()}

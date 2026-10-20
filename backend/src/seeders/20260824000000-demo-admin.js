@@ -9,10 +9,10 @@ module.exports = {
     }
 
     const adminPassword = process.env.SEED_PASSWORD;
-    const adminEmail = process.env.SEED_EMAIL || 'admin@eminence.com';
+    const adminEmail = process.env.SEED_EMAIL;
 
-    if (!adminPassword) {
-      throw new Error('SEED_PASSWORD environment variable is required to run the demo admin seeder.');
+    if (!adminPassword || !adminEmail) {
+      throw new Error('SEED_EMAIL and SEED_PASSWORD are required to run the demo admin seeder.');
     }
 
     const saltRounds = 10;
@@ -33,7 +33,8 @@ module.exports = {
       return Promise.resolve();
     }
     
-    const adminEmail = process.env.SEED_EMAIL || 'admin@eminence.com';
+    const adminEmail = process.env.SEED_EMAIL;
+    if (!adminEmail) return Promise.resolve();
     return queryInterface.bulkDelete('Admins', { email: adminEmail }, {});
   }
 };

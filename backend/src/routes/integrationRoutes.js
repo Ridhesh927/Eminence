@@ -2,27 +2,25 @@ const express = require('express');
 const { createOrder, verifyPayment, razorpayWebhook } = require('../controllers/paymentController');
 const { generateInvoice } = require('../controllers/invoiceController');
 const { sendEmail } = require('../services/emailService');
-const { apiLimiter, authLimiter, contactLimiter } = require('../middleware/rateLimiter');
+const { apiLimiter, contactLimiter, paymentLimiter, webhookLimiter } = require('../middleware/rateLimiter');
+const protect = require('../middleware/authMiddleware');
+const crypto = require('crypto');
 const { z } = require('zod');
 
 const router = express.Router();
 
-
-// Razorpay Payment Endpoints with rate limiting
-router.post('/payment/create-order', authLimiter, createOrder);
-router.post('/razorpay-order', authLimiter, createOrder);
-router.post('/payment/verify', authLimiter, verifyPayment);
-router.post('/razorpay-verify', authLimiter, verifyPayment);
-router.post('/razorpay-webhook', razorpayWebhook);
-
-const crypto = require('crypto');
-const protect = require('../middleware/authMiddleware');
+// Razorpay Payment Endpoints (protected by authentication & per-user rate limiting)
+router.post('/payment/create-order', paymentLimiter, protect, createOrder);
+router.post('/razorpay-order', paymentLimiter, protect, createOrder);
+router.post('/payment/verify', paymentLimiter, protect, verifyPayment);
+router.post('/razorpay-verify', paymentLimiter, protect, verifyPayment);
+router.post('/razorpay-webhook', webhookLimiter, razorpayWebhook);
 
 // Invoices (protected by authentication: requires valid bearer token, cookie, or query token)
 router.get('/invoice/:bookingId', apiLimiter, protect, generateInvoice);
 
 // WhatsApp Webhooks
-router.get('/whatsapp-webhook', (req, res) => {
+router.get('/whatsapp-webhook', webhookLimiter, (req, res) => {
   const verifyToken = process.env.WHATSAPP_VERIFY_TOKEN;
   if (!verifyToken && process.env.NODE_ENV === 'production') {
     return res.status(500).json({ error: 'WHATSAPP_VERIFY_TOKEN required in production' });
@@ -48,7 +46,7 @@ router.get('/whatsapp-webhook', (req, res) => {
   }
 });
 
-router.post('/whatsapp-webhook', (req, res) => {
+router.post('/whatsapp-webhook', webhookLimiter, (req, res) => {
   const signature = req.headers['x-hub-signature-256'];
   const appSecret = process.env.WHATSAPP_APP_SECRET;
 

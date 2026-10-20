@@ -3,10 +3,43 @@ const { optimizeRoute, getRouteDistance } = require('../services/routeOptimizer'
 const { geocodeAddress } = require('../services/geocoder');
 const { findPoolMatch } = require('../services/poolingEngine');
 const crypto = require('crypto');
+const { tryAcquireAiSlot, executeWithBoundedTimeout } = require('../services/aiUsageManager');
+const { expireUntouchedBookings } = require('../services/bookingExpiryService');
+const { createAndEmitNotification } = require('../services/notificationService');
+
+// Helper to increment customer totalTrips and award ₹500 milestone wallet cash upon 10 rides
+const handleMilestoneReward = async (customerId, bookingId) => {
+  if (!customerId) return;
+  try {
+    await Customer.increment('totalTrips', { by: 1, where: { id: customerId } });
+    const cust = await Customer.findByPk(customerId);
+    if (cust && cust.totalTrips === 10) {
+      let custWallet = await Wallet.findOne({ where: { customerId: cust.id } });
+      if (!custWallet) {
+        custWallet = await Wallet.create({ customerId: cust.id, balance: 500.00 });
+      } else {
+        custWallet.balance = (parseFloat(custWallet.balance || 0) + 500.00).toFixed(2);
+        await custWallet.save();
+      }
+      await Transaction.create({
+        walletId: custWallet.id,
+        amount: 500.00,
+        type: 'CREDIT',
+        description: '🎉 Milestone Reward: Completed 10 rides! ₹500 Wallet Cash Credited',
+        referenceId: `MILESTONE-10-${bookingId || cust.id}`
+      });
+    }
+  } catch (err) {
+    console.error('[Milestone Reward Error]:', err);
+  }
+};
 
 // Get all bookings (role-aware: customers only see their own bookings)
 const getAllBookings = async (req, res) => {
   try {
+    // Proactively expire any untouched pending bookings whose validity deadline has passed
+    await expireUntouchedBookings().catch(() => {});
+
     const page = parseInt(req.query.page, 10) || 1;
     const limit = Math.min(parseInt(req.query.limit, 10) || 50, 100);
     const offset = (page - 1) * limit;
@@ -49,8 +82,8 @@ const createBooking = async (req, res) => {
     let customerId = req.user?.id;
     if (req.user?.role === 'admin' && req.body.customerId) {
       customerId = req.body.customerId;
-    } else if (req.user?.role === 'admin') {
-      // If admin is testing the frontend without providing a customerId, pick a fallback demo customer
+    } else if (req.user?.role === 'admin' && process.env.NODE_ENV !== 'production') {
+      // If admin is testing the frontend in dev/test without providing a customerId, pick a fallback demo customer
       const demoCustomer = await Customer.findOne();
       if (demoCustomer) customerId = demoCustomer.id;
     }
@@ -323,6 +356,26 @@ const createBooking = async (req, res) => {
       }).catch(err => console.warn('Wallet debit transaction logging note:', err.message));
     }
 
+    // Send customer and admin real-time notifications
+    if (booking.customerId) {
+      createAndEmitNotification({
+        userId: booking.customerId,
+        recipientRole: 'customer',
+        title: 'Booking Confirmed',
+        message: `Your booking #${booking.id.slice(0, 8)} is placed! We are matching a nearby tempo driver.`,
+        type: 'order_created',
+        metadata: { bookingId: booking.id, pickup: booking.pickupAddress, drop: booking.dropAddress }
+      }).catch(() => {});
+    }
+
+    createAndEmitNotification({
+      recipientRole: 'admin',
+      title: `New Booking #${booking.id.slice(0, 8)}`,
+      message: `New trip requested: ${booking.pickupAddress || 'Pickup'} → ${booking.dropAddress || 'Drop'} (₹${booking.estimatedFare})`,
+      type: 'order_created',
+      metadata: { bookingId: booking.id, fare: booking.estimatedFare }
+    }).catch(() => {});
+
     res.status(201).json({ success: true, booking, pooled: !!bookingData.poolMatchId });
   } catch (error) {
     console.error('Error creating booking:', error);
@@ -376,7 +429,7 @@ const completeBooking = async (req, res) => {
 
     // Increment customer totalTrips for milestone tracking
     if (booking.customerId) {
-      await Customer.increment('totalTrips', { by: 1, where: { id: booking.customerId } }).catch(() => {});
+      await handleMilestoneReward(booking.customerId, booking.id);
     }
 
     // Broadcast completion to customer tracking room
@@ -394,6 +447,26 @@ const completeBooking = async (req, res) => {
         status: 'completed'
       });
     } catch (socketErr) {}
+
+    // Send notifications to customer and admin
+    if (booking.customerId) {
+      createAndEmitNotification({
+        userId: booking.customerId,
+        recipientRole: 'customer',
+        title: 'Delivery Completed! 🎉',
+        message: `Your booking #${booking.id.slice(0, 8)} has been delivered. Proof of delivery generated.`,
+        type: 'completed',
+        metadata: { bookingId: booking.id, podHash: booking.podHash }
+      }).catch(() => {});
+    }
+
+    createAndEmitNotification({
+      recipientRole: 'admin',
+      title: `Booking Completed #${booking.id.slice(0, 8)}`,
+      message: `Booking #${booking.id.slice(0, 8)} completed with PoD Hash: ${booking.podHash?.slice(0, 10)}...`,
+      type: 'completed',
+      metadata: { bookingId: booking.id, podHash: booking.podHash }
+    }).catch(() => {});
 
     // Advance driver's delivery queue upon completing current trip
     if (booking.driverId) {
@@ -447,6 +520,14 @@ const updateBookingStatus = async (req, res) => {
 
     if (!isAdmin && !isAssignedDriver && !isDriverClaiming && !isCustomerCancelling) {
       return res.status(403).json({ success: false, message: 'Not authorized to update this booking' });
+    }
+
+    if (booking.status === 'expired') {
+      return res.status(400).json({ success: false, message: 'This booking has expired and can no longer be appointed or modified.' });
+    }
+
+    if (booking.status === 'cancelled') {
+      return res.status(400).json({ success: false, message: 'This booking has been cancelled and cannot be appointed or modified.' });
     }
 
     if (status) {
@@ -582,7 +663,7 @@ const updateBookingStatus = async (req, res) => {
     // Advance driver's delivery queue if admin completes trip
     if (status === 'completed') {
       if (booking.customerId) {
-        await Customer.increment('totalTrips', { by: 1, where: { id: booking.customerId } }).catch(() => {});
+        await handleMilestoneReward(booking.customerId, booking.id);
       }
       if (booking.driverId) {
         const remainingTrips = await Booking.findAll({
@@ -606,6 +687,109 @@ const updateBookingStatus = async (req, res) => {
           }
         }
       }
+    }
+
+    // Send contextual notifications to customer and admin based on the status change
+    try {
+      let driverName = 'A driver';
+      if (booking.driverId) {
+        const assignedDriver = await Driver.findByPk(booking.driverId).catch(() => null);
+        if (assignedDriver?.name) driverName = assignedDriver.name;
+      }
+
+      if (status === 'driver_assigned' || (driverId && booking.status === 'driver_assigned')) {
+        if (booking.customerId) {
+          createAndEmitNotification({
+            userId: booking.customerId,
+            recipientRole: 'customer',
+            title: 'Driver Assigned!',
+            message: `${driverName} has accepted your booking #${booking.id.slice(0, 8)} and is on the way to pickup.`,
+            type: 'driver_assigned',
+            metadata: { bookingId: booking.id, driverId: booking.driverId }
+          }).catch(() => {});
+        }
+        createAndEmitNotification({
+          recipientRole: 'admin',
+          title: `Driver Assigned #${booking.id.slice(0, 8)}`,
+          message: `${driverName} assigned to booking #${booking.id.slice(0, 8)}.`,
+          type: 'driver_assigned',
+          metadata: { bookingId: booking.id, driverId: booking.driverId }
+        }).catch(() => {});
+      } else if (status === 'arrived') {
+        if (booking.customerId) {
+          createAndEmitNotification({
+            userId: booking.customerId,
+            recipientRole: 'customer',
+            title: 'Driver Arrived! 📍',
+            message: `Your driver has arrived at the pickup location. Share OTP ${booking.otp || ''} to start ride.`,
+            type: 'arrived',
+            metadata: { bookingId: booking.id }
+          }).catch(() => {});
+        }
+        createAndEmitNotification({
+          recipientRole: 'admin',
+          title: `Driver Arrived #${booking.id.slice(0, 8)}`,
+          message: `Driver has reached pickup for booking #${booking.id.slice(0, 8)}.`,
+          type: 'arrived',
+          metadata: { bookingId: booking.id }
+        }).catch(() => {});
+      } else if (status === 'in_transit') {
+        if (booking.customerId) {
+          createAndEmitNotification({
+            userId: booking.customerId,
+            recipientRole: 'customer',
+            title: 'Trip Started! 🚚',
+            message: `Your delivery #${booking.id.slice(0, 8)} is in transit towards destination.`,
+            type: 'in_transit',
+            metadata: { bookingId: booking.id }
+          }).catch(() => {});
+        }
+        createAndEmitNotification({
+          recipientRole: 'admin',
+          title: `Trip In Transit #${booking.id.slice(0, 8)}`,
+          message: `Booking #${booking.id.slice(0, 8)} is now in transit.`,
+          type: 'in_transit',
+          metadata: { bookingId: booking.id }
+        }).catch(() => {});
+      } else if (status === 'completed') {
+        if (booking.customerId) {
+          createAndEmitNotification({
+            userId: booking.customerId,
+            recipientRole: 'customer',
+            title: 'Delivery Completed! 🎉',
+            message: `Your booking #${booking.id.slice(0, 8)} has been delivered successfully.`,
+            type: 'completed',
+            metadata: { bookingId: booking.id }
+          }).catch(() => {});
+        }
+        createAndEmitNotification({
+          recipientRole: 'admin',
+          title: `Booking Completed #${booking.id.slice(0, 8)}`,
+          message: `Booking #${booking.id.slice(0, 8)} completed successfully.`,
+          type: 'completed',
+          metadata: { bookingId: booking.id }
+        }).catch(() => {});
+      } else if (status === 'cancelled') {
+        if (booking.customerId) {
+          createAndEmitNotification({
+            userId: booking.customerId,
+            recipientRole: 'customer',
+            title: 'Booking Cancelled',
+            message: `Booking #${booking.id.slice(0, 8)} was cancelled: ${booking.cancellationReason || 'Cancelled'}.`,
+            type: 'cancelled',
+            metadata: { bookingId: booking.id }
+          }).catch(() => {});
+        }
+        createAndEmitNotification({
+          recipientRole: 'admin',
+          title: `Booking Cancelled #${booking.id.slice(0, 8)}`,
+          message: `Booking #${booking.id.slice(0, 8)} was cancelled by ${booking.cancelledBy || 'user'}: ${booking.cancellationReason || 'No reason'}.`,
+          type: 'cancelled',
+          metadata: { bookingId: booking.id }
+        }).catch(() => {});
+      }
+    } catch (notifErr) {
+      console.warn('Could not emit status notifications:', notifErr.message);
     }
 
     res.status(200).json({ success: true, booking });
@@ -636,6 +820,13 @@ const cancelBooking = async (req, res) => {
       return res.status(400).json({ 
         success: false, 
         message: 'Cannot cancel booking once it is in transit or completed' 
+      });
+    }
+
+    if (booking.status === 'expired') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Booking has already expired' 
       });
     }
 
@@ -716,6 +907,26 @@ const cancelBooking = async (req, res) => {
       });
     } catch (socketErr) {}
 
+    // Send notifications to customer and admin
+    if (booking.customerId) {
+      createAndEmitNotification({
+        userId: booking.customerId,
+        recipientRole: 'customer',
+        title: 'Booking Cancelled',
+        message: `Your booking #${booking.id.slice(0, 8)} was cancelled: ${booking.cancellationReason || 'Cancelled'}. Any advance payment was credited to your wallet.`,
+        type: 'cancelled',
+        metadata: { bookingId: booking.id }
+      }).catch(() => {});
+    }
+
+    createAndEmitNotification({
+      recipientRole: 'admin',
+      title: `Booking Cancelled #${booking.id.slice(0, 8)}`,
+      message: `Booking #${booking.id.slice(0, 8)} was cancelled by ${booking.cancelledBy || 'user'}: ${booking.cancellationReason || 'No reason'}.`,
+      type: 'cancelled',
+      metadata: { bookingId: booking.id }
+    }).catch(() => {});
+
     res.status(200).json({
       success: true,
       message: 'Booking cancelled successfully. Any advance payment has been credited to your wallet.',
@@ -748,6 +959,18 @@ const getBookingById = async (req, res) => {
       await booking.save().catch(() => {});
     }
 
+    // Check if this single untouched pending booking has expired past validity deadline
+    if (booking.status === 'pending' && !booking.driverId) {
+      const now = new Date();
+      const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      const isPastExpiresAt = booking.expiresAt && now >= new Date(booking.expiresAt);
+      const isPastDefault = !booking.expiresAt && booking.createdAt && new Date(booking.createdAt) <= twentyFourHoursAgo;
+      if (isPastExpiresAt || isPastDefault) {
+        await expireUntouchedBookings().catch(() => {});
+        await booking.reload().catch(() => {});
+      }
+    }
+
     if (req.user) {
       if (req.user.role === 'customer' && booking.customerId !== req.user.id) {
         return res.status(403).json({ success: false, message: 'Not authorized to view this booking' });
@@ -777,25 +1000,37 @@ const aiVoiceBooking = async (req, res) => {
       });
     }
 
+    // Input truncation: bound to max 500 characters
+    const safeTranscript = transcript.trim().slice(0, 500);
+
     // Use Groq NLP Parsing of Transcript
-    console.log(`[AI Agent] Received Voice Transcript: "${transcript}"`);
+    console.log(`[AI Agent] Received Voice Transcript: "${safeTranscript}"`);
     
     // Ensure booking is tied to authenticated customer
-    const customerId = req.user?.id || req.body.customerId;
+    const customerId = req.user?.id;
     if (!customerId) {
-      return res.status(401).json({ success: false, message: 'Authentication required: customerId must be provided' });
+      return res.status(401).json({ success: false, message: 'Authentication required' });
     }
 
     let extractedData = null;
     const today = new Date().toISOString().split('T')[0];
 
-    if (process.env.GROQ_API_KEY) {
+    // Check AI Slot availability (Rate limits, Daily Quotas, Concurrency & Kill Switch)
+    const slot = process.env.GROQ_API_KEY
+      ? tryAcquireAiSlot(customerId)
+      : { allowed: false, reason: 'AI_NOT_CONFIGURED' };
+
+    if (slot.allowed && process.env.GROQ_API_KEY) {
+      const startTime = Date.now();
+      let outcome = 'error';
+      let outputTokens = 0;
+      const groqModel = process.env.GROQ_MODEL || 'openai/gpt-oss-20b';
+
       try {
         const Groq = require('groq-sdk');
         const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-        const groqModel = process.env.GROQ_MODEL || 'openai/gpt-oss-20b';
         
-        const prompt = `You are a logistics booking assistant. Extract the booking details from this user request: "${transcript}".
+        const prompt = `You are a logistics booking assistant. Extract the booking details from this user request: "${safeTranscript}".
 Return exactly a raw JSON object (and nothing else) with these keys: 
 - pickupAddress (string)
 - dropAddress (string)
@@ -806,17 +1041,33 @@ Return exactly a raw JSON object (and nothing else) with these keys:
 - weight (number, default to 100 if unknown)
 `;
 
-        const chatCompletion = await groq.chat.completions.create({
-          messages: [{ role: 'user', content: prompt }],
-          model: groqModel,
-          temperature: 0,
-          response_format: { type: 'json_object' }
-        });
+        const chatCompletion = await executeWithBoundedTimeout(async () => {
+          return await groq.chat.completions.create({
+            messages: [{ role: 'user', content: prompt }],
+            model: groqModel,
+            temperature: 0,
+            max_tokens: 300,
+            response_format: { type: 'json_object' }
+          });
+        }, { timeoutMs: 8000, model: groqModel });
 
         extractedData = JSON.parse(chatCompletion.choices[0].message.content);
+        outputTokens = Number(chatCompletion.usage?.completion_tokens) || 0;
+        outcome = 'success';
       } catch (groqErr) {
+        outcome = groqErr.code === 'AI_TIMEOUT' ? 'timeout' : 'error';
         console.warn('Groq AI extraction failed, using resilient NLP fallback:', groqErr.message);
+      } finally {
+        slot.release({
+          outcome,
+          durationMs: Date.now() - startTime,
+          model: groqModel,
+          inputChars: safeTranscript.length,
+          outputTokens
+        });
       }
+    } else if (!slot.allowed) {
+      console.log(`[AI Booking] AI slot unavailable (${slot.reason}), gracefully falling back to deterministic NLP engine.`);
     }
 
     if (!extractedData) {

@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { 
   X, MapPin, Truck, ShieldCheck, Check, Copy, Phone, 
   Clock, Navigation, Star, ArrowRight, ExternalLink, Shield, 
-  FileCheck, AlertTriangle, Layers, Calendar
+  FileCheck, AlertTriangle, Layers, Calendar, Download, FileText
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -58,7 +58,7 @@ const AutoFitBounds = ({ positions }) => {
   return null;
 };
 
-const TripDetailsModal = ({ trip, isOpen, onClose, onCancelBooking }) => {
+const TripDetailsModal = ({ trip, isOpen, onClose, onCancelBooking, onDownloadInvoice }) => {
   const [copiedId, setCopiedId] = useState(false);
   const [copiedOtp, setCopiedOtp] = useState(false);
   const [copiedPod, setCopiedPod] = useState(false);
@@ -161,6 +161,8 @@ const TripDetailsModal = ({ trip, isOpen, onClose, onCancelBooking }) => {
         return { text: 'IN TRANSIT', bg: 'bg-amber-500/15 text-amber-300 border-amber-500/30' };
       case 'completed':
         return { text: 'DELIVERED', bg: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' };
+      case 'expired':
+        return { text: 'EXPIRED', bg: 'bg-amber-500/20 text-amber-400 border-amber-500/30' };
       case 'cancelled':
         return { text: 'CANCELLED', bg: 'bg-rose-500/15 text-rose-400 border-rose-500/30' };
       default:
@@ -509,13 +511,26 @@ const TripDetailsModal = ({ trip, isOpen, onClose, onCancelBooking }) => {
               <X className="w-3.5 h-3.5" /> Cancel Booking
             </button>
           ) : (
-            <button
-              type="button"
-              onClick={onClose}
-              className="py-2.5 px-4 rounded-xl bg-loft-800 hover:bg-loft-700 text-loft-200 text-xs font-semibold border border-loft-700 transition-colors cursor-pointer"
-            >
-              Close Details
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="py-2.5 px-4 rounded-xl bg-loft-800 hover:bg-loft-700 text-loft-200 text-xs font-semibold border border-loft-700 transition-colors cursor-pointer"
+              >
+                Close Details
+              </button>
+              {trip.status === 'completed' && onDownloadInvoice && (
+                <button
+                  type="button"
+                  onClick={() => onDownloadInvoice(trip.id, false)}
+                  className="py-2.5 px-4 rounded-xl border border-copper-500/40 bg-copper-500/15 hover:bg-copper-500/25 text-copper-300 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                  title="Download Official Tax Receipt & Invoice"
+                >
+                  <Download className="w-3.5 h-3.5" />
+                  <span>Download Receipt</span>
+                </button>
+              )}
+            </div>
           )}
 
           <Link

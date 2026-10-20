@@ -51,16 +51,11 @@ export default function AdminManagementScreen() {
       if (res.data?.success && Array.isArray(res.data.admins)) {
         setAdmins(res.data.admins);
       } else {
-        // Fallback default
-        setAdmins([
-          { id: 'adm-1', name: 'Super Admin', email: 'admin@eminence.com', createdAt: new Date().toISOString() },
-        ]);
+        setAdmins([]);
       }
     } catch (err) {
-      console.warn('Error fetching admins, using local fallback:', err);
-      setAdmins([
-        { id: 'adm-1', name: 'Super Admin', email: 'admin@eminence.com', createdAt: new Date().toISOString() },
-      ]);
+      console.warn('Error fetching admins:', err);
+      setAdmins([]);
     } finally {
       setLoading(false);
       setRefreshing(false);

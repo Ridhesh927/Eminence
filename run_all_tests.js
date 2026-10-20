@@ -108,10 +108,22 @@ async function main() {
   if (!isFast) {
     results.push(
       runStage(
-        'Backend: Jest Unit & Integration Tests (25 Test Cases)',
+        'Backend: Jest Unit & Integration Tests',
         'npm',
         ['test', '--', '--testPathIgnorePatterns="load"', '--forceExit', '--testTimeout=15000'],
-        BACKEND_DIR
+        BACKEND_DIR,
+        {
+          NODE_ENV: 'test',
+          USE_SQLITE: 'true',
+          DATABASE_URL: '',
+          TEST_FIXTURES: 'true',
+          SEED_EMAIL: 'admin@eminence.com',
+          SEED_PASSWORD: 'adminpassword123',
+          SEED_PHONE: '1234567890',
+          SEED_DRIVER_PHONE: '9999999999',
+          SEED_OTP: '123456',
+          TELEMETRY_SIMULATION_VEHICLE_ID: 'VEH-TEST'
+        }
       )
     );
   } else {
@@ -132,6 +144,15 @@ async function main() {
   }
 
   // STAGE 2: FRONTEND
+  results.push(
+    runStage(
+      'Frontend: Vitest Unit Tests',
+      'npm',
+      ['test', '--', '--run'],
+      FRONTEND_DIR
+    )
+  );
+
   results.push(
     runStage(
       'Frontend: Oxlint Static Analysis',
@@ -184,7 +205,14 @@ async function main() {
         NODE_ENV: 'test',
         USE_SQLITE: 'true',
         DATABASE_URL: '', // Strictly enforce sqlite, never connect to PostgreSQL
-        DEMO_SEED: 'false'
+        DEMO_SEED: 'false',
+        TEST_FIXTURES: 'true',
+        SEED_EMAIL: 'admin@eminence.com',
+        SEED_PASSWORD: 'adminpassword123',
+        SEED_PHONE: '1234567890',
+        SEED_DRIVER_PHONE: '9999999999',
+        SEED_OTP: '123456',
+        TELEMETRY_SIMULATION_VEHICLE_ID: 'VEH-TEST'
       },
       stdio: 'inherit'
     });

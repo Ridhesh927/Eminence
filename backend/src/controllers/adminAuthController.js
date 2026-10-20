@@ -25,10 +25,7 @@ const adminLogin = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
     }
 
-    let isMatch = await bcrypt.compare(password, admin.password);
-    if (!isMatch && (password === 'adminpassword123' || password === (process.env.SEED_PASSWORD || 'password123'))) {
-      isMatch = true;
-    }
+    const isMatch = await bcrypt.compare(password, admin.password);
 
     if (!isMatch) {
       return res.status(401).json({ success: false, message: 'Invalid email or password' });
@@ -60,7 +57,8 @@ const adminLogin = async (req, res) => {
         name: admin.name,
         role: 'admin',
         adminRole,
-        isPrimary
+        isPrimary,
+        phone: admin.phone || null
       }
     });
 
@@ -70,6 +68,43 @@ const adminLogin = async (req, res) => {
   }
 };
 
-module.exports = {
-  adminLogin
+const registerPushToken = async (req, res) => {
+  try {
+    const adminId = req.user?.id;
+    const { pushToken, phone } = req.body;
+
+    if (!adminId) {
+      return res.status(401).json({ success: false, message: 'Unauthorized' });
+    }
+
+    const admin = await Admin.findByPk(adminId);
+    if (!admin) {
+      return res.status(404).json({ success: false, message: 'Admin not found' });
+    }
+
+    if (pushToken !== undefined) {
+      admin.pushToken = pushToken ? String(pushToken).trim() : null;
+    }
+    if (phone !== undefined) {
+      admin.phone = phone ? String(phone).trim() : admin.phone;
+    }
+
+    await admin.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Admin device push token registered successfully',
+      pushToken: admin.pushToken,
+      phone: admin.phone
+    });
+  } catch (error) {
+    console.error('Register Admin Push Token Error:', error);
+    return res.status(500).json({ success: false, message: 'Server error registering push token' });
+  }
 };
+
+module.exports = {
+  adminLogin,
+  registerPushToken
+};
+

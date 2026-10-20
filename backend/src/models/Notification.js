@@ -9,7 +9,11 @@ const Notification = sequelize.define('Notification', {
   },
   userId: {
     type: DataTypes.UUID,
-    allowNull: false,
+    allowNull: true,
+  },
+  recipientRole: {
+    type: DataTypes.STRING,
+    defaultValue: 'customer',
   },
   title: {
     type: DataTypes.STRING,
@@ -20,12 +24,20 @@ const Notification = sequelize.define('Notification', {
     allowNull: false,
   },
   type: {
-    type: DataTypes.ENUM('booking', 'promo', 'system', 'alert'),
+    type: DataTypes.STRING,
     defaultValue: 'system',
   },
   isRead: {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
+  },
+  dismissedFromBell: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
+  metadata: {
+    type: DataTypes.JSON,
+    allowNull: true,
   }
 }, {
   timestamps: true,

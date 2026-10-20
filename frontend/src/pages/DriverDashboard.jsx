@@ -12,12 +12,13 @@ import DriverNavigationMap from '../components/Driver/DriverNavigationMap';
 import DriverSosModal from '../components/Driver/DriverSosModal';
 
 const DriverDashboard = () => {
+  const demoSimulationEnabled = import.meta.env.DEV && import.meta.env.VITE_ENABLE_TEST_AUTH === 'true';
+  const isDemoRide = (ride) => demoSimulationEnabled && ride?.bookingId?.startsWith('demo-sim-');
   const { user, token } = useSelector((state) => state.auth);
   const [activeTab, setActiveTab] = useState('today');
   const [isOnline, setIsOnline] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [activatingBookingId, setActivatingBookingId] = useState(null);
-  const [heatmapData, setHeatmapData] = useState(null);
   const [driverStats, setDriverStats] = useState(null);
   const [showSosModal, setShowSosModal] = useState(false);
   const [statsLoading, setStatsLoading] = useState(false);
@@ -101,21 +102,7 @@ const DriverDashboard = () => {
     fetchMetrics();
   }, [fetchMetrics, activeTab]);
 
-  useEffect(() => {
-    if (activeTab === 'heatmap') {
-      const fetchHeatmap = async () => {
-        try {
-          const res = await api.get('/api/drivers/heatmap');
-          if (res.data?.success) {
-            setHeatmapData(res.data.data);
-          }
-        } catch (err) {
-          console.error("Error fetching heatmap", err);
-        }
-      };
-      fetchHeatmap();
-    }
-  }, [activeTab]);
+
 
   useEffect(() => {
     const newSocket = io(api.defaults.baseURL?.replace('/api', '') || 'http://localhost:5000', {
@@ -143,6 +130,7 @@ const DriverDashboard = () => {
       return;
     }
 
+    if (!navigator?.geolocation) return;
     const watchId = navigator.geolocation.watchPosition(
       ({ coords }) => {
         setDriverPos({ lat: coords.latitude, lng: coords.longitude });
@@ -216,7 +204,7 @@ const DriverDashboard = () => {
         });
       }
     }
-    if (activeRide.bookingId?.startsWith('demo-sim-')) {
+    if (isDemoRide(activeRide)) {
       setActiveRide(prev => ({ ...prev, status: 'arrived' }));
       return;
     }
@@ -245,7 +233,7 @@ const DriverDashboard = () => {
 
     try {
       // Demo simulation mode handling
-      if (activeRide.bookingId?.startsWith('demo-sim-')) {
+      if (isDemoRide(activeRide)) {
         const validCode = activeRide.otp || '8492';
         if (code !== validCode && code !== '8492' && code !== '1234') {
           setSideOtpError(`Invalid Start Ride OTP. (Demo OTP is ${validCode})`);
@@ -329,7 +317,7 @@ const DriverDashboard = () => {
     setIsFinishingTrip(true);
 
     // If demo simulation:
-    if (activeRide.bookingId?.startsWith('demo-sim-')) {
+    if (isDemoRide(activeRide)) {
       const demoHash = 'POD-' + Math.random().toString(36).substring(2, 10).toUpperCase() + '-' + Date.now().toString(36).substring(4).toUpperCase();
       setPodHash(demoHash);
       setShowPod(true);
@@ -400,7 +388,6 @@ const DriverDashboard = () => {
             <nav className="space-y-1">
               {[
                 { id: 'today', label: 'Deliveries & Queue', icon: Truck, badge: driverStats?.activeOrdersCount },
-                { id: 'heatmap', label: 'Demand Heatmap', icon: TrendingUp },
                 { id: 'wms', label: 'WMS Scanner', icon: Package },
                 { id: 'completed', label: 'Trip History', icon: CheckCircle },
               ].map((item) => (
@@ -585,13 +572,15 @@ const DriverDashboard = () => {
 
                       {/* Appointed Action */}
                       <div className="relative z-10 pt-2">
-                        <button 
+                        <button
+                          id="start-navigation-btn"
+                          type="button"
                           onClick={handleAcceptTrip} 
                           disabled={isLoading}
                           className="btn-primary w-full py-4 text-lg font-bold flex items-center justify-center gap-3 shadow-[0_0_25px_rgba(232,99,49,0.35)] hover:shadow-[0_0_35px_rgba(232,99,49,0.5)] transition-all cursor-pointer"
                         >
                           <Navigation className="w-5 h-5" />
-                          Start Navigation & Delivery
+                          {activeRide.status === 'in_transit' ? 'Resume Live GPS Navigation' : 'Start Live GPS Navigation & Delivery'}
                         </button>
                       </div>
                     </div>
@@ -777,7 +766,16 @@ const DriverDashboard = () => {
                   {/* Trip Controls & Two-Phase Verification Stepper */}
                   <div className="w-full md:w-80 space-y-4">
                     <div className="card p-6 border-moss-500/20">
-                      <h4 className="text-moss-400 font-bold mb-4 uppercase tracking-wider text-sm">Appointed Trip Details</h4>
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-moss-400 font-bold uppercase tracking-wider text-sm">Appointed Trip Details</h4>
+                        <button
+                          type="button"
+                          onClick={() => setIsNavigating(false)}
+                          className="text-xs text-loft-400 hover:text-loft-200 underline cursor-pointer"
+                        >
+                          View Order Card
+                        </button>
+                      </div>
                       <div className="space-y-4">
                         <div>
                           <p className="text-loft-400 text-xs">Customer Name</p>
@@ -834,7 +832,7 @@ const DriverDashboard = () => {
                               <div className="space-y-2 mt-2 pt-2 border-t border-sky-500/20">
                                 <div className="flex items-center justify-between text-[11px]">
                                   <span className="text-loft-300 font-medium">Customer OTP:</span>
-                                  {(activeRide?.otp || activeRide?.bookingId?.startsWith('demo-sim-')) && (
+                                  {(activeRide?.otp || isDemoRide(activeRide)) && (
                                     <button
                                       type="button"
                                       onClick={() => {
@@ -962,7 +960,7 @@ const DriverDashboard = () => {
                             type="button"
                             onClick={() => {
                               setIsNavigating(false);
-                              if (activeRide?.bookingId?.startsWith('demo-sim-')) {
+                              if (isDemoRide(activeRide)) {
                                 setActiveRide(null);
                               }
                             }}
@@ -1004,63 +1002,7 @@ const DriverDashboard = () => {
             </AnimatePresence>
           )}
 
-          {/* TAB 2: SURGE HEATMAP */}
-          {activeTab === 'heatmap' && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card overflow-hidden p-0 border border-copper-500/20">
-              <div className="p-6 border-b border-loft-800 flex justify-between items-center bg-loft-950">
-                <div>
-                  <h3 className="text-xl font-bold text-loft-50">Surge Pricing Heatmap</h3>
-                  <p className="text-loft-400 text-sm">Drive to highlighted areas to earn up to 2.5x fare.</p>
-                </div>
-                <div className="flex gap-2">
-                  <span className="flex items-center gap-1 text-xs text-loft-300"><span className="w-3 h-3 rounded-full bg-red-500"></span> 2.0x+</span>
-                  <span className="flex items-center gap-1 text-xs text-loft-300"><span className="w-3 h-3 rounded-full bg-orange-500"></span> 1.5x</span>
-                  <span className="flex items-center gap-1 text-xs text-loft-300"><span className="w-3 h-3 rounded-full bg-yellow-500"></span> 1.2x</span>
-                </div>
-              </div>
-              
-              <div className="relative h-[500px] bg-[#1a1e26] w-full flex items-center justify-center overflow-hidden">
-                {/* Simulated Map Background */}
-                <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cartographer.png')]"></div>
-                
-                {heatmapData && heatmapData.hotspots.map((spot, index) => {
-                  const colors = {
-                    'High': 'red',
-                    'Medium': 'orange',
-                    'Low': 'yellow'
-                  };
-                  const color = colors[spot.intensity];
-                  
-                  // Using randomized fixed positions for simulation since we don't have a real map canvas here
-                  const positions = [
-                    { top: '25%', left: '25%' },
-                    { bottom: '33%', right: '25%' },
-                    { top: '50%', left: '50%' },
-                    { top: '10%', right: '10%' }
-                  ];
-                  const pos = positions[index % positions.length];
 
-                  return (
-                    <div key={spot.id} className="absolute" style={pos}>
-                      <div className={`w-48 h-48 bg-${color}-500/40 rounded-full blur-3xl mix-blend-screen animate-pulse`}></div>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                        <MapPin className="text-white w-8 h-8 drop-shadow-lg mb-1" />
-                        <span className={`bg-${color}-600 text-white font-bold text-xs px-2 py-1 rounded shadow-lg`}>
-                          {spot.surgeMultiplier}x {spot.name}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-                
-                <div className="absolute bottom-6 right-6">
-                  <button className="bg-loft-800 text-white p-3 rounded-full shadow-lg border border-loft-700 hover:bg-loft-700">
-                    <Map className="w-6 h-6 text-copper-400" />
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
 
           {/* TAB: WMS SCANNER */}
           {activeTab === 'wms' && (

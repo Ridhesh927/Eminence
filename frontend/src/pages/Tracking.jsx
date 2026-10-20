@@ -10,9 +10,6 @@ import { getToken } from '../services/tokenService';
 import { io } from 'socket.io-client';
 import { geocodeAddress, fetchOsrmRoute } from '../utils/puneGeocoder';
 
-// Pune coordinates for default mock telemetry
-const PUNE_POSITION = [18.5204, 73.8567];
-
 const Tracking = () => {
   const { bookingId } = useParams();
   const { user } = useSelector((state) => state.auth);
@@ -26,12 +23,10 @@ const Tracking = () => {
   const [isReconnecting, setIsReconnecting] = useState(!navigator.onLine);
   const [telemetry, setTelemetry] = useState({
     speed: 0,
-    lat: PUNE_POSITION[0],
-    lng: PUNE_POSITION[1],
+    lat: null,
+    lng: null,
     lastSynced: new Date().toLocaleTimeString(),
   });
-  const fallbackPodHash = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
-
   const [effectiveBookingId, setEffectiveBookingId] = useState(bookingId || null);
   const [hasNoActiveBooking, setHasNoActiveBooking] = useState(false);
 
@@ -105,12 +100,11 @@ const Tracking = () => {
           if (data.status === 'completed') setIsReviewModalOpen(true);
           
           // Re-fetch latest telemetry state (Speed, Location) upon load or reconnection
-          const updatedSpeed = data.status === 'in_transit' ? 44 : (data.status === 'driver_assigned' ? 28 : 0);
           const driverLat = data.driver?.currentLat || data.currentLat;
           const driverLng = data.driver?.currentLng || data.currentLng;
           
-          let initialLat = driverLat || PUNE_POSITION[0];
-          let initialLng = driverLng || PUNE_POSITION[1];
+          let initialLat = driverLat || null;
+          let initialLng = driverLng || null;
 
           // If driver arrived at pickup, anchor position directly at pickup
           if (data.status === 'arrived' && data.pickupLat && data.pickupLng) {
@@ -119,7 +113,7 @@ const Tracking = () => {
           }
 
           setTelemetry({
-            speed: data.status === 'arrived' ? 0 : updatedSpeed,
+            speed: Number.isFinite(Number(data.speed)) ? Number(data.speed) : 0,
             lat: initialLat,
             lng: initialLng,
             lastSynced: new Date().toLocaleTimeString(),
@@ -136,7 +130,7 @@ const Tracking = () => {
     resolveAndLoadBooking();
 
     const token = user?.token || getToken();
-    const rawSocketUrl = import.meta.env.VITE_API_URL || api.defaults.baseURL || 'http://localhost:3000';
+    const rawSocketUrl = import.meta.env.VITE_API_URL || api.defaults.baseURL || window.location.origin;
     const socketUrl = rawSocketUrl.replace(/\/api\/?$/, '');
     const socket = io(socketUrl, {
       reconnection: true,
@@ -181,6 +175,11 @@ const Tracking = () => {
     socket.on('booking_status_updated', (data) => {
       if (isMounted && data.bookingId === (bookingId || effectiveBookingId)) {
         setStatus(data.status);
+        if (data.booking) {
+          setBooking(prev => ({ ...prev, ...data.booking }));
+        } else {
+          resolveAndLoadBooking();
+        }
         if (data.status === 'completed') {
           setIsReviewModalOpen(true);
         }
@@ -374,6 +373,7 @@ const Tracking = () => {
       case 'arrived': return 'Driver has arrived at pickup location.';
       case 'in_transit': return 'Goods in transit to destination.';
       case 'completed': return 'Delivery completed successfully!';
+      case 'expired': return 'Booking Expired: Untouched past validity deadline.';
       case 'cancelled':
         return booking?.cancellationReason?.toLowerCase().includes('expire')
           ? 'Booking Expired: Untouched past validity deadline.'
@@ -390,6 +390,7 @@ const Tracking = () => {
       case 'arrived': return { text: 'AT PICKUP', bg: 'bg-purple-500/20 text-purple-300 border-purple-500/30' };
       case 'in_transit': return { text: 'IN TRANSIT', bg: 'bg-copper-500/20 text-copper-300 border-copper-500/30' };
       case 'completed': return { text: 'COMPLETED', bg: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' };
+      case 'expired': return { text: 'EXPIRED', bg: 'bg-amber-500/20 text-amber-300 border-amber-500/30' };
       case 'cancelled':
         return booking?.cancellationReason?.toLowerCase().includes('expire')
           ? { text: 'EXPIRED', bg: 'bg-amber-500/20 text-amber-300 border-amber-500/30' }
@@ -456,10 +457,10 @@ const Tracking = () => {
       <div className="w-full md:flex-1 h-[45vh] md:h-full relative bg-loft-900 border-b md:border-b-0 md:border-r border-loft-800 z-0">
         <TrackingMap 
           bookingId={effectiveBookingId || bookingId} 
-          initialLat={PUNE_POSITION[0]} 
-          initialLng={PUNE_POSITION[1]} 
+          initialLat={telemetry.lat}
+          initialLng={telemetry.lng}
           isReconnecting={isReconnecting}
-          currentPosition={[telemetry.lat || PUNE_POSITION[0], telemetry.lng || PUNE_POSITION[1]]}
+          currentPosition={telemetry.lat != null && telemetry.lng != null ? [telemetry.lat, telemetry.lng] : null}
           routeCoordinates={routeData?.polyline || []}
           pickupPosition={pickupCoord ? [pickupCoord.lat, pickupCoord.lng] : null}
           dropPosition={dropCoord ? [dropCoord.lat, dropCoord.lng] : null}
@@ -467,7 +468,7 @@ const Tracking = () => {
           pickupAddress={booking?.pickupAddress}
           dropAddress={booking?.dropAddress}
           driverName={booking?.driver?.name || (booking?.is3plOutsourced ? booking?.thirdPartyProvider : 'Driver')}
-          vehicleNumber={booking?.vehicle?.registrationNumber || (booking?.is3plOutsourced ? '3PL-PARTNER' : 'MH 12 AB 1234')}
+          vehicleNumber={booking?.vehicle?.registrationNumber || (booking?.is3plOutsourced ? '3PL-PARTNER' : '')}
           speed={telemetry.speed}
           status={status}
         />
@@ -540,14 +541,14 @@ const Tracking = () => {
           </div>
         )}
 
-        {status === 'cancelled' && (
-          <div className="p-3.5 rounded-xl border border-red-500/40 bg-red-500/10 shadow-md">
-            <div className="flex items-center gap-2 text-red-400 font-bold text-xs mb-1">
-              <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0" />
-              <span>{booking?.cancellationReason?.toLowerCase().includes('expire') ? 'Booking Expired' : 'Booking Cancelled'}</span>
+        {(status === 'cancelled' || status === 'expired') && (
+          <div className="p-3.5 rounded-xl border border-amber-500/40 bg-amber-500/10 shadow-md">
+            <div className="flex items-center gap-2 text-amber-400 font-bold text-xs mb-1">
+              <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+              <span>{status === 'expired' || booking?.cancellationReason?.toLowerCase().includes('expire') ? 'Booking Expired' : 'Booking Cancelled'}</span>
             </div>
             <p className="text-xs text-loft-200 mb-2">
-              {booking?.cancellationReason || 'This booking has been cancelled.'}
+              {booking?.cancellationReason || (status === 'expired' ? 'Untouched without driver assignment past validity deadline.' : 'This booking has been cancelled.')}
             </p>
             <div className="text-[11px] text-emerald-400 bg-emerald-500/10 p-2 rounded-lg border border-emerald-500/20 font-medium">
               ✓ Any advance payment has been refunded 100% to your wallet.
@@ -629,7 +630,7 @@ const Tracking = () => {
             <div className="p-2 bg-loft-950/80 rounded-lg border border-loft-800 text-center">
               <span className="text-[10px] text-loft-400 block mb-0.5">Location</span>
               <span data-testid="telemetry-location" className="text-[11px] font-mono font-semibold text-loft-200 block truncate">
-                {(telemetry.lat || PUNE_POSITION[0]).toFixed(3)}°, {(telemetry.lng || PUNE_POSITION[1]).toFixed(3)}°
+                {telemetry.lat != null && telemetry.lng != null ? `${telemetry.lat.toFixed(3)}°, ${telemetry.lng.toFixed(3)}°` : 'Waiting for GPS'}
               </span>
             </div>
           </div>
@@ -667,11 +668,11 @@ const Tracking = () => {
             </div>
             <div className="bg-loft-950/90 p-2.5 rounded-lg border border-loft-800 flex items-center justify-between">
               <span className="font-mono text-[10px] text-moss-300 break-all select-all pr-2">
-                {booking?.podHash || fallbackPodHash}
+                {booking?.podHash || 'Proof of delivery pending'}
               </span>
               <button
                 onClick={() => {
-                  navigator.clipboard.writeText(booking?.podHash || fallbackPodHash);
+                  navigator.clipboard.writeText(booking?.podHash || '');
                   setCopiedPod(true);
                   setTimeout(() => setCopiedPod(false), 2000);
                 }}
@@ -722,13 +723,23 @@ const Tracking = () => {
                 <div className="text-[11px] font-mono text-copper-300 mt-0.5 font-bold">
                   {booking?.vehicle?.registrationNumber || 'Assigned Tempo'}
                 </div>
+                {booking.driver.phone && (
+                  <p className="text-xs font-mono text-emerald-400 font-semibold mt-0.5">
+                    +91 {booking.driver.phone}
+                  </p>
+                )}
               </div>
             </div>
             
             {booking.driver.phone && (
               <div className="flex gap-2">
-                <a href={`tel:${booking.driver.phone}`} className="w-9 h-9 rounded-full bg-moss-500 text-white flex items-center justify-center shadow-md shadow-moss-500/20 hover:bg-moss-400 transition-colors">
-                  <Phone className="w-4 h-4" />
+                <a 
+                  href={`tel:${booking.driver.phone}`} 
+                  className="px-3 py-1.5 rounded-xl bg-moss-500 hover:bg-moss-400 text-white flex items-center gap-1.5 shadow-md shadow-moss-500/20 text-xs font-bold transition-all cursor-pointer"
+                  title={`Call Driver (${booking.driver.name})`}
+                >
+                  <Phone className="w-3.5 h-3.5" />
+                  <span>Call Driver</span>
                 </a>
               </div>
             )}
@@ -785,8 +796,46 @@ const Tracking = () => {
         </div>
 
         {/* Helpline Footer */}
-        <div className="mt-auto pt-2 text-center text-xs text-loft-400 border-t border-loft-800/40">
-          Need help? <a href="tel:18001234567" className="text-copper-400 font-bold hover:underline">Call IVR Helpline</a>
+        <div className="mt-auto pt-2.5 text-center text-xs text-loft-400 border-t border-loft-800/40 space-y-1">
+          {booking?.driver?.phone ? (
+            <>
+              <div className="flex items-center justify-center gap-1.5 text-loft-200">
+                <span>Need help?</span>
+                <a 
+                  href={`tel:${booking.driver.phone}`} 
+                  className="text-emerald-400 font-bold hover:underline inline-flex items-center gap-1"
+                >
+                  <Phone className="w-3.5 h-3.5" />
+                  <span>Call Driver ({booking.driver.name || 'Assigned Driver'}): +91 {booking.driver.phone}</span>
+                </a>
+              </div>
+              <p className="text-[11px] text-loft-500">
+                Driver not responding?{' '}
+                <a 
+                  href="tel:9970734425" 
+                  className="text-copper-400 hover:text-copper-300 font-semibold underline"
+                >
+                  Call Admin Support (+91 9970734425)
+                </a>
+              </p>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-center gap-1.5">
+                <span>Need help?</span>
+                <a 
+                  href="tel:9970734425" 
+                  className="text-copper-400 font-bold hover:underline inline-flex items-center gap-1"
+                >
+                  <Phone className="w-3.5 h-3.5" />
+                  <span>Call Admin Support (+91 9970734425)</span>
+                </a>
+              </div>
+              <p className="text-[11px] text-loft-500">
+                (Driver allocation in progress • Admin support standing by)
+              </p>
+            </>
+          )}
         </div>
 
       </div>
@@ -868,8 +917,8 @@ const Tracking = () => {
         isOpen={isReviewModalOpen} 
         onClose={() => setIsReviewModalOpen(false)} 
         bookingId={bookingId} 
-        driverId={booking?.driverId || "d1234567-89ab-cdef-0123-456789abcdef"} 
-        driverName={booking?.is3plOutsourced ? booking?.thirdPartyProvider : (booking?.driver?.name || "Ramesh Kumar")} 
+        driverId={booking?.driverId}
+        driverName={booking?.is3plOutsourced ? booking?.thirdPartyProvider : booking?.driver?.name}
       />
     </div>
   );

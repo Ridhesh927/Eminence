@@ -16,7 +16,6 @@ import {
   PackageCheck,
   ShieldCheck,
   ArrowRight,
-  Truck,
   Check
 } from 'lucide-react';
 import { geocodeAddress, fetchOsrmRoute } from '../../utils/puneGeocoder';
@@ -234,32 +233,74 @@ const createDestinationIcon = (isCompleted = false) => {
 };
 
 // Dynamic Map Camera Controller
-const MapCameraController = ({ centerPos, bounds, autoFollow, fitTrigger }) => {
+const MapCameraController = ({ centerPos, bounds, autoFollow, fitTrigger, onAutoFollowChange }) => {
   const map = useMap();
+  const prevAutoFollowRef = useRef(false);
+  const isFittingRef = useRef(false);
+  const boundsRef = useRef(bounds);
 
-  // Initial bounds fit
   useEffect(() => {
-    if (!bounds || bounds.length === 0) return;
+    boundsRef.current = bounds;
+  }, [bounds]);
+
+  // When user drags map, naturally toggle off autoFollow to allow free inspection
+  useEffect(() => {
+    const handleDrag = () => {
+      if (onAutoFollowChange) {
+        onAutoFollowChange(false);
+      }
+    };
+    map.on('dragstart', handleDrag);
+    return () => {
+      map.off('dragstart', handleDrag);
+    };
+  }, [map, onAutoFollowChange]);
+
+  // Explicit bounds fit (triggered ONLY on fitTrigger or manual Fit Route action)
+  useEffect(() => {
+    if (fitTrigger === 0) return;
+    const targetBounds = boundsRef.current || bounds;
+    if (!targetBounds || targetBounds.length === 0) return;
     try {
-      const leafletBounds = L.latLngBounds(bounds);
+      isFittingRef.current = true;
+      const leafletBounds = L.latLngBounds(targetBounds);
       map.fitBounds(leafletBounds, {
         paddingTopLeft: [40, 120],
         paddingBottomRight: [40, 60],
-        maxZoom: 16,
+        maxZoom: 15,
         animate: true
       });
+      const timer = setTimeout(() => {
+        isFittingRef.current = false;
+      }, 600);
+      return () => clearTimeout(timer);
     } catch (e) {
       console.warn('Map fit bounds notice:', e);
+      isFittingRef.current = false;
     }
-  }, [fitTrigger, map, bounds]);
+  }, [fitTrigger, map]);
 
-  // Auto-follow moving tempo
+  // Auto-follow moving tempo (smooth pan, never fights or overrides zoom level)
   useEffect(() => {
-    if (!autoFollow || !centerPos) return;
+    if (!autoFollow || !centerPos || isFittingRef.current) return;
     try {
-      map.setView([centerPos.lat, centerPos.lng], map.getZoom() < 15 ? 15 : map.getZoom(), {
+      const wasLocked = prevAutoFollowRef.current;
+      prevAutoFollowRef.current = autoFollow;
+
+      // When newly activating Camera Lock, zoom into driver navigation view (min zoom 15)
+      if (!wasLocked) {
+        map.setView([centerPos.lat, centerPos.lng], Math.max(map.getZoom(), 15), {
+          animate: true,
+          duration: 0.35
+        });
+        return;
+      }
+
+      // During active simulation, gently pan center coordinates without altering current zoom!
+      map.panTo([centerPos.lat, centerPos.lng], {
         animate: true,
-        duration: 0.35
+        duration: 0.15,
+        noMoveStart: true
       });
     } catch (e) {
       console.warn('Auto follow notice:', e);
@@ -269,8 +310,10 @@ const MapCameraController = ({ centerPos, bounds, autoFollow, fitTrigger }) => {
   return null;
 };
 
+const DEFAULT_PUNE_COORDS = { lat: 18.5204, lng: 73.8567 };
+
 const DriverNavigationMap = ({
-  driverPos = { lat: 18.5204, lng: 73.8567 },
+  driverPos: rawDriverPos,
   activeRide,
   currentLeg: controlledLeg,
   onLegChange,
@@ -282,6 +325,14 @@ const DriverNavigationMap = ({
   isFinishingTrip = false,
   className = ''
 }) => {
+  // Ensure a valid driver position is guaranteed with Pune fallback
+  const driverPos = useMemo(() => {
+    if (rawDriverPos && typeof rawDriverPos.lat === 'number' && typeof rawDriverPos.lng === 'number' && !isNaN(rawDriverPos.lat) && !isNaN(rawDriverPos.lng)) {
+      return rawDriverPos;
+    }
+    return DEFAULT_PUNE_COORDS;
+  }, [rawDriverPos]);
+
   // Geocoded Coordinates
   const [pickupCoord, setPickupCoord] = useState(null);
   const [dropCoord, setDropCoord] = useState(null);
@@ -333,6 +384,16 @@ const DriverNavigationMap = ({
   const [autoFollow, setAutoFollow] = useState(true);
   const [fitTrigger, setFitTrigger] = useState(0);
 
+  const currentPos = (simPos && typeof simPos.lat === 'number' && typeof simPos.lng === 'number' && !isNaN(simPos.lat))
+    ? simPos
+    : driverPos;
+
+  useEffect(() => {
+    if (driverPos?.lat && driverPos?.lng) {
+      setSimPos(prev => (prev && typeof prev.lat === 'number' ? prev : driverPos));
+    }
+  }, [driverPos]);
+
   const pickupAddress = activeRide?.pickup || activeRide?.pickupAddress || 'Pickup Origin';
   const dropoffAddress = activeRide?.dropoff || activeRide?.dropAddress || 'Destination';
   const lastBroadcastRef = useRef(0);
@@ -364,22 +425,47 @@ const DriverNavigationMap = ({
     return () => { isCancelled = true; };
   }, [pickupAddress, dropoffAddress]);
 
-  // 2. Fetch OSRM turn-by-turn routes for both Leg 1 and Leg 2
+  const rideId = activeRide?.bookingId || activeRide?.id || 'active_trip';
+  const prevRideIdRef = useRef(null);
+  const routeOriginRef = useRef(null);
+
+  // If active ride changes, reset origin and route cache
+  if (prevRideIdRef.current !== rideId) {
+    prevRideIdRef.current = rideId;
+    routeOriginRef.current = null;
+  }
+
+  // Anchor the starting point for route calculation once
+  if (!routeOriginRef.current && driverPos?.lat && driverPos?.lng) {
+    routeOriginRef.current = { lat: driverPos.lat, lng: driverPos.lng };
+  }
+
+  // 2. Fetch OSRM turn-by-turn routes for both Leg 1 and Leg 2 (once per ride)
   useEffect(() => {
     let isCancelled = false;
-    if (!driverPos || !pickupCoord) return;
+    const origin = routeOriginRef.current || driverPos;
+    if (!origin || !pickupCoord) return;
 
     const calculateRoutes = async () => {
       setIsLoadingRoute(true);
       try {
         // Leg 1: Driver -> Pickup Origin
-        const route1 = await fetchOsrmRoute([driverPos, pickupCoord]);
+        const route1 = await fetchOsrmRoute([origin, pickupCoord]);
         if (isCancelled) return;
         const dense1 = generateDenseRoute(route1.polyline, 16);
         setLeg1Route({
           ...route1,
           denseRoute: dense1
         });
+
+        // Initialize starting sim position from the route start if not set
+        if (dense1.length > 0) {
+          const startPt = { lat: dense1[0][0], lng: dense1[0][1] };
+          setSimPos(prev => (prev && typeof prev.lat === 'number' ? prev : startPt));
+          if (dense1.length > 1) {
+            setSimBearing(calculateBearing(dense1[0][0], dense1[0][1], dense1[1][0], dense1[1][1]));
+          }
+        }
 
         // Leg 2: Pickup Origin -> Drop-off Destination
         if (dropCoord) {
@@ -391,8 +477,6 @@ const DriverNavigationMap = ({
             denseRoute: dense2
           });
         }
-
-        setFitTrigger(prev => prev + 1);
       } catch (err) {
         console.warn('Route calculation notice:', err);
       } finally {
@@ -402,7 +486,7 @@ const DriverNavigationMap = ({
 
     calculateRoutes();
     return () => { isCancelled = true; };
-  }, [driverPos?.lat, driverPos?.lng, pickupCoord?.lat, pickupCoord?.lng, dropCoord?.lat, dropCoord?.lng]);
+  }, [rideId, pickupCoord?.lat, pickupCoord?.lng, dropCoord?.lat, dropCoord?.lng]);
 
   // Current Active Route Dense Waypoints
   const activeDenseRoute = useMemo(() => {
@@ -426,7 +510,7 @@ const DriverNavigationMap = ({
     return leg2Route?.durationMins || 0;
   }, [activeLeg, leg1Route, leg2Route]);
 
-  // Reset simulation when activeLeg switches
+  // Reset simulation when activeLeg switches (e.g., from pickup to dropoff)
   useEffect(() => {
     setSimIndex(0);
     if (activeLeg === 'to_pickup') {
@@ -458,9 +542,7 @@ const DriverNavigationMap = ({
         }
       }
     }
-    setIsSimulating(true);
-    setFitTrigger(prev => prev + 1);
-  }, [activeLeg, leg1Route?.denseRoute, leg2Route?.denseRoute]);
+  }, [activeLeg]);
 
   // 3. Tempo Movement Simulation Loop
   const hasArrivedCurrentLeg = activeLeg === 'to_pickup' ? hasArrivedPickup : hasArrivedDropoff;
@@ -624,8 +706,13 @@ const DriverNavigationMap = ({
       if (activeLeg === 'to_pickup') setHasArrivedPickup(false);
       else setHasArrivedDropoff(false);
       setIsSimulating(true);
+      setSimSpeedKmh(42);
     } else {
-      setIsSimulating(prev => !prev);
+      setIsSimulating((prev) => {
+        const next = !prev;
+        setSimSpeedKmh(next ? 42 : 0);
+        return next;
+      });
     }
   }, [hasArrivedCurrentLeg, activeLeg]);
 
@@ -634,6 +721,7 @@ const DriverNavigationMap = ({
     if (activeLeg === 'to_pickup') setHasArrivedPickup(false);
     else setHasArrivedDropoff(false);
     setIsSimulating(true);
+    setSimSpeedKmh(42);
     if (activeDenseRoute.length > 0) {
       setSimPos({ lat: activeDenseRoute[0][0], lng: activeDenseRoute[0][1] });
       setFitTrigger(prev => prev + 1);
@@ -642,22 +730,23 @@ const DriverNavigationMap = ({
 
   const mapBounds = useMemo(() => {
     const list = [];
-    if (driverPos?.lat) list.push([driverPos.lat, driverPos.lng]);
-    if (pickupCoord?.lat) list.push([pickupCoord.lat, pickupCoord.lng]);
-    if (dropCoord?.lat) list.push([dropCoord.lat, dropCoord.lng]);
+    if (pickupCoord?.lat && pickupCoord?.lng) list.push([pickupCoord.lat, pickupCoord.lng]);
+    if (dropCoord?.lat && dropCoord?.lng) list.push([dropCoord.lat, dropCoord.lng]);
+    const origin = routeOriginRef.current || driverPos;
+    if (origin?.lat && origin?.lng) list.push([origin.lat, origin.lng]);
     return list;
-  }, [driverPos, pickupCoord, dropCoord]);
+  }, [pickupCoord?.lat, pickupCoord?.lng, dropCoord?.lat, dropCoord?.lng, driverPos?.lat, driverPos?.lng]);
 
   const currentDestination = activeLeg === 'to_pickup' ? pickupAddress : dropoffAddress;
   const currentTargetCoord = activeLeg === 'to_pickup' ? pickupCoord : dropCoord;
 
   const googleMapsUrl = useMemo(() => {
-    const origin = simPos ? `${simPos.lat},${simPos.lng}` : '';
+    const origin = currentPos ? `${currentPos.lat},${currentPos.lng}` : '';
     const dest = currentTargetCoord 
       ? `${currentTargetCoord.lat},${currentTargetCoord.lng}` 
       : encodeURIComponent(currentDestination);
     return `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}&travelmode=driving`;
-  }, [simPos, currentTargetCoord, currentDestination]);
+  }, [currentPos?.lat, currentPos?.lng, currentTargetCoord, currentDestination]);
 
   return (
     <div className={`flex-1 card overflow-hidden relative min-h-[520px] md:min-h-[580px] border-copper-500/30 flex flex-col ${className}`}>
@@ -855,7 +944,7 @@ const DriverNavigationMap = ({
       {/* Interactive Leaflet Map */}
       <div className="relative w-full h-full min-h-[460px] flex-1 z-0">
         <MapContainer
-          center={[simPos.lat, simPos.lng]}
+          center={[currentPos.lat, currentPos.lng]}
           zoom={14}
           scrollWheelZoom={true}
           zoomControl={false}
@@ -868,15 +957,16 @@ const DriverNavigationMap = ({
           />
 
           <MapCameraController 
-            centerPos={simPos} 
+            centerPos={currentPos} 
             bounds={mapBounds} 
             autoFollow={autoFollow}
             fitTrigger={fitTrigger}
+            onAutoFollowChange={setAutoFollow}
           />
 
           {/* Moving Tempo Truck Marker (Rotates along road bearing) */}
           <Marker 
-            position={[simPos.lat, simPos.lng]} 
+            position={[currentPos.lat, currentPos.lng]} 
             icon={createRotatingTruckIcon(simBearing, isSimulating, simSpeedKmh)}
           >
             <Popup>
@@ -888,7 +978,7 @@ const DriverNavigationMap = ({
                   </span>
                 </div>
                 <p className="text-[11px] text-loft-700">
-                  <strong>GPS:</strong> {simPos.lat.toFixed(5)}, {simPos.lng.toFixed(5)}
+                  <strong>GPS:</strong> {currentPos.lat.toFixed(5)}, {currentPos.lng.toFixed(5)}
                 </p>
                 <p className="text-[11px] text-loft-700 mt-0.5">
                   <strong>Heading:</strong> {Math.round(simBearing)}° • {progressPercent}% of {activeLeg === 'to_pickup' ? 'Leg 1' : 'Leg 2'}
@@ -1146,7 +1236,10 @@ const DriverNavigationMap = ({
           <div className="bg-loft-950/95 backdrop-blur-md border border-copper-500/30 p-2 rounded-2xl shadow-2xl flex items-center gap-2 pointer-events-auto">
             <button
               type="button"
-              onClick={handleTogglePlay}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleTogglePlay();
+              }}
               className={`px-3.5 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-lg transition-all cursor-pointer ${
                 isSimulating
                   ? 'bg-amber-500 hover:bg-amber-400 text-loft-950'

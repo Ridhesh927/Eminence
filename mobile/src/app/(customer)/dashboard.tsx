@@ -32,14 +32,14 @@ export default function CustomerDashboard() {
   const { tab } = useLocalSearchParams<{ tab?: string }>();
   const { user, logout } = useAuth();
 
-  const [activeTab, setActiveTab] = useState<'history' | 'addresses' | 'wallet'>('history');
+  const [activeTab, setActiveTab] = useState<'history' | 'addresses' | 'wallet' | 'support'>('history');
   const [rides, setRides] = useState<any[]>([]);
   const [addresses, setAddresses] = useState<AddressItem[]>([]);
   const [wallet, setWallet] = useState<any>({ balance: 250, referralCode: 'EMN-DEMO-2026' });
 
-  // Handle deep-link tab param (e.g. ?tab=wallet)
+  // Handle deep-link tab param (e.g. ?tab=wallet, ?tab=support)
   useEffect(() => {
-    if (tab === 'wallet' || tab === 'addresses' || tab === 'history') {
+    if (tab === 'wallet' || tab === 'addresses' || tab === 'history' || tab === 'support') {
       setActiveTab(tab as any);
     }
   }, [tab]);
@@ -227,7 +227,7 @@ export default function CustomerDashboard() {
           setRides(bookingsRes.data.bookings);
         }
       } catch (e) {
-        console.log('Using seeded rides fallback for customer history');
+        console.log('Error fetching customer bookings:', e);
       }
 
       // 2. Fetch Addresses (TC-014)
@@ -266,6 +266,10 @@ export default function CustomerDashboard() {
   };
 
   const handleBuyPro = async () => {
+    if (!(__DEV__ && process.env.EXPO_PUBLIC_ENABLE_TEST_AUTH === 'true')) {
+      Alert.alert('Payment Required', 'Complete payment through the configured provider to activate Pro.');
+      return;
+    }
     setProLoading(true);
     try {
       const orderRes = await api.post('/api/customer/pro/create-order');
@@ -340,6 +344,10 @@ export default function CustomerDashboard() {
   };
 
   const verifyTopUpPayment = async (orderId?: string, amountNum?: number) => {
+    if (!(__DEV__ && process.env.EXPO_PUBLIC_ENABLE_TEST_AUTH === 'true')) {
+      setTopUpError('Payment confirmation must come from the configured provider.');
+      return;
+    }
     const amt = amountNum || parseFloat(topUpAmount);
     const oid = orderId || currentTopUpOrder?.id || ('topup_order_' + Date.now());
 
@@ -463,7 +471,7 @@ export default function CustomerDashboard() {
         <View>
           <Text style={styles.welcomeLabel}>CUSTOMER ACCOUNT</Text>
           <Text style={styles.userName}>{user?.name || 'User'}</Text>
-          <Text style={styles.userPhone}>+91 {user?.phone || '1234567890'}</Text>
+          <Text style={styles.userPhone}>+91 {user?.phone || 'Phone unavailable'}</Text>
         </View>
         <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <Text style={styles.logoutBtnText}>Logout</Text>
@@ -496,6 +504,15 @@ export default function CustomerDashboard() {
         >
           <Text style={[styles.tabBtnText, activeTab === 'wallet' && styles.tabBtnTextActive]}>
             Wallet
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.tabBtn, activeTab === 'support' && styles.tabBtnActive]}
+          onPress={() => setActiveTab('support')}
+        >
+          <Text style={[styles.tabBtnText, activeTab === 'support' && styles.tabBtnTextActive]}>
+            Support
           </Text>
         </TouchableOpacity>
       </View>
@@ -602,15 +619,20 @@ export default function CustomerDashboard() {
                       </Text>
                       <View style={[
                         styles.statusBadge,
-                        ride.status === 'cancelled' && { backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.4)' },
+                        (ride.status === 'cancelled' || ride.status === 'expired') && {
+                          backgroundColor: ride.status === 'expired' || ride.cancellationReason?.toLowerCase().includes('expire') ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                          borderColor: ride.status === 'expired' || ride.cancellationReason?.toLowerCase().includes('expire') ? 'rgba(245, 158, 11, 0.4)' : 'rgba(239, 68, 68, 0.4)',
+                        },
                         ride.status === 'pending' && { backgroundColor: 'rgba(59, 130, 246, 0.15)', borderColor: 'rgba(59, 130, 246, 0.4)' },
                       ]}>
                         <Text style={[
                           styles.statusText,
-                          ride.status === 'cancelled' && { color: ride.cancellationReason?.toLowerCase().includes('expire') ? '#f59e0b' : '#ef4444' },
+                          (ride.status === 'cancelled' || ride.status === 'expired') && { color: ride.status === 'expired' || ride.cancellationReason?.toLowerCase().includes('expire') ? '#f59e0b' : '#ef4444' },
                           ride.status === 'pending' && { color: '#60a5fa' },
                         ]}>
-                          {ride.status === 'cancelled'
+                          {ride.status === 'expired'
+                            ? 'EXPIRED'
+                            : ride.status === 'cancelled'
                             ? (ride.cancellationReason?.toLowerCase().includes('expire') ? 'EXPIRED' : 'CANCELLED')
                             : (ride.status?.toUpperCase() || 'CONFIRMED')}
                         </Text>
@@ -628,11 +650,11 @@ export default function CustomerDashboard() {
                       </View>
                     )}
 
-                    {/* Cancellation reason for cancelled bookings */}
-                    {ride.status === 'cancelled' && (
-                      <View style={styles.cancelledNoteRow}>
-                        <Text style={styles.cancelledNoteText}>
-                          {ride.cancellationReason || 'Booking cancelled'} • 100% wallet refunded
+                    {/* Cancellation reason for cancelled / expired bookings */}
+                    {(ride.status === 'cancelled' || ride.status === 'expired') && (
+                      <View style={[styles.cancelledNoteRow, ride.status === 'expired' && { backgroundColor: 'rgba(245, 158, 11, 0.1)', borderColor: 'rgba(245, 158, 11, 0.2)' }]}>
+                        <Text style={[styles.cancelledNoteText, ride.status === 'expired' && { color: '#f59e0b' }]}>
+                          {ride.cancellationReason || (ride.status === 'expired' ? 'Expired: Untouched without driver past deadline' : 'Booking cancelled')} • 100% wallet refunded
                         </Text>
                       </View>
                     )}
@@ -938,6 +960,71 @@ export default function CustomerDashboard() {
                   </Text>
                 </View>
               )}
+            </View>
+          </View>
+        )}
+
+        {/* TAB 4: DEDICATED HELPLINE & SUPPORT */}
+        {activeTab === 'support' && (
+          <View>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Customer Support & Helpline</Text>
+            </View>
+
+            {/* Helpline Box */}
+            <View style={styles.supportHelplineCard}>
+              <View style={styles.supportHeaderRow}>
+                <View style={styles.supportIconWrap}>
+                  <Text style={{ fontSize: 22 }}>📞</Text>
+                </View>
+                <View style={{ flex: 1, marginLeft: 12 }}>
+                  <Text style={styles.supportCardTitle}>Dedicated Helpline (7 AM – 7 PM)</Text>
+                  <Text style={styles.supportCardSubtitle}>
+                    Calling hours: Morning 7:00 AM to Evening 7:00 PM
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.supportLinksList}>
+                {/* Phone Call Link */}
+                <TouchableOpacity
+                  style={styles.supportRowBtn}
+                  onPress={() => Linking.openURL('tel:9970734425')}
+                  activeOpacity={0.7}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={{ fontSize: 16 }}>☎️</Text>
+                    <Text style={styles.supportRowLabel}>Helpline Number</Text>
+                  </View>
+                  <Text style={styles.supportRowValue}>+91 9970734425</Text>
+                </TouchableOpacity>
+
+                {/* Email Support Link */}
+                <TouchableOpacity
+                  style={styles.supportRowBtn}
+                  onPress={() => Linking.openURL('mailto:eminence.support.helpline@gmail.com')}
+                  activeOpacity={0.7}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={{ fontSize: 16 }}>✉️</Text>
+                    <Text style={styles.supportRowLabel}>Support Email</Text>
+                  </View>
+                  <Text style={styles.supportRowEmailText}>eminence.support.helpline@gmail.com</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Live Trip Help Card */}
+            <View style={styles.supportHelpCard}>
+              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 10 }}>
+                <Text style={{ fontSize: 18 }}>ℹ️</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.supportHelpTitle}>Live Trip & Booking Assistance</Text>
+                  <Text style={styles.supportHelpDesc}>
+                    Need to reschedule or update your pickup address? Call our helpline during operational hours or email our support desk with your Booking ID for prompt dispatch assistance.
+                  </Text>
+                </View>
+              </View>
             </View>
           </View>
         )}
@@ -2095,5 +2182,88 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 12,
     fontWeight: '700',
+  },
+  supportHelplineCard: {
+    backgroundColor: '#293243',
+    borderRadius: 16,
+    padding: 18,
+    borderWidth: 1,
+    borderColor: '#2f3a4e',
+    marginBottom: 16,
+  },
+  supportHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  supportIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: 'rgba(232, 99, 49, 0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(232, 99, 49, 0.3)',
+  },
+  supportCardTitle: {
+    color: '#f4f6f8',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  supportCardSubtitle: {
+    color: '#a2b2c7',
+    fontSize: 12,
+    marginTop: 2,
+  },
+  supportLinksList: {
+    gap: 10,
+  },
+  supportRowBtn: {
+    backgroundColor: '#1b2331',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: '#2f3a4e',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  supportRowLabel: {
+    color: '#c9d3df',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  supportRowValue: {
+    color: '#f08b65',
+    fontSize: 13,
+    fontWeight: '700',
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+  },
+  supportRowEmailText: {
+    color: '#c9d3df',
+    fontSize: 11,
+    fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace',
+    flexShrink: 1,
+  },
+  supportHelpCard: {
+    backgroundColor: 'rgba(41, 50, 67, 0.6)',
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#2f3a4e',
+  },
+  supportHelpTitle: {
+    color: '#f4f6f8',
+    fontSize: 14,
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  supportHelpDesc: {
+    color: '#a2b2c7',
+    fontSize: 12,
+    lineHeight: 18,
   },
 });

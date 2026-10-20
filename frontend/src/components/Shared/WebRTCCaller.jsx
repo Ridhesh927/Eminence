@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
+import { useLocation } from 'react-router-dom';
 import Peer from 'peerjs';
 import { Phone, PhoneOff, Mic, MicOff } from 'lucide-react';
 
 const WebRTCCaller = () => {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const location = useLocation();
+  const isDashboardRoute = location.pathname.includes('/dashboard') || location.pathname.startsWith('/wallet');
   const hasChatWidget = Boolean(isAuthenticated && user && user.role !== 'admin');
   const [peer, setPeer] = useState(null);
   const [call, setCall] = useState(null);
@@ -28,8 +31,9 @@ const WebRTCCaller = () => {
     });
 
     newPeer.on('error', (err) => {
-      console.error('Peer error:', err);
-      setStatus('error');
+      console.warn('WebRTC background peer notice:', err?.message || err);
+      // Only show error toast if the user was actively attempting to place or in a call
+      setStatus((prev) => (prev === 'calling' ? 'error' : 'idle'));
     });
 
     setPeer(newPeer);
@@ -87,6 +91,10 @@ const WebRTCCaller = () => {
       setIsMuted(!audioTrack.enabled);
     }
   };
+
+  if (status === 'idle') {
+    return null;
+  }
 
   return (
     <div className={`fixed ${hasChatWidget ? 'bottom-24' : 'bottom-6'} right-6 z-40 transition-all duration-300`}>

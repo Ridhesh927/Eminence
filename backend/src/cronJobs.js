@@ -3,6 +3,7 @@ const { Op } = require('sequelize');
 const { Booking, Driver, Wallet, Transaction } = require('./models');
 const sequelize = require('./config/database');
 const axios = require('axios');
+const { expireUntouchedBookings } = require('./services/bookingExpiryService');
 
 // Run every minute: Automated Driver Allocation
 const scheduleDriverAllocation = () => {
@@ -127,74 +128,7 @@ const scheduleDriverAllocation = () => {
 const scheduleBookingExpiry = () => {
   cron.schedule('* * * * *', async () => {
     try {
-      const now = new Date();
-      // An untouched booking is in 'pending' status without any assigned driver.
-      // It expires if:
-      // 1. `expiresAt` is set and now >= expiresAt
-      // 2. OR `expiresAt` is not set and booking was created > 24 hours ago
-      const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-
-      const expiredBookings = await Booking.findAll({
-        where: {
-          status: 'pending',
-          driverId: null,
-          [Op.or]: [
-            { expiresAt: { [Op.ne]: null, [Op.lte]: now } },
-            { expiresAt: null, createdAt: { [Op.lte]: twentyFourHoursAgo } }
-          ]
-        }
-      });
-
-      if (expiredBookings && expiredBookings.length > 0) {
-        console.log(`[CRON] Found ${expiredBookings.length} untouched bookings past validity window.`);
-
-        for (const booking of expiredBookings) {
-          booking.status = 'cancelled';
-          booking.cancellationReason = 'Expired: Untouched without driver assignment past validity deadline';
-          booking.cancelledBy = 'system';
-
-          // Auto-refund to customer's wallet if booking was paid
-          if (booking.paymentStatus === 'completed' || booking.paymentMethod === 'wallet') {
-            const fare = parseFloat(booking.estimatedFare) || 0;
-            if (fare > 0 && booking.customerId) {
-              let wallet = await Wallet.findOne({ where: { customerId: booking.customerId } });
-              if (!wallet) {
-                wallet = await Wallet.create({ customerId: booking.customerId, balance: 0.00 });
-              }
-              wallet.balance = parseFloat((parseFloat(wallet.balance) + fare).toFixed(2));
-              await wallet.save();
-
-              await Transaction.create({
-                walletId: wallet.id,
-                amount: fare,
-                type: 'CREDIT',
-                description: `Auto-Refund for Expired Tempo Booking #${booking.id.slice(0, 8)}`,
-                referenceId: booking.id
-              }).catch(err => console.warn('[CRON] Wallet refund log note:', err.message));
-            }
-          }
-
-          await booking.save();
-          console.log(`[CRON] Expired untouched booking ${booking.id} and refunded any paid fare.`);
-
-          // Broadcast status change via Socket.io
-          try {
-            const { getIo } = require('./socket');
-            const io = getIo();
-            io.to(`trip_${booking.id}`).emit('booking_status_updated', {
-              bookingId: booking.id,
-              status: 'cancelled',
-              cancellationReason: booking.cancellationReason,
-              cancelledBy: 'system',
-              booking
-            });
-            io.to(`trip_${booking.id}`).emit('trip:status', {
-              bookingId: booking.id,
-              status: 'cancelled'
-            });
-          } catch (sockErr) {}
-        }
-      }
+      await expireUntouchedBookings();
     } catch (error) {
       console.warn('[CRON] Notice during booking expiry check:', error.message);
     }

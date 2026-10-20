@@ -3,10 +3,12 @@ const { Op } = require('sequelize');
 const crypto = require('crypto');
 const Razorpay = require('razorpay');
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_mock',
-  key_secret: process.env.RAZORPAY_KEY_SECRET || 'mock_secret'
-});
+const isPaymentFixtureMode = process.env.NODE_ENV !== 'production' && process.env.TEST_FIXTURES === 'true';
+const hasRazorpayConfig = Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET);
+const razorpay = hasRazorpayConfig ? new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET
+}) : null;
 
 const getWallet = async (req, res) => {
   try {
@@ -263,7 +265,7 @@ const createWalletOrder = async (req, res) => {
       }
     };
 
-    const isMock = process.env.RAZORPAY_KEY_ID === 'rzp_test_mock' || !process.env.RAZORPAY_KEY_ID;
+    const isMock = isPaymentFixtureMode && (!hasRazorpayConfig || process.env.RAZORPAY_KEY_ID === 'rzp_test_mock');
     if (isMock) {
       if (process.env.NODE_ENV === 'production') {
         return res.status(503).json({
@@ -274,7 +276,7 @@ const createWalletOrder = async (req, res) => {
       return res.status(200).json({
         success: true,
         order: {
-          id: 'order_mock_' + Math.floor(Math.random() * 1000000),
+          id: 'order_mock_' + crypto.randomInt(100000, 1000000),
           amount: options.amount,
           currency: 'INR'
         },
@@ -310,7 +312,7 @@ const verifyWalletFunds = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Valid top-up amount is required' });
     }
 
-    const isMock = process.env.RAZORPAY_KEY_ID === 'rzp_test_mock' || !process.env.RAZORPAY_KEY_ID;
+    const isMock = isPaymentFixtureMode && (!hasRazorpayConfig || process.env.RAZORPAY_KEY_ID === 'rzp_test_mock');
     if (isMock) {
       if (process.env.NODE_ENV === 'production') {
         return res.status(503).json({

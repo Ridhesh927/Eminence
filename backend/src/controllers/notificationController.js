@@ -1,19 +1,71 @@
+const { Op } = require('sequelize');
 const { Notification } = require('../models');
 
-// Get all notifications for the authenticated user
+// Helper to build role-aware where clause
+const getNotificationScope = (user) => {
+  const userId = user?.id;
+  const userRole = user?.role || 'customer';
+
+  if (userRole === 'admin') {
+    return {
+      [Op.or]: [
+        { recipientRole: 'admin' },
+        ...(userId ? [{ userId }] : []),
+      ],
+    };
+  }
+
+  // Customer or Driver
+  return {
+    [Op.or]: [
+      ...(userId ? [{ userId }] : []),
+      { recipientRole: userRole, userId: null },
+      { recipientRole: 'all', userId: null },
+    ],
+  };
+};
+
+// Get all notifications for the authenticated user/admin
 const getNotifications = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const limit = parseInt(req.query.limit, 10) || 50;
+    const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 100);
+    const scope = getNotificationScope(req.user);
+    const isBellOnly = req.query.bellOnly === 'true';
+
+    // Notifications live for at least 30 days in the Customer Tab
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const whereClause = {
+      ...scope,
+      createdAt: { [Op.gte]: thirtyDaysAgo },
+    };
+
+    // If request is from the top-bar notification bell dropdown, exclude dismissed items
+    if (isBellOnly) {
+      whereClause.dismissedFromBell = false;
+    }
+
+    if (req.query.unread === 'true') {
+      whereClause.isRead = false;
+    }
+
+    if (req.query.type) {
+      whereClause.type = req.query.type;
+    }
 
     const notifications = await Notification.findAll({
-      where: { userId },
+      where: whereClause,
       order: [['createdAt', 'DESC']],
       limit,
     });
 
     const unreadCount = await Notification.count({
-      where: { userId, isRead: false },
+      where: {
+        ...scope,
+        isRead: false,
+        ...(isBellOnly ? { dismissedFromBell: false } : {}),
+      },
     });
 
     res.status(200).json({ success: true, notifications, unreadCount });
@@ -27,10 +79,15 @@ const getNotifications = async (req, res) => {
 const markAsRead = async (req, res) => {
   try {
     const { id } = req.params;
-    const userId = req.user.id;
+    const scope = getNotificationScope(req.user);
 
-    const notification = await Notification.findOne({ where: { id, userId } });
-    
+    const notification = await Notification.findOne({
+      where: {
+        id,
+        ...scope,
+      },
+    });
+
     if (!notification) {
       return res.status(404).json({ success: false, message: 'Notification not found' });
     }
@@ -48,8 +105,18 @@ const markAsRead = async (req, res) => {
 // Mark all notifications as read
 const markAllAsRead = async (req, res) => {
   try {
-    const userId = req.user.id;
-    await Notification.update({ isRead: true }, { where: { userId, isRead: false } });
+    const scope = getNotificationScope(req.user);
+
+    await Notification.update(
+      { isRead: true },
+      {
+        where: {
+          ...scope,
+          isRead: false,
+        },
+      }
+    );
+
     res.status(200).json({ success: true, message: 'All notifications marked as read' });
   } catch (error) {
     console.error('Error marking all notifications as read:', error);
@@ -57,8 +124,56 @@ const markAllAsRead = async (req, res) => {
   }
 };
 
+// Delete a single notification
+const deleteNotification = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const scope = getNotificationScope(req.user);
+
+    const count = await Notification.destroy({
+      where: {
+        id,
+        ...scope,
+      },
+    });
+
+    if (!count) {
+      return res.status(404).json({ success: false, message: 'Notification not found' });
+    }
+
+    res.status(200).json({ success: true, message: 'Notification deleted' });
+  } catch (error) {
+    console.error('Error deleting notification:', error);
+    res.status(500).json({ success: false, message: 'Server error deleting notification' });
+  }
+};
+
+// Clear read notifications from Bell dropdown (keeps records alive for 30 days in dashboard tab)
+const clearReadNotifications = async (req, res) => {
+  try {
+    const scope = getNotificationScope(req.user);
+
+    await Notification.update(
+      { dismissedFromBell: true, isRead: true },
+      {
+        where: {
+          ...scope,
+          isRead: true,
+        },
+      }
+    );
+
+    res.status(200).json({ success: true, message: 'Read notifications cleared from bell' });
+  } catch (error) {
+    console.error('Error clearing read notifications from bell:', error);
+    res.status(500).json({ success: false, message: 'Server error clearing notifications' });
+  }
+};
+
 module.exports = {
   getNotifications,
   markAsRead,
   markAllAsRead,
+  deleteNotification,
+  clearReadNotifications,
 };

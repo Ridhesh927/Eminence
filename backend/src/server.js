@@ -1,5 +1,7 @@
 const http = require('http');
 const app = require('./app');
+const validateEnv = require('./config/validateEnv');
+validateEnv();
 const { syncDatabase } = require('./models');
 const process = require('node:process');
 const { handleSupportMessage } = require('./services/supportBotService');
@@ -43,6 +45,23 @@ const { getAllSupportItems } = require('./controllers/supportController');
 
 // Chat message rate limiting tracker per socket (prevents spam and DoS)
 const socketMessageTimestamps = new Map();
+const socketSosTimestamps = new Map();
+setInterval(() => {
+  const cutoff = Date.now() - 30000;
+  for (const [socketId, timestamps] of socketMessageTimestamps.entries()) {
+    const valid = timestamps.filter(t => t > cutoff);
+    if (valid.length === 0) {
+      socketMessageTimestamps.delete(socketId);
+    } else {
+      socketMessageTimestamps.set(socketId, valid);
+    }
+  }
+  for (const [socketId, timestamps] of socketSosTimestamps.entries()) {
+    const recent = timestamps.filter((timestamp) => Date.now() - timestamp < 60 * 1000);
+    if (recent.length === 0) socketSosTimestamps.delete(socketId);
+    else socketSosTimestamps.set(socketId, recent);
+  }
+}, 30000).unref();
 
 const cookie = require('cookie');
 
@@ -53,7 +72,7 @@ io.use((socket, next) => {
   const token = cookies.accessToken || socket.handshake.auth?.token || socket.handshake.headers?.authorization?.split(' ')[1];
   
   if (!token) {
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === 'development' && process.env.TEST_FIXTURES === 'true') {
       socket.user = { id: 'dev-user', role: 'customer' };
       return next();
     }
@@ -71,7 +90,7 @@ io.use((socket, next) => {
     socket.user = decoded;
     next();
   } catch (err) {
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env.NODE_ENV === 'development' && process.env.TEST_FIXTURES === 'true') {
       socket.user = { id: 'dev-user', role: 'customer' };
       return next();
     }
@@ -81,6 +100,13 @@ io.use((socket, next) => {
 
 io.on('connection', (socket) => {
   console.log('Socket connected:', socket.id, 'User:', socket.user?.id, 'Role:', socket.user?.role);
+  if (socket.user?.id) {
+    socket.join(`user_${socket.user.id}`);
+  }
+  if (socket.user?.role === 'admin') {
+    socket.join('admin_notifications');
+    socket.join('admin_inbox');
+  }
 
   // Admin joins the global admin inbox channel
   socket.on('join_admin', async () => {
@@ -225,6 +251,17 @@ io.on('connection', (socket) => {
         const allItems = await getAllSupportItems();
         io.to('admin_inbox').emit('chat_list_update', allItems);
       }
+
+      if (sender === 'customer') {
+        const { createAndEmitNotification } = require('./services/notificationService');
+        createAndEmitNotification({
+          recipientRole: 'admin',
+          title: `Support Chat: ${message.name}`,
+          message: `${cleanText.slice(0, 80)}${cleanText.length > 80 ? '...' : ''}`,
+          type: 'support',
+          metadata: { customerId }
+        }).catch(() => {});
+      }
     } catch (err) {
       console.error('Error saving message:', err);
     }
@@ -265,9 +302,21 @@ io.on('connection', (socket) => {
   // Driver SOS Emergency Alert socket handler
   socket.on('driver_sos', async (sosData) => {
     try {
+      if (!socket.user || (socket.user.role !== 'driver' && socket.user.role !== 'admin')) {
+        return socket.emit('error', { message: 'Unauthorized: Driver account required for driver SOS alert' });
+      }
+      const now = Date.now();
+      const recentSos = (socketSosTimestamps.get(socket.id) || []).filter((timestamp) => now - timestamp < 60 * 1000);
+      const maxSosPerMinute = Number.parseInt(process.env.SOCKET_SOS_MAX_PER_MINUTE || '3', 10);
+      if (recentSos.length >= (Number.isInteger(maxSosPerMinute) && maxSosPerMinute > 0 ? maxSosPerMinute : 3)) {
+        return socket.emit('error', { message: 'SOS rate limit exceeded' });
+      }
+      recentSos.push(now);
+      socketSosTimestamps.set(socket.id, recentSos);
       const { triggerDriverSos } = require('./controllers/supportController');
+      const reqUser = socket.user.role === 'driver' ? socket.user : { id: sosData?.driverId || socket.user.id, role: 'driver', name: sosData?.driverName };
       const fakeReq = {
-        user: socket.user?.role === 'driver' ? socket.user : { id: sosData?.driverId, role: 'driver', name: sosData?.driverName },
+        user: reqUser,
         body: sosData,
         app
       };
@@ -301,6 +350,7 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log('Socket disconnected:', socket.id);
     socketMessageTimestamps.delete(socket.id);
+    socketSosTimestamps.delete(socket.id);
   });
 });
 

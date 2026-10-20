@@ -24,6 +24,8 @@ interface BookingItem {
   estimatedFare: number;
   driverId?: string | null;
   queuePosition?: number;
+  cancellationReason?: string;
+  cancelledBy?: string;
   driver?: {
     id: string;
     name: string;
@@ -50,7 +52,7 @@ export default function DispatchScreen() {
   const [drivers, setDrivers] = useState<DriverItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState<'pending' | 'all'>('pending');
+  const [filter, setFilter] = useState<'pending' | 'assigned' | 'completed' | 'expired' | 'all'>('pending');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // Assignment Modal
@@ -90,6 +92,15 @@ export default function DispatchScreen() {
   };
 
   const handleOpenAssignModal = (b: BookingItem) => {
+    if (isBookingExpired(b) || b.status === 'cancelled') {
+      Alert.alert(
+        'Cannot Appoint Driver',
+        b.status === 'expired' || isBookingExpired(b)
+          ? 'This booking has expired because it remained untouched without driver appointment past deadline.'
+          : 'This booking has been cancelled.'
+      );
+      return;
+    }
     setSelectedBooking(b);
     setAssignModalOpen(true);
   };
@@ -140,14 +151,54 @@ export default function DispatchScreen() {
     );
   };
 
+  const isBookingExpired = (b: BookingItem) => {
+    if (b.status === 'expired') return true;
+    if (b.status === 'cancelled') {
+      const reason = (b.cancellationReason || '').toLowerCase();
+      if (reason.includes('expire') || reason.includes('untouched') || reason.includes('deadline')) {
+        return true;
+      }
+    }
+    return false;
+  };
+
+  const isBookingPending = (b: BookingItem) => {
+    if (isBookingExpired(b)) return false;
+    if (b.status === 'cancelled' || b.status === 'completed') return false;
+    return b.status === 'pending' || (!b.driverId && !['driver_assigned', 'accepted', 'arrived', 'picked_up', 'in_transit'].includes(b.status));
+  };
+
+  const isBookingActive = (b: BookingItem) => {
+    if (isBookingExpired(b)) return false;
+    if (b.status === 'cancelled' || b.status === 'completed') return false;
+    return !!b.driverId || ['driver_assigned', 'accepted', 'arrived', 'picked_up', 'in_transit'].includes(b.status);
+  };
+
+  const isBookingCompleted = (b: BookingItem) => {
+    return b.status === 'completed';
+  };
+
   const activeDrivers = drivers.filter((d) => d.status === 'active');
-  const pendingBookings = bookings.filter((b) => b.status === 'pending' || !b.driverId);
-  const displayedBookings = filter === 'pending' ? pendingBookings : bookings;
+  const pendingBookings = bookings.filter(isBookingPending);
+  const assignedBookings = bookings.filter(isBookingActive);
+  const completedBookings = bookings.filter(isBookingCompleted);
+  const expiredBookings = bookings.filter(isBookingExpired);
+
+  const displayedBookings =
+    filter === 'pending'
+      ? pendingBookings
+      : filter === 'assigned'
+      ? assignedBookings
+      : filter === 'completed'
+      ? completedBookings
+      : filter === 'expired'
+      ? expiredBookings
+      : bookings;
 
   const driverQueueMap = React.useMemo(() => {
     const map: Record<string, number> = {};
     bookings.forEach((b) => {
-      if (b.driverId && !['completed', 'cancelled'].includes(b.status)) {
+      if (b.driverId && !['completed', 'cancelled', 'expired'].includes(b.status)) {
         map[b.driverId] = (map[b.driverId] || 0) + 1;
       }
     });
@@ -186,23 +237,57 @@ export default function DispatchScreen() {
       </View>
 
       {/* KPI Stats */}
-      <View style={styles.kpiRow}>
-        <View style={styles.kpiCard}>
-          <Text style={styles.kpiLabel}>Pending Trips</Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.kpiScrollContent}
+        style={styles.kpiScroll}
+      >
+        <TouchableOpacity
+          style={[styles.kpiCard, filter === 'pending' && styles.kpiCardActive]}
+          onPress={() => setFilter('pending')}
+        >
+          <Text style={styles.kpiLabel}>Pending Work</Text>
           <Text style={[styles.kpiValue, { color: '#f59e0b' }]}>{pendingBookings.length}</Text>
-        </View>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.kpiCard, filter === 'assigned' && styles.kpiCardActive]}
+          onPress={() => setFilter('assigned')}
+        >
+          <Text style={styles.kpiLabel}>In Transit</Text>
+          <Text style={[styles.kpiValue, { color: '#38bdf8' }]}>{assignedBookings.length}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.kpiCard, filter === 'completed' && styles.kpiCardActive]}
+          onPress={() => setFilter('completed')}
+        >
+          <Text style={styles.kpiLabel}>Completed</Text>
+          <Text style={[styles.kpiValue, { color: '#10b981' }]}>{completedBookings.length}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.kpiCard, filter === 'expired' && styles.kpiCardActive]}
+          onPress={() => setFilter('expired')}
+        >
+          <Text style={styles.kpiLabel}>Expired Trips</Text>
+          <Text style={[styles.kpiValue, { color: '#fb923c' }]}>{expiredBookings.length}</Text>
+        </TouchableOpacity>
         <View style={styles.kpiCard}>
           <Text style={styles.kpiLabel}>Active Drivers</Text>
-          <Text style={[styles.kpiValue, { color: '#10b981' }]}>
+          <Text style={[styles.kpiValue, { color: '#a78bfa' }]}>
             {activeDrivers.length} <Text style={styles.kpiTotal}>/ {drivers.length}</Text>
           </Text>
         </View>
-      </View>
+      </ScrollView>
 
-      {/* Tabs */}
-      <View style={styles.tabRow}>
+      {/* 5 Filter Tabs */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.tabScrollContent}
+        style={styles.tabScroll}
+      >
         <TouchableOpacity
-          style={[styles.tab, filter === 'pending' && styles.tabActive]}
+          style={[styles.tab, filter === 'pending' && styles.tabActivePending]}
           onPress={() => setFilter('pending')}
         >
           <Text style={[styles.tabText, filter === 'pending' && styles.tabTextActive]}>
@@ -210,14 +295,38 @@ export default function DispatchScreen() {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.tab, filter === 'all' && styles.tabActive]}
+          style={[styles.tab, filter === 'assigned' && styles.tabActiveAssigned]}
+          onPress={() => setFilter('assigned')}
+        >
+          <Text style={[styles.tabText, filter === 'assigned' && styles.tabTextActive]}>
+            Assigned / Transit ({assignedBookings.length})
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, filter === 'completed' && styles.tabActiveCompleted]}
+          onPress={() => setFilter('completed')}
+        >
+          <Text style={[styles.tabText, filter === 'completed' && styles.tabTextActive]}>
+            Completed ({completedBookings.length})
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, filter === 'expired' && styles.tabActiveExpired]}
+          onPress={() => setFilter('expired')}
+        >
+          <Text style={[styles.tabText, filter === 'expired' && styles.tabTextActive]}>
+            Expired ({expiredBookings.length})
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tab, filter === 'all' && styles.tabActiveAll]}
           onPress={() => setFilter('all')}
         >
           <Text style={[styles.tabText, filter === 'all' && styles.tabTextActive]}>
-            All Trips ({bookings.length})
+            All Bookings ({bookings.length})
           </Text>
         </TouchableOpacity>
-      </View>
+      </ScrollView>
 
       {/* Content */}
       <ScrollView
@@ -240,15 +349,19 @@ export default function DispatchScreen() {
           </View>
         ) : (
           displayedBookings.map((b) => {
-            const isPending = b.status === 'pending' || !b.driverId;
+            const isExpired = isBookingExpired(b);
+            const isCancelled = b.status === 'cancelled' && !isExpired;
+            const isCompleted = isBookingCompleted(b);
+            const isPending = isBookingPending(b);
+            const isAssigned = isBookingActive(b);
             const currentDriver = b.driver || drivers.find((d) => d.id === b.driverId);
 
             return (
-              <View key={b.id} style={styles.bookingCard}>
+              <View key={b.id} style={[styles.bookingCard, isExpired && styles.bookingCardExpired]}>
                 <View style={styles.cardHeader}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Text style={styles.bookingId}>#{b.id.slice(0, 8)}</Text>
-                    {b.driverId && (
+                    {b.driverId && !isCompleted && !isCancelled && !isExpired && (
                       <View
                         style={[
                           styles.queuePosBadge,
@@ -275,16 +388,40 @@ export default function DispatchScreen() {
                   <View
                     style={[
                       styles.statusPill,
-                      isPending ? styles.statusPillPending : styles.statusPillAssigned,
+                      isExpired
+                        ? styles.statusPillExpired
+                        : isCancelled
+                        ? styles.statusPillCancelled
+                        : isCompleted
+                        ? styles.statusPillCompleted
+                        : isPending
+                        ? styles.statusPillPending
+                        : styles.statusPillAssigned,
                     ]}
                   >
                     <Text
                       style={[
                         styles.statusPillText,
-                        isPending ? { color: '#f59e0b' } : { color: '#38bdf8' },
+                        isExpired
+                          ? { color: '#fb923c' }
+                          : isCancelled
+                          ? { color: '#f87171' }
+                          : isCompleted
+                          ? { color: '#34d399' }
+                          : isPending
+                          ? { color: '#fbbf24' }
+                          : { color: '#38bdf8' },
                       ]}
                     >
-                      {b.status ? b.status.replace('_', ' ').toUpperCase() : 'PENDING'}
+                      {isExpired
+                        ? 'EXPIRED'
+                        : isCancelled
+                        ? 'CANCELLED'
+                        : isCompleted
+                        ? 'COMPLETED'
+                        : isPending
+                        ? 'PENDING'
+                        : b.status ? b.status.replace('_', ' ').toUpperCase() : 'PENDING'}
                     </Text>
                   </View>
                 </View>
@@ -313,6 +450,25 @@ export default function DispatchScreen() {
                   <Text style={styles.fareText}>₹{b.estimatedFare || 0}</Text>
                 </View>
 
+                {/* Special status banners */}
+                {isExpired && (
+                  <View style={styles.expiredBanner}>
+                    <Text style={styles.expiredBannerTitle}>⚠️ Untouched Expiry Deadline Reached</Text>
+                    <Text style={styles.expiredBannerSub}>
+                      No driver appointed before validity window. Booking marked expired and fare auto-refunded to customer.
+                    </Text>
+                  </View>
+                )}
+
+                {isCancelled && (
+                  <View style={styles.cancelledBanner}>
+                    <Text style={styles.cancelledBannerTitle}>✕ Booking Cancelled</Text>
+                    <Text style={styles.cancelledBannerSub}>
+                      {b.cancellationReason || 'Cancelled before driver dispatch.'}
+                    </Text>
+                  </View>
+                )}
+
                 {/* Driver Info / Action */}
                 <View style={styles.cardFooter}>
                   {currentDriver ? (
@@ -323,26 +479,55 @@ export default function DispatchScreen() {
                       </Text>
                     </View>
                   ) : (
-                    <Text style={styles.unassignedText}>No driver appointed yet</Text>
+                    <Text style={[styles.unassignedText, isExpired && { color: '#fb923c' }]}>
+                      {isExpired ? 'No driver assigned (Expired)' : isCancelled ? 'No driver assigned (Cancelled)' : 'No driver appointed yet'}
+                    </Text>
                   )}
 
                   <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-                    {!isPending && b.status !== 'completed' && (
+                    {isCompleted && (
+                      <View style={styles.completedBadge}>
+                        <Text style={styles.completedBadgeText}>✓ Delivered & Closed</Text>
+                      </View>
+                    )}
+
+                    {isExpired && (
+                      <View style={styles.expiredActionBadge}>
+                        <Text style={styles.expiredActionBadgeText}>Expired (Closed)</Text>
+                      </View>
+                    )}
+
+                    {isCancelled && (
+                      <View style={styles.cancelledActionBadge}>
+                        <Text style={styles.cancelledActionBadgeText}>Cancelled</Text>
+                      </View>
+                    )}
+
+                    {isAssigned && (
+                      <>
+                        <TouchableOpacity
+                          style={styles.adminCompleteBtn}
+                          onPress={() => handleCompleteBooking(b.id)}
+                        >
+                          <Text style={styles.adminCompleteBtnText}>✓ Complete</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={[styles.appointBtn, styles.reappointBtn]}
+                          onPress={() => handleOpenAssignModal(b)}
+                        >
+                          <Text style={styles.appointBtnText}>Reassign</Text>
+                        </TouchableOpacity>
+                      </>
+                    )}
+
+                    {isPending && (
                       <TouchableOpacity
-                        style={styles.adminCompleteBtn}
-                        onPress={() => handleCompleteBooking(b.id)}
+                        style={styles.appointBtn}
+                        onPress={() => handleOpenAssignModal(b)}
                       >
-                        <Text style={styles.adminCompleteBtnText}>✓ Complete</Text>
+                        <Text style={styles.appointBtnText}>Appoint Driver</Text>
                       </TouchableOpacity>
                     )}
-                    <TouchableOpacity
-                      style={[styles.appointBtn, !isPending && styles.reappointBtn]}
-                      onPress={() => handleOpenAssignModal(b)}
-                    >
-                      <Text style={styles.appointBtnText}>
-                        {isPending ? 'Appoint Driver' : 'Reassign'}
-                      </Text>
-                    </TouchableOpacity>
                   </View>
                 </View>
               </View>
@@ -577,6 +762,138 @@ const styles = StyleSheet.create({
   },
   tabTextActive: {
     color: '#ffffff',
+    fontWeight: '700',
+  },
+  kpiScroll: {
+    backgroundColor: '#161c27',
+  },
+  kpiScrollContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 10,
+  },
+  kpiCardActive: {
+    borderColor: '#f08b65',
+    backgroundColor: '#232c3d',
+  },
+  tabScroll: {
+    backgroundColor: '#1b2230',
+    borderBottomWidth: 1,
+    borderBottomColor: '#2f3a4e',
+  },
+  tabScrollContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 8,
+  },
+  tabActivePending: {
+    backgroundColor: '#f59e0b',
+  },
+  tabActiveAssigned: {
+    backgroundColor: '#0284c7',
+  },
+  tabActiveCompleted: {
+    backgroundColor: '#059669',
+  },
+  tabActiveExpired: {
+    backgroundColor: '#ea580c',
+  },
+  tabActiveAll: {
+    backgroundColor: '#f08b65',
+  },
+  bookingCardExpired: {
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+  },
+  statusPillExpired: {
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+  },
+  statusPillCancelled: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+  },
+  statusPillCompleted: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+  },
+  expiredBanner: {
+    backgroundColor: 'rgba(245, 158, 11, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.25)',
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 10,
+  },
+  expiredBannerTitle: {
+    color: '#fb923c',
+    fontSize: 11,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  expiredBannerSub: {
+    color: '#cbd5e1',
+    fontSize: 10,
+    lineHeight: 14,
+  },
+  cancelledBanner: {
+    backgroundColor: 'rgba(239, 68, 68, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.25)',
+    borderRadius: 8,
+    padding: 8,
+    marginBottom: 10,
+  },
+  cancelledBannerTitle: {
+    color: '#f87171',
+    fontSize: 11,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  cancelledBannerSub: {
+    color: '#cbd5e1',
+    fontSize: 10,
+    lineHeight: 14,
+  },
+  expiredActionBadge: {
+    backgroundColor: 'rgba(245, 158, 11, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(245, 158, 11, 0.3)',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+  },
+  expiredActionBadgeText: {
+    color: '#fb923c',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  cancelledActionBadge: {
+    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.3)',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+  },
+  cancelledActionBadgeText: {
+    color: '#f87171',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  completedBadge: {
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+  },
+  completedBadgeText: {
+    color: '#34d399',
+    fontSize: 11,
     fontWeight: '700',
   },
   content: {

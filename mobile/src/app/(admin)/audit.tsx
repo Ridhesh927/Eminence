@@ -46,23 +46,13 @@ export default function AuditLogsScreen() {
       if (logsRes.status === 'fulfilled' && logsRes.value.data?.logs) {
         setLogs(logsRes.value.data.logs);
       } else {
-        // Fallback default audit logs for display
-        setLogs([
-          { id: '1', action: 'CREATE', entity: 'Driver', actorEmail: 'admin@eminence.com', details: 'Added driver Ramesh Kumar', createdAt: new Date().toISOString() },
-          { id: '2', action: 'UPDATE', entity: 'Vehicle', actorEmail: 'admin@eminence.com', details: 'Status updated to Active for MH-12-RN-4821', createdAt: new Date(Date.now() - 3600000).toISOString() },
-          { id: '3', action: 'COMPLETE', entity: 'Booking', actorEmail: 'system', details: 'SHA-256 PoD verified for booking 160e1b85', createdAt: new Date(Date.now() - 7200000).toISOString() },
-        ]);
+        setLogs([]);
       }
 
       if (slaRes.status === 'fulfilled' && slaRes.value.data?.sla) {
         setSla(slaRes.value.data.sla);
       } else {
-        setSla({
-          uptimePercentage: '99.9%',
-          uptimeHours: '72.4',
-          dbLatencyMs: 18,
-          memoryUsageMb: '42.8',
-        });
+        setSla(null);
       }
     } catch (err) {
       console.error('Audit fetch error:', err);

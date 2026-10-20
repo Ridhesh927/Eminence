@@ -138,11 +138,12 @@ const Login = () => {
           ...data.user,
           token: data.token
         }));
-        if (!data.user.isProfileComplete) {
-          navigate('/complete-profile');
-        } else if (from) {
-          navigate(from, { state: location.state, replace: true });
-        }
+        const targetRoute = from || (data.user.role === 'admin' 
+          ? '/admin/dashboard' 
+          : data.user.role === 'driver' 
+            ? '/driver/dashboard' 
+            : '/customer/dashboard');
+        navigate(targetRoute, { state: location.state, replace: true });
       }
     } catch (err) {
       console.error('Login error:', err);
@@ -207,11 +208,12 @@ const Login = () => {
           ...data.user,
           token: data.token
         }));
-        if (!data.user.isProfileComplete) {
-          navigate('/complete-profile');
-        } else if (from) {
-          navigate(from, { state: location.state, replace: true });
-        }
+        const targetRoute = from || (data.user.role === 'admin' 
+          ? '/admin/dashboard' 
+          : data.user.role === 'driver' 
+            ? '/driver/dashboard' 
+            : '/customer/dashboard');
+        navigate(targetRoute, { state: location.state, replace: true });
       }
     } catch (err) {
       console.error('Google sign in error:', err);

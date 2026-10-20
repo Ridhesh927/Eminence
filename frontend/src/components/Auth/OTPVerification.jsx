@@ -32,15 +32,16 @@ const OTPVerification = () => {
   }, [location, navigate]);
 
   useEffect(() => {
-    if (import.meta.env.DEV && autoSubmit && !isLoading) {
-      setOtp(['1', '2', '3', '4', '5', '6']);
+    const testOtp = import.meta.env.VITE_TEST_OTP;
+    if (import.meta.env.DEV && import.meta.env.VITE_ENABLE_TEST_AUTH === 'true' && testOtp && autoSubmit && !isLoading) {
+      setOtp(String(testOtp).split(''));
       // Directly call the backend
       const autoVerify = async () => {
         setIsLoading(true);
         try {
           const response = await api.post('/api/auth/phone-verify', {
             phone, 
-            code: '123456', 
+            code: testOtp,
             role: location.state?.role || 'customer',
             acceptedTerms: !!location.state?.acceptedTerms 
           });

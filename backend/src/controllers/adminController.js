@@ -407,10 +407,12 @@ const getOverviewStats = async (req, res) => {
       if (b.status === 'completed') eventTitle = 'Trip Completed';
       else if (b.status === 'driver_assigned' || b.status === 'arrived') eventTitle = 'Driver Dispatched';
       else if (b.status === 'in_transit') eventTitle = 'Goods in Transit';
+      else if (b.status === 'expired') eventTitle = 'Trip Expired';
       else if (b.status === 'cancelled') eventTitle = 'Trip Cancelled';
 
       let displayStatus = 'Processing';
       if (b.status === 'completed') displayStatus = 'Success';
+      else if (b.status === 'expired') displayStatus = 'Expired';
       else if (b.status === 'cancelled') displayStatus = 'Cancelled';
       else if (b.status === 'pending') displayStatus = 'Pending';
 

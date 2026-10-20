@@ -243,38 +243,38 @@ const CompleteProfileModal = () => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4">
       <AnimatePresence>
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col relative"
+          className="bg-loft-900 border border-loft-700/60 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col relative text-loft-50"
         >
           <button 
             onClick={handleDismiss}
-            className="absolute top-4 right-4 z-10 p-2 text-white/70 hover:text-white bg-black/20 hover:bg-black/40 rounded-full transition-colors"
+            className="absolute top-4 right-4 z-10 p-2 text-loft-400 hover:text-loft-50 bg-loft-950/40 hover:bg-loft-950/70 rounded-full transition-colors border border-loft-700/50"
           >
             <X className="w-5 h-5" />
           </button>
-          <div className="bg-primary p-6 text-white text-center flex-shrink-0 pt-10 relative">
-            <h2 className="text-3xl font-serif font-bold mb-2">Complete Your Profile</h2>
-            <p className="text-primary-foreground/90">
-              We need a few more details to set up your account completely.
+          <div className="bg-gradient-to-r from-copper-600 to-copper-500 p-6 text-white text-center flex-shrink-0 pt-8 relative">
+            <h2 className="text-2xl md:text-3xl font-serif font-bold mb-1 tracking-tight">Complete Your Profile</h2>
+            <p className="text-white/80 text-sm">
+              Add your delivery address and details to complete your account setup.
             </p>
           </div>
 
           <div className="p-6 md:p-8 overflow-y-auto flex-grow custom-scrollbar">
-            {error && <div className="mb-6 p-4 bg-red-50 text-red-700 border-l-4 border-red-500 rounded-r-md font-medium">{error}</div>}
-            {message && <div className="mb-6 p-4 bg-green-50 text-green-700 border-l-4 border-green-500 rounded-r-md font-medium">{message}</div>}
+            {error && <div className="mb-6 p-4 bg-red-500/10 text-red-400 border border-red-500/20 rounded-xl font-medium text-sm">{error}</div>}
+            {message && <div className="mb-6 p-4 bg-moss-500/10 text-moss-400 border border-moss-500/20 rounded-xl font-medium text-sm">{message}</div>}
 
             {!otpType ? (
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Name */}
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                      <User className="w-4 h-4 text-primary" />
+                    <label className="text-sm font-semibold text-loft-200 flex items-center gap-2">
+                      <User className="w-4 h-4 text-copper-400" />
                       Full Name
                     </label>
                     <input
@@ -284,19 +284,19 @@ const CompleteProfileModal = () => {
                       value={formData.name}
                       onChange={handleChange}
                       placeholder="John Doe"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
+                      className="input-field"
                     />
                   </div>
 
                   {/* Email */}
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-700 flex items-center justify-between">
+                    <label className="text-sm font-semibold text-loft-200 flex items-center justify-between">
                       <span className="flex items-center gap-2">
-                        <Mail className="w-4 h-4 text-primary" />
+                        <Mail className="w-4 h-4 text-copper-400" />
                         Email Address
                       </span>
                       {isEmailLocked && (
-                        <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-200">
+                        <span className="text-xs font-medium text-moss-400 bg-moss-500/10 px-2 py-0.5 rounded-full border border-moss-500/20">
                           Verified (Locked)
                         </span>
                       )}
@@ -310,10 +310,10 @@ const CompleteProfileModal = () => {
                       readOnly={isEmailLocked}
                       disabled={isEmailLocked}
                       placeholder="john@example.com"
-                      className={`w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 transition-all outline-none ${
+                      className={`input-field ${
                         isEmailLocked 
-                          ? 'bg-gray-100/90 text-gray-500 cursor-not-allowed border-gray-300 select-none' 
-                          : 'bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary'
+                          ? 'opacity-60 cursor-not-allowed bg-loft-950/80 border-loft-800 select-none' 
+                          : ''
                       }`}
                     />
                   </div>
@@ -322,13 +322,13 @@ const CompleteProfileModal = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Phone */}
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-700 flex items-center justify-between">
+                    <label className="text-sm font-semibold text-loft-200 flex items-center justify-between">
                       <span className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-primary" />
+                        <Phone className="w-4 h-4 text-copper-400" />
                         Phone Number
                       </span>
                       {isPhoneLocked && (
-                        <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-0.5 rounded-full border border-green-200">
+                        <span className="text-xs font-medium text-moss-400 bg-moss-500/10 px-2 py-0.5 rounded-full border border-moss-500/20">
                           Verified (Locked)
                         </span>
                       )}
@@ -345,22 +345,22 @@ const CompleteProfileModal = () => {
                       pattern="^[0-9+ -]{10,15}$"
                       title="Enter a valid 10-digit mobile number"
                       maxLength="15"
-                      className={`w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 transition-all outline-none ${
+                      className={`input-field ${
                         isPhoneLocked 
-                          ? 'bg-gray-100/90 text-gray-500 cursor-not-allowed border-gray-300 select-none' 
-                          : 'bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary'
+                          ? 'opacity-60 cursor-not-allowed bg-loft-950/80 border-loft-800 select-none' 
+                          : ''
                       }`}
                     />
                   </div>
 
                   {/* Account Password Field */}
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-700 flex items-center justify-between">
+                    <label className="text-sm font-semibold text-loft-200 flex items-center justify-between">
                       <span className="flex items-center gap-2">
-                        <Lock className="w-4 h-4 text-primary" />
+                        <Lock className="w-4 h-4 text-copper-400" />
                         Account Password
                       </span>
-                      <span className="text-xs text-gray-500 font-normal">
+                      <span className="text-xs text-loft-400 font-normal">
                         Direct login password
                       </span>
                     </label>
@@ -371,12 +371,12 @@ const CompleteProfileModal = () => {
                         value={formData.password}
                         onChange={handleChange}
                         placeholder="Create a password (min 6 chars)"
-                        className="w-full px-4 py-3 pr-11 rounded-xl border border-gray-200 text-gray-900 bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
+                        className="input-field pr-11"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none p-1"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-loft-400 hover:text-loft-200 focus:outline-none p-1"
                         aria-label={showPassword ? "Hide password" : "Show password"}
                       >
                         {showPassword ? (
@@ -391,12 +391,12 @@ const CompleteProfileModal = () => {
 
                 {/* Address Section Header with Detect Button */}
                 <div className="flex items-center justify-between mt-2 mb-1">
-                  <h3 className="text-sm font-bold text-gray-800 uppercase tracking-wider">Location Details</h3>
+                  <h3 className="text-sm font-bold text-loft-200 uppercase tracking-wider">Location Details</h3>
                   <button
                     type="button"
                     onClick={handleDetectLocation}
                     disabled={detectingLocation}
-                    className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:text-orange-600 transition-colors bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-full"
+                    className="flex items-center gap-1.5 text-xs font-semibold text-copper-400 hover:text-copper-300 transition-colors bg-copper-500/10 hover:bg-copper-500/20 px-3 py-1.5 rounded-full border border-copper-500/30"
                   >
                     {detectingLocation ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LocateFixed className="w-3.5 h-3.5" />}
                     {detectingLocation ? 'Detecting...' : 'Detect Current Location'}
@@ -406,8 +406,8 @@ const CompleteProfileModal = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* City */}
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                      <Building2 className="w-4 h-4 text-primary" />
+                    <label className="text-sm font-semibold text-loft-200 flex items-center gap-2">
+                      <Building2 className="w-4 h-4 text-copper-400" />
                       City
                     </label>
                     <input
@@ -416,15 +416,15 @@ const CompleteProfileModal = () => {
                       required
                       value={formData.city}
                       onChange={handleChange}
-                      placeholder="e.g. New York"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
+                      placeholder="e.g. Pune"
+                      className="input-field"
                     />
                   </div>
 
                   {/* State */}
                   <div className="space-y-2">
-                    <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                      <Map className="w-4 h-4 text-primary" />
+                    <label className="text-sm font-semibold text-loft-200 flex items-center gap-2">
+                      <Map className="w-4 h-4 text-copper-400" />
                       State
                     </label>
                     <input
@@ -433,16 +433,16 @@ const CompleteProfileModal = () => {
                       required
                       value={formData.state}
                       onChange={handleChange}
-                      placeholder="e.g. NY"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
+                      placeholder="e.g. Maharashtra"
+                      className="input-field"
                     />
                   </div>
                 </div>
 
                 {/* Address */}
                 <div className="space-y-2">
-                  <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-primary" />
+                  <label className="text-sm font-semibold text-loft-200 flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-copper-400" />
                     Full Address
                   </label>
                   <textarea
@@ -452,19 +452,19 @@ const CompleteProfileModal = () => {
                     value={formData.address}
                     onChange={handleChange}
                     placeholder="Enter your complete street address"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none resize-none"
+                    className="input-field resize-none"
                   ></textarea>
                 </div>
 
                 {/* Referral Code (Optional) */}
                 {!user?.referredBy ? (
-                  <div className="space-y-2 p-4 bg-orange-50/50 rounded-xl border border-orange-200">
+                  <div className="space-y-2 p-4 bg-loft-950/60 rounded-xl border border-copper-500/30">
                     <div className="flex items-center justify-between">
-                      <label className="text-sm font-semibold text-gray-800 flex items-center gap-2">
-                        <Gift className="w-4 h-4 text-primary" />
+                      <label className="text-sm font-semibold text-loft-100 flex items-center gap-2">
+                        <Gift className="w-4 h-4 text-copper-400" />
                         Referral Code (Optional)
                       </label>
-                      <span className="text-xs font-semibold text-orange-600 bg-orange-100/90 px-2.5 py-0.5 rounded-full border border-orange-200">
+                      <span className="text-xs font-semibold text-copper-400 bg-copper-500/10 px-2.5 py-0.5 rounded-full border border-copper-500/20">
                         🎁 Get ₹100 Welcome Bonus
                       </span>
                     </div>
@@ -474,36 +474,35 @@ const CompleteProfileModal = () => {
                       value={formData.referralCode}
                       onChange={handleChange}
                       placeholder="e.g. EMINENCE-AB12CD"
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 bg-white focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none uppercase font-mono tracking-wider placeholder:normal-case placeholder:font-sans"
+                      className="input-field uppercase font-mono tracking-wider placeholder:normal-case placeholder:font-sans"
                     />
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-loft-400">
                       Have a friend's referral code? Apply it here to get ₹100 credited directly to your wallet.
                     </p>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2 text-xs font-medium text-emerald-700 bg-emerald-50 px-3.5 py-2.5 rounded-xl border border-emerald-200">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <div className="flex items-center gap-2 text-xs font-medium text-moss-400 bg-moss-500/10 px-3.5 py-2.5 rounded-xl border border-moss-500/20">
+                    <CheckCircle2 className="w-4 h-4 text-moss-400 flex-shrink-0" />
                     <span>Referral bonus applied with code: <strong>{user.referredBy}</strong></span>
                   </div>
                 )}
 
-
                 {/* Terms Acceptance if not already accepted */}
                 {!user?.termsAccepted && (
-                  <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
+                  <div className="flex items-start gap-3 p-3 bg-loft-950/40 rounded-xl border border-loft-800">
                     <input
                       id="profile-terms"
                       type="checkbox"
                       checked={termsAccepted}
                       onChange={(e) => setTermsAccepted(e.target.checked)}
-                      className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                      className="mt-1 h-4 w-4 rounded border-loft-700 bg-loft-950 text-copper-500 focus:ring-copper-500 cursor-pointer"
                     />
-                    <label htmlFor="profile-terms" className="text-xs text-gray-600 leading-relaxed cursor-pointer select-none">
+                    <label htmlFor="profile-terms" className="text-xs text-loft-300 leading-relaxed cursor-pointer select-none">
                       I accept the{' '}
                       <button
                         type="button"
                         onClick={() => setShowTermsModal(true)}
-                        className="text-primary font-semibold underline underline-offset-2 hover:opacity-80"
+                        className="text-copper-400 font-semibold underline underline-offset-2 hover:text-copper-300"
                       >
                         Terms & Conditions
                       </button>{' '}
@@ -515,33 +514,33 @@ const CompleteProfileModal = () => {
                 <button
                   type="submit"
                   disabled={loading || (!user?.termsAccepted && !termsAccepted)}
-                  className="w-full btn-primary py-4 text-lg mt-4 shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full btn-primary py-3.5 text-base shadow-lg transition-all"
                 >
                   {loading ? 'Saving...' : 'Save & Continue'}
                 </button>
               </form>
             ) : (
-              <div className="space-y-6 text-center py-8">
-                <div className="w-16 h-16 bg-blue-50 text-primary rounded-full flex items-center justify-center mx-auto mb-4">
+              <div className="space-y-6 text-center py-6">
+                <div className="w-16 h-16 bg-copper-500/10 text-copper-400 rounded-full flex items-center justify-center mx-auto mb-4 border border-copper-500/20">
                   <Phone className="w-8 h-8" />
                 </div>
-                <h3 className="text-2xl font-bold text-gray-800">Verify Your Phone</h3>
-                <p className="text-gray-500">We've sent a verification code to <br/><span className="font-semibold text-gray-800">{formData.phone}</span></p>
+                <h3 className="text-2xl font-serif font-bold text-loft-50">Verify Your Phone</h3>
+                <p className="text-loft-300 text-sm">We've sent a verification code to <br/><span className="font-semibold text-loft-100">{formData.phone}</span></p>
                 
-                <div className="max-w-xs mx-auto space-y-4 pt-4">
+                <div className="max-w-xs mx-auto space-y-4 pt-2">
                   <input
                     type="text"
                     value={otpCode}
                     onChange={(e) => setOtpCode(e.target.value)}
                     placeholder="Enter 6-digit OTP"
-                    className="w-full px-4 py-3 rounded-xl border border-gray-200 text-gray-900 bg-white text-center text-xl tracking-widest focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all outline-none"
+                    className="input-field text-center text-xl tracking-widest font-mono"
                     maxLength="6"
                   />
                   
                   <button
                     onClick={handleVerifyOtp}
                     disabled={loading || otpCode.length < 6}
-                    className="w-full btn-primary py-3 shadow-md flex justify-center items-center gap-2"
+                    className="w-full btn-primary py-3 flex justify-center items-center gap-2"
                   >
                     <CheckCircle2 className="w-5 h-5" />
                     Verify & Complete
@@ -550,7 +549,7 @@ const CompleteProfileModal = () => {
                   <button
                     onClick={() => setOtpType(null)}
                     disabled={loading}
-                    className="w-full px-4 py-3 text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors"
+                    className="w-full py-2.5 text-sm font-medium text-loft-400 hover:text-loft-200 transition-colors"
                   >
                     Go Back
                   </button>

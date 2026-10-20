@@ -32,23 +32,7 @@ interface ActiveChat {
 export default function AdminSupportInboxScreen() {
   const router = useRouter();
   const { token } = useAuth();
-  const [activeChats, setActiveChats] = useState<ActiveChat[]>([
-    {
-      customerId: 'cust-demo-1',
-      customerName: 'Demo Customer (Rahul)',
-      messages: [
-        { sender: 'customer', text: 'Hello, when will my Tata Ace arrive at Koregaon Park?', timestamp: '11:02 AM' },
-        { sender: 'admin', text: 'Hi Rahul, driver Ramesh is 4 minutes away at North Main Rd.', timestamp: '11:03 AM' },
-      ],
-    },
-    {
-      customerId: 'cust-demo-2',
-      customerName: 'TechCorp Pune (B2B)',
-      messages: [
-        { sender: 'customer', text: 'Need a consolidated GST invoice for our multi-stop shipment.', timestamp: '10:45 AM' },
-      ],
-    },
-  ]);
+  const [activeChats, setActiveChats] = useState<ActiveChat[]>([]);
   const [selectedChat, setSelectedChat] = useState<ActiveChat | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [replyText, setReplyText] = useState('');

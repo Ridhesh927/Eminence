@@ -11,22 +11,22 @@ import {
   StyleSheet,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
+// import * as WebBrowser from 'expo-web-browser';
+// import * as Google from 'expo-auth-session/providers/google';
 import { useAuth } from '../../context/AuthContext';
 import TermsModal from '../../components/TermsModal';
 import { Eye, EyeOff, Gift } from 'lucide-react-native';
 
-WebBrowser.maybeCompleteAuthSession();
+// WebBrowser.maybeCompleteAuthSession();
 
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { sendOtp, verifyOtp, adminLogin, googleLogin, registerWithPassword, loginWithPassword } = useAuth();
+  const { sendOtp, verifyOtp, adminLogin, /* googleLogin, */ registerWithPassword, loginWithPassword } = useAuth();
 
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
-  const [step, setStep] = useState<'email_login' | 'email_register' | 'otp'>('email_login');
+  const [step, setStep] = useState<'email_login' | 'email_register' | 'otp' | 'phone_login'>('email_login');
   const [role, setRole] = useState<'customer' | 'driver' | 'admin'>('customer');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -39,6 +39,7 @@ export default function LoginScreen() {
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
+  /* Google Login / Sign-up temporarily disabled
   const [request, response, promptAsync] = Google.useIdTokenAuthRequest({
     clientId: process.env.EXPO_PUBLIC_WEB_CLIENT_ID,
     iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || process.env.EXPO_PUBLIC_WEB_CLIENT_ID,
@@ -69,12 +70,12 @@ export default function LoginScreen() {
       setErrorMessage(res.message || 'Google login failed');
     }
   };
-
-
+  */
 
   const handleSendOtp = async () => {
-    if (!phone || phone.trim().length < 10) {
-      setErrorMessage('Please enter a valid 10-digit phone number');
+    const clean = phone.replace(/\D/g, '').slice(0, 10);
+    if (!clean || clean.length !== 10 || !/^[6-9]\d{9}$/.test(clean)) {
+      setErrorMessage('Please enter a valid 10-digit Indian mobile number (+91, starting with 6, 7, 8, or 9)');
       return;
     }
     if (!termsAccepted) {
@@ -85,7 +86,7 @@ export default function LoginScreen() {
     setErrorMessage('');
     setSuccessMessage('');
 
-    const res = await sendOtp(phone.trim(), role);
+    const res = await sendOtp(clean, role);
     setLoading(false);
 
     if (res.success) {
@@ -97,6 +98,7 @@ export default function LoginScreen() {
   };
 
   const handleVerifyOtp = async () => {
+    const clean = phone.replace(/\D/g, '').slice(0, 10);
     if (!otp || otp.trim().length < 4) {
       setErrorMessage('Please enter the verification code');
       return;
@@ -104,12 +106,10 @@ export default function LoginScreen() {
     setLoading(true);
     setErrorMessage('');
 
-    const res = await verifyOtp(phone.trim(), otp.trim(), role, termsAccepted);
+    const res = await verifyOtp(clean, otp.trim(), role, termsAccepted);
     setLoading(false);
 
     if (res.success) {
-
-
       if (role === 'driver') {
         router.replace('/(driver)/dashboard');
       } else {
@@ -119,19 +119,6 @@ export default function LoginScreen() {
       setErrorMessage(res.message || 'Invalid OTP code');
     }
   };
-
-  const fillDemoCustomer = () => {
-    setPhone('1234567890');
-    setRole('customer');
-    setErrorMessage('');
-  };
-
-  const fillDemoOtp = () => {
-    setOtp('123456');
-    setErrorMessage('');
-  };
-
-
 
   const handleAdminLogin = async () => {
     if (!email || !password) {
@@ -202,6 +189,7 @@ export default function LoginScreen() {
     }
   };
 
+  /*
   const handleGoogleSignIn = () => {
     if (!request) {
       setErrorMessage('Google Sign-In configuration is loading, please try again in a moment.');
@@ -209,6 +197,7 @@ export default function LoginScreen() {
     }
     promptAsync();
   };
+  */
 
   return (
     <KeyboardAvoidingView
@@ -345,6 +334,7 @@ export default function LoginScreen() {
                   </Text>
                 </View>
               ) : (
+                /* Google Login temporarily commented out
                 <>
                   <TouchableOpacity
                     style={[styles.primaryBtn, { backgroundColor: '#ffffff', marginBottom: 20, borderWidth: 1, borderColor: '#d1d5db', flexDirection: 'row', alignItems: 'center' }]}
@@ -361,6 +351,8 @@ export default function LoginScreen() {
                     <View style={{ flex: 1, height: 1, backgroundColor: '#2f3a4e' }} />
                   </View>
                 </>
+                */
+                null
               )}
 
               <View style={styles.inputGroup}>
@@ -376,7 +368,7 @@ export default function LoginScreen() {
                 />
               </View>
 
-              {role === 'driver' && (
+              {__DEV__ && process.env.EXPO_PUBLIC_ENABLE_TEST_AUTH === 'true' && role === 'driver' && (
                 <TouchableOpacity
                   style={styles.demoFillBtn}
                   onPress={() => {
@@ -418,6 +410,19 @@ export default function LoginScreen() {
                   </Text>
                 )}
               </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.backBtn, { marginTop: 8 }]}
+                onPress={() => {
+                  setErrorMessage('');
+                  setSuccessMessage('');
+                  setStep('phone_login');
+                }}
+              >
+                <Text style={[styles.backBtnText, { color: '#e86331', fontWeight: '600' }]}>
+                  📱 Login with Phone & SMS OTP
+                </Text>
+              </TouchableOpacity>
               
               {role === 'driver' ? (
                 <Text style={{ color: '#a2b2c7', fontSize: 12, textAlign: 'center', marginTop: 14 }}>
@@ -428,6 +433,56 @@ export default function LoginScreen() {
                   <Text style={styles.backBtnText}>Don't have an account? Sign Up</Text>
                 </TouchableOpacity>
               )}
+            </View>
+          ) : step === 'phone_login' ? (
+            <View style={styles.inputGroup}>
+              <View style={styles.inputGroup}>
+                <Text style={styles.label}>Indian Mobile Number (+91)</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <View style={{ backgroundColor: '#1e293b', paddingHorizontal: 12, paddingVertical: 14, borderRadius: 10, borderTopRightRadius: 0, borderBottomRightRadius: 0, borderWidth: 1, borderColor: '#334155', borderRightWidth: 0 }}>
+                    <Text style={{ color: '#cbd5e1', fontWeight: '600' }}>🇮🇳 +91</Text>
+                  </View>
+                  <TextInput
+                    style={[styles.input, { flex: 1, borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }]}
+                    placeholder="10-digit mobile number"
+                    placeholderTextColor="#a2b2c7"
+                    keyboardType="phone-pad"
+                    maxLength={10}
+                    value={phone}
+                    onChangeText={(val) => setPhone(val.replace(/\D/g, '').slice(0, 10))}
+                  />
+                </View>
+                {phone.length > 0 && !/^[6-9]/.test(phone) && (
+                  <Text style={{ color: '#f59e0b', fontSize: 11, marginTop: 4 }}>
+                    Indian mobile numbers must start with 6, 7, 8, or 9
+                  </Text>
+                )}
+              </View>
+
+              <View style={styles.termsRow}>
+                <TouchableOpacity onPress={() => setTermsAccepted(!termsAccepted)} style={[styles.checkbox, termsAccepted && styles.checkboxChecked]} activeOpacity={0.8}>
+                  {termsAccepted && <Text style={styles.checkmark}>✓</Text>}
+                </TouchableOpacity>
+                <View style={styles.termsTextContainer}>
+                  <Text style={styles.termsText}>
+                    I accept the <Text style={styles.termsLink} onPress={() => setShowTermsModal(true)}>Terms & Conditions</Text>
+                  </Text>
+                </View>
+              </View>
+
+              <TouchableOpacity style={styles.primaryBtn} onPress={handleSendOtp} disabled={loading}>
+                {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.primaryBtnText}>Send Login OTP</Text>}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.backBtn}
+                onPress={() => {
+                  setStep('email_login');
+                  setErrorMessage('');
+                }}
+              >
+                <Text style={styles.backBtnText}>← Back to Email / Password Login</Text>
+              </TouchableOpacity>
             </View>
           ) : step === 'email_register' ? (
             <View style={styles.inputGroup}>
@@ -440,8 +495,26 @@ export default function LoginScreen() {
                 <TextInput style={styles.input} placeholder="john@example.com" placeholderTextColor="#a2b2c7" keyboardType="email-address" autoCapitalize="none" value={email} onChangeText={setEmail} />
               </View>
               <View style={styles.inputGroup}>
-                <Text style={styles.label}>Mobile Phone Number (Optional but Recommended)</Text>
-                <TextInput style={styles.input} placeholder="10-digit number" placeholderTextColor="#a2b2c7" keyboardType="phone-pad" maxLength={10} value={phone} onChangeText={setPhone} />
+                <Text style={styles.label}>Mobile Phone Number (+91)</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <View style={{ backgroundColor: '#1e293b', paddingHorizontal: 12, paddingVertical: 14, borderRadius: 10, borderTopRightRadius: 0, borderBottomRightRadius: 0, borderWidth: 1, borderColor: '#334155', borderRightWidth: 0 }}>
+                    <Text style={{ color: '#cbd5e1', fontWeight: '600' }}>🇮🇳 +91</Text>
+                  </View>
+                  <TextInput
+                    style={[styles.input, { flex: 1, borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }]}
+                    placeholder="10-digit number"
+                    placeholderTextColor="#a2b2c7"
+                    keyboardType="phone-pad"
+                    maxLength={10}
+                    value={phone}
+                    onChangeText={(val) => setPhone(val.replace(/\D/g, '').slice(0, 10))}
+                  />
+                </View>
+                {phone.length > 0 && !/^[6-9]/.test(phone) && (
+                  <Text style={{ color: '#f59e0b', fontSize: 11, marginTop: 4 }}>
+                    Indian mobile numbers must start with 6, 7, 8, or 9
+                  </Text>
+                )}
               </View>
               <View style={styles.inputGroup}>
                 <Text style={styles.label}>Password</Text>

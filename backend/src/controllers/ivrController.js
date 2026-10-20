@@ -61,15 +61,17 @@ async function handleVoiceQuery(req, res) {
       });
     }
 
-    const customerId = req.user?.id || req.body?.customerId || null;
+    const customerId = req.user?.id || null;
     const phoneNumber = req.body?.phoneNumber || null;
+    const requestKey = req.user?.id || req.ip || 'ivr:anonymous';
 
     const result = await ivrVoiceService.processVoiceHelplineQuery({
       audioBuffer,
       filename,
       mimeType,
       phoneNumber,
-      customerId
+      customerId,
+      requestKey
     });
 
     return res.status(200).json({
@@ -78,9 +80,15 @@ async function handleVoiceQuery(req, res) {
     });
   } catch (error) {
     console.error('IVR Voice Query Controller Error:', error.message);
-    return res.status(500).json({
+    const status = error.status === 429 ? 429 : (error.code === 'AI_TIMEOUT' ? 503 : 500);
+    if (status === 429) {
+      res.setHeader('Retry-After', '60');
+    }
+    return res.status(status).json({
       success: false,
-      message: error.message || 'Error processing voice recording'
+      message: status === 429
+        ? 'Voice assistance is temporarily rate limited. Please try again later.'
+        : (status === 503 ? 'Voice assistance timed out. Please try again later.' : 'Error processing voice recording')
     });
   }
 }
@@ -192,7 +200,8 @@ async function handleRecordingCallback(req, res) {
       audioBuffer,
       filename: 'call_recording.wav',
       mimeType: 'audio/wav',
-      phoneNumber: callerPhone
+      phoneNumber: callerPhone,
+      requestKey: req.ip || 'ivr:webhook'
     });
 
     const replyText = result.reply || 'Thank you for contacting Eminence Smart Transport.';

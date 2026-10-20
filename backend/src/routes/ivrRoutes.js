@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const jwt = require('jsonwebtoken');
-const rateLimit = require('express-rate-limit');
 const ivrController = require('../controllers/ivrController');
+const { voiceQueryLimiter, webhookLimiter } = require('../middleware/rateLimiter');
 
 // Multer memory storage (up to 10MB audio)
 const upload = multer({
@@ -24,29 +24,24 @@ const optionalAuth = (req, _res, next) => {
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const token = authHeader.split(' ')[1];
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'fallback_secret');
-      req.user = decoded;
+      if (process.env.JWT_SECRET) {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = decoded;
+      }
     } catch (_) {}
   }
   next();
 };
 
-const voiceQueryLimiter = rateLimit({
-  windowMs: 60 * 1000, // 1 minute
-  max: 60, // limit each IP to 60 requests per windowMs
-  standardHeaders: true,
-  legacyHeaders: false
-});
-
 // Health & Status
 router.get('/health', ivrController.getHealth);
 
-// REST Voice Query (Mobile / Web Support Chat mic recording)
+// REST Voice Query (Mobile / Web Support Chat mic recording, rate limiter runs first to protect against DoS)
 router.post('/voice-query', voiceQueryLimiter, optionalAuth, upload.single('audio'), ivrController.handleVoiceQuery);
 
 // Telephony Webhooks (Twilio / Exotel Inbound Call & Recording)
-router.post('/webhook', ivrController.handleIncomingWebhook);
-router.get('/webhook', ivrController.handleIncomingWebhook);
-router.post('/recording-callback', ivrController.handleRecordingCallback);
+router.post('/webhook', webhookLimiter, ivrController.handleIncomingWebhook);
+router.get('/webhook', webhookLimiter, ivrController.handleIncomingWebhook);
+router.post('/recording-callback', webhookLimiter, ivrController.handleRecordingCallback);
 
 module.exports = router;

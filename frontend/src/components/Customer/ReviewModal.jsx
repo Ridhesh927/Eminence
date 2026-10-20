@@ -10,12 +10,14 @@ const ReviewModal = ({ isOpen, onClose, bookingId, driverId, driverName = "Drive
   const [comment, setComment] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (rating === 0) return;
     
     setIsSubmitting(true);
+    setErrorMsg('');
     try {
       await api.post(
         '/api/reviews',
@@ -36,12 +38,7 @@ const ReviewModal = ({ isOpen, onClose, bookingId, driverId, driverName = "Drive
       }, 2000);
     } catch (error) {
       console.error('Failed to submit review:', error);
-      // Mock success if backend fails during development
-      setIsSuccess(true);
-      setTimeout(() => {
-        onClose();
-        setIsSuccess(false);
-      }, 2000);
+      setErrorMsg(error.response?.data?.message || 'Failed to submit review. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -84,6 +81,12 @@ const ReviewModal = ({ isOpen, onClose, bookingId, driverId, driverName = "Drive
               <>
                 <h3 className="text-2xl font-serif font-bold text-loft-50 mb-2 text-center">Rate your trip</h3>
                 <p className="text-loft-400 text-sm text-center mb-6">How was your experience with {driverName}?</p>
+
+                {errorMsg && (
+                  <div className="mb-4 p-3 bg-red-500/10 border border-red-500/25 rounded-xl text-red-400 text-xs text-center font-medium">
+                    {errorMsg}
+                  </div>
+                )}
 
                 <form onSubmit={handleSubmit}>
                   <div className="flex justify-center gap-2 mb-8">

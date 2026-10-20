@@ -1,4 +1,5 @@
 const axios = require('axios');
+const getOsrmBaseUrl = () => (process.env.OSRM_BASE_URL || 'https://router.project-osrm.org').replace(/\/$/, '');
 
 /**
  * Helper to calculate simple distance (as the crow flies) for fallback
@@ -18,7 +19,11 @@ const calculateDistance = (point1, point2) => {
 
 const hasCoordinates = (point) =>
   Number.isFinite(Number(point?.lat)) &&
-  Number.isFinite(Number(point?.lng));
+  Number(point.lat) >= -90 &&
+  Number(point.lat) <= 90 &&
+  Number.isFinite(Number(point?.lng)) &&
+  Number(point.lng) >= -180 &&
+  Number(point.lng) <= 180;
 
 /**
  * Optimizes a route using OSRM Trip API or fallbacks to Nearest Neighbor.
@@ -28,7 +33,6 @@ const hasCoordinates = (point) =>
  */
 const optimizeRoute = async (startPoint, waypoints) => {
   if (!waypoints || waypoints.length === 0) return [];
-  if (waypoints.length === 1) return waypoints;
 
   // Validate all points
   const allPoints = [startPoint, ...waypoints];
@@ -37,15 +41,13 @@ const optimizeRoute = async (startPoint, waypoints) => {
   if (!allValid) {
     throw new Error("Cannot optimize route: missing or invalid geocoded coordinates.");
   }
+  if (waypoints.length === 1) return waypoints;
 
   try {
     // Format coordinates for OSRM: lon,lat;lon,lat
     const coordsString = allPoints.map(p => `${p.lng},${p.lat}`).join(';');
     
-    // Call OSRM Trip API (Public Demo Server)
-    // Note: Public OSRM API is for demo/development only. 
-    // It restricts requests and may timeout, but perfectly fits an MVP.
-    const response = await axios.get(`http://router.project-osrm.org/trip/v1/driving/${coordsString}`, {
+    const response = await axios.get(`${getOsrmBaseUrl()}/trip/v1/driving/${coordsString}`, {
       params: {
         source: 'first',
         roundtrip: 'false',
@@ -62,8 +64,6 @@ const optimizeRoute = async (startPoint, waypoints) => {
       // Map OSRM ordered waypoints back to our original waypoints array
       
       // Filter out the start point from OSRM's response to only sort dropoffs
-      const dropoffWaypoints = osrmWaypoints.filter(wp => wp.waypoint_index > 0);
-      
       // Sort the original waypoints array based on OSRM's waypoint_index
       const sortedOriginalWaypoints = [...waypoints].sort((a, b) => {
         // Find index of 'a' in the original allPoints array
@@ -71,8 +71,14 @@ const optimizeRoute = async (startPoint, waypoints) => {
         const bOrigIdx = allPoints.indexOf(b);
         
         // Find their assigned waypoint_index in OSRM
-        const aOsrm = osrmWaypoints.find(wp => wp.original_index === aOrigIdx);
-        const bOsrm = osrmWaypoints.find(wp => wp.original_index === bOrigIdx);
+        // OSRM returns waypoints in input order. Some compatible providers also
+        // include original_index; support both response shapes.
+        const aOsrm = osrmWaypoints.find(wp => wp.original_index === aOrigIdx) || osrmWaypoints[aOrigIdx];
+        const bOsrm = osrmWaypoints.find(wp => wp.original_index === bOrigIdx) || osrmWaypoints[bOrigIdx];
+
+        if (!aOsrm || !bOsrm || !Number.isFinite(aOsrm.waypoint_index) || !Number.isFinite(bOsrm.waypoint_index)) {
+          throw new Error('OSRM response did not include usable waypoint indexes');
+        }
         
         return aOsrm.waypoint_index - bOsrm.waypoint_index;
       });
@@ -146,7 +152,7 @@ const getRouteDistance = async (startPoint, endPoint) => {
   if (crowFlies < 0.1) return 1.0;
 
   try {
-    const url = `https://router.project-osrm.org/route/v1/driving/${lng1},${lat1};${lng2},${lat2}?overview=false`;
+    const url = `${getOsrmBaseUrl()}/route/v1/driving/${lng1},${lat1};${lng2},${lat2}?overview=false`;
     const response = await axios.get(url, { timeout: 4000 });
     if (response.data && response.data.code === 'Ok' && response.data.routes && response.data.routes.length > 0) {
       const roadKm = response.data.routes[0].distance / 1000;
@@ -167,4 +173,3 @@ module.exports = {
   calculateDistance,
   getRouteDistance
 };
-

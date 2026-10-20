@@ -8,8 +8,19 @@ const path = require('path');
 dotenv.config({ path: path.resolve(__dirname, '../.env.local') });
 dotenv.config({ path: path.resolve(__dirname, '../.env') });
 const helmet = require('helmet');
+const { apiLimiter, publicReadLimiter } = require('./middleware/rateLimiter');
 
 const app = express();
+
+// Trust reverse proxy (e.g. Render, Vercel, Cloudflare, ALB) for accurate client IP rate limiting
+const trustProxyEnv = process.env.TRUST_PROXY;
+if (trustProxyEnv !== undefined) {
+  const parsed = parseInt(trustProxyEnv, 10);
+  app.set('trust proxy', isNaN(parsed) ? trustProxyEnv : parsed);
+} else if (process.env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
+
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(cookieParser());
 
@@ -54,7 +65,7 @@ app.use(express.json({
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // Basic route
-app.get('/api/health', (_req, res) => {
+app.get('/api/health', publicReadLimiter, (_req, res) => {
   const mem = process.memoryUsage();
   res.status(200).json({ 
     success: true, 
@@ -65,7 +76,7 @@ app.get('/api/health', (_req, res) => {
 });
 
 // Public white-label config (no auth required, strictly read-only without side-effects)
-app.get('/api/config', async (_req, res) => {
+app.get('/api/config', publicReadLimiter, async (_req, res) => {
   try {
     const { PlatformConfig } = require('./models');
     const config = await PlatformConfig.findOne();
@@ -95,6 +106,9 @@ const supportRoutes = require('./routes/supportRoutes');
 
 const customerRoutes = require('./routes/customerRoutes');
 
+// Base API rate limiter protects all /api routes from denial-of-service
+app.use('/api', apiLimiter);
+
 app.use('/api/auth', authRoutes);
 app.use('/api/customer', customerRoutes);
 app.use('/api/admin', adminRoutes);
@@ -110,5 +124,18 @@ app.use('/api/notifications', notificationRoutes);
 app.use('/api/ivr', ivrRoutes);
 app.use('/api/support', supportRoutes);
 
+// Global production-safe error handler (prevents stack traces leaking to clients)
+app.use((err, _req, res, _next) => {
+  if (err.message && err.message.startsWith('CORS blocked')) {
+    return res.status(403).json({ success: false, message: 'Origin not allowed by CORS' });
+  }
+  const isProd = process.env.NODE_ENV === 'production';
+  const status = err.status || err.statusCode || 500;
+  return res.status(status).json({
+    success: false,
+    message: isProd ? 'Internal server error' : (err.message || 'Internal server error'),
+    ...(isProd ? {} : { stack: err.stack })
+  });
+});
 
 module.exports = app;

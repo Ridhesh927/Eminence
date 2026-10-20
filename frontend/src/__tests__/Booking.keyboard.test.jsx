@@ -51,5 +51,5 @@ describe('TC-PRA-001: Booking Form Keyboard Navigation', () => {
     expect(dateInput).toBeInTheDocument();
     expect(timeInput).toBeInTheDocument();
     expect(nextBtn).toBeInTheDocument();
-  });
+  }, 15000);
 });

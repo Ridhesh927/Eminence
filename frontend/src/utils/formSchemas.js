@@ -66,7 +66,7 @@ export const bookingPaymentSchema = z.object({
   phone: z.string().trim()
     .min(10, 'Contact phone number must be exactly 10 digits')
     .max(10, 'Contact phone number must be exactly 10 digits')
-    .regex(/^([6-9]\d{9}|1234567890)$/, 'Please enter a valid 10-digit Indian mobile number (e.g. 9876543210)')
+    .regex(/^[6-9]\d{9}$/, 'Please enter a valid 10-digit Indian mobile number (e.g. 9876543210)')
 });
 
 // Customer Address Schema

@@ -15,6 +15,7 @@ import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import AdminMenuModal from '../../components/AdminMenuModal';
+import { registerAdminPushNotifications } from '../../services/notificationService';
 
 interface OverviewStats {
   revenue: string;
@@ -87,24 +88,9 @@ export default function AdminDashboard() {
         setSurge(surgeRes.data);
       }
     } catch (err) {
-      console.log('Error fetching admin data, using fallback');
-      // Graceful fallback
-      setStats({
-        revenue: '₹34,250',
-        rawRevenue: 34250,
-        activeDrivers: '14',
-        totalVehicles: '28',
-        totalCustomers: '120',
-      });
-      setRevenueData([
-        { date: '09-07', revenue: 4200 },
-        { date: '09-08', revenue: 5800 },
-        { date: '09-09', revenue: 3900 },
-        { date: '09-10', revenue: 7100 },
-        { date: '09-11', revenue: 6400 },
-        { date: '09-12', revenue: 8200 },
-        { date: '09-13', revenue: 9500 },
-      ]);
+      console.log('Error fetching admin data:', err);
+      setStats(null);
+      setRevenueData([]);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -113,6 +99,8 @@ export default function AdminDashboard() {
 
   useEffect(() => {
     fetchAdminData();
+    // Register Admin device for high-priority emergency SOS push & buzzing
+    registerAdminPushNotifications(user?.phone);
   }, []);
 
   const onRefresh = () => {

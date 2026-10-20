@@ -71,79 +71,11 @@ export default function CustomerManagementScreen() {
       if (res.data?.success && Array.isArray(res.data.customers)) {
         setCustomers(res.data.customers);
       } else {
-        // Fallback default sample data
-        setCustomers([
-          {
-            id: 'c-1',
-            name: 'Rahul Sharma',
-            phone: '9876543210',
-            email: 'rahul.sharma@gmail.com',
-            city: 'Pune',
-            state: 'MH',
-            isBusiness: false,
-            isPhoneVerified: true,
-            isProfileComplete: true,
-            referralCode: 'EMINENCE-RHL01',
-            createdAt: new Date().toISOString(),
-          },
-          {
-            id: 'c-2',
-            name: 'Priya Mehta',
-            phone: '9123456789',
-            email: 'priya.mehta@gmail.com',
-            city: 'Mumbai',
-            state: 'MH',
-            isBusiness: false,
-            isPhoneVerified: true,
-            isProfileComplete: false,
-            referralCode: 'EMINENCE-PRY02',
-            createdAt: new Date().toISOString(),
-          },
-          {
-            id: 'c-3',
-            name: 'Tata AutoComp Supply',
-            phone: '9888877777',
-            email: 'logistics@tataautocomp.com',
-            city: 'Pune',
-            state: 'MH',
-            isBusiness: true,
-            isPhoneVerified: true,
-            isProfileComplete: true,
-            referralCode: 'EMINENCE-TATB2B',
-            createdAt: new Date().toISOString(),
-          },
-        ]);
+        setCustomers([]);
       }
     } catch (err) {
-      console.warn('Error fetching customers, fallback to defaults:', err);
-      setCustomers([
-        {
-          id: 'c-1',
-          name: 'Rahul Sharma',
-          phone: '9876543210',
-          email: 'rahul.sharma@gmail.com',
-          city: 'Pune',
-          state: 'MH',
-          isBusiness: false,
-          isPhoneVerified: true,
-          isProfileComplete: true,
-          referralCode: 'EMINENCE-RHL01',
-          createdAt: new Date().toISOString(),
-        },
-        {
-          id: 'c-2',
-          name: 'Priya Mehta',
-          phone: '9123456789',
-          email: 'priya.mehta@gmail.com',
-          city: 'Mumbai',
-          state: 'MH',
-          isBusiness: false,
-          isPhoneVerified: true,
-          isProfileComplete: false,
-          referralCode: 'EMINENCE-PRY02',
-          createdAt: new Date().toISOString(),
-        },
-      ]);
+      console.warn('Error fetching customers:', err);
+      setCustomers([]);
     } finally {
       setLoading(false);
       setRefreshing(false);

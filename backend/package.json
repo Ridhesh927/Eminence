@@ -8,6 +8,7 @@
     "test:unit": "jest tests/unit/",
     "test:google-auth": "node tests/test_google_auth_automation.js",
     "db:clean-test-data": "node src/scripts/cleanTestData.js",
+    "db:init": "node src/scripts/initDatabase.js",
     "dev": "nodemon src/server.js",
     "start": "node src/server.js"
   },

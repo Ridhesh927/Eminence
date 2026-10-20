@@ -51,24 +51,17 @@ const Home = () => {
               Moving Goods <span className="glow-text">Made Easy</span>
             </h1>
             
-            <p className="text-2xl text-loft-200 font-medium mb-2">
+            <p className="text-2xl text-loft-200 font-medium mb-10 max-w-2xl mx-auto leading-relaxed">
               Book a Tempo Online
             </p>
-            <p className="text-lg text-copper-500 font-bold mb-2">OR</p>
-            <p className="text-xl text-loft-300 mb-12 max-w-2xl mx-auto leading-relaxed">
-              Call Our Helpline for Business Contracts
-            </p>
             
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
+            <div className="flex items-center justify-center">
               <button 
                 onClick={handleBookNowClick}
                 className="w-full sm:w-auto btn-primary text-lg px-10 py-4 shadow-[0_0_30px_rgba(232,99,49,0.2)] flex items-center justify-center cursor-pointer"
               >
                 Book Now <ArrowRight className="ml-2 w-5 h-5" />
               </button>
-              <Link to="/contracts" className="w-full sm:w-auto flex items-center justify-center gap-2 px-10 py-4 bg-moss-500/10 border border-moss-500/20 rounded-xl text-moss-300 font-medium hover:bg-moss-500/20 transition-colors">
-                <Phone className="w-5 h-5" /> Call Now
-              </Link>
             </div>
           </motion.div>
         </div>

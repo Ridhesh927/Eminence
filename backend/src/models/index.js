@@ -141,7 +141,9 @@ const bootstrapDatabase = async () => {
       await sequelize.query(`
         ALTER TABLE "Admins"
           ADD COLUMN IF NOT EXISTS "role" VARCHAR(50) DEFAULT 'Support Admin',
-          ADD COLUMN IF NOT EXISTS "isPrimary" BOOLEAN DEFAULT false;
+          ADD COLUMN IF NOT EXISTS "isPrimary" BOOLEAN DEFAULT false,
+          ADD COLUMN IF NOT EXISTS "phone" VARCHAR(255),
+          ADD COLUMN IF NOT EXISTS "pushToken" VARCHAR(255);
       `);
 
       // Database-level constraint preventing multiple referral rewards for one customer's wallet
@@ -152,6 +154,28 @@ const bootstrapDatabase = async () => {
       // Ensure wallet payment method value exists in PostgreSQL enum
       await sequelize.query(`
         ALTER TYPE "enum_Bookings_paymentMethod" ADD VALUE IF NOT EXISTS 'wallet';
+      `).catch(() => {});
+
+      // Ensure expired booking status value exists in PostgreSQL enum
+      await sequelize.query(`
+        ALTER TYPE "enum_Bookings_status" ADD VALUE IF NOT EXISTS 'expired';
+      `).catch(() => {});
+
+      // Normalize untouched past-validity bookings to 'expired'
+      await sequelize.query(`
+        UPDATE "Bookings"
+        SET status = 'expired'
+        WHERE status = 'cancelled'
+          AND ("cancellationReason" ILIKE '%expire%' OR "cancellationReason" ILIKE '%untouched%');
+      `).catch(() => {});
+
+      await sequelize.query(`
+        ALTER TABLE "Notifications"
+          ALTER COLUMN "userId" DROP NOT NULL,
+          ALTER COLUMN "type" TYPE VARCHAR(50) USING "type"::text,
+          ADD COLUMN IF NOT EXISTS "recipientRole" VARCHAR(50) DEFAULT 'customer',
+          ADD COLUMN IF NOT EXISTS "dismissedFromBell" BOOLEAN DEFAULT false,
+          ADD COLUMN IF NOT EXISTS "metadata" JSONB;
       `).catch(() => {});
     } else if (dialect === 'sqlite') {
       // For SQLite test environment, use a similar partial index
@@ -172,6 +196,11 @@ const bootstrapDatabase = async () => {
       await addSqliteColumn('Bookings', 'cancelledBy', 'VARCHAR(50)');
       await addSqliteColumn('Admins', 'role', "VARCHAR(50) DEFAULT 'Support Admin'");
       await addSqliteColumn('Admins', 'isPrimary', 'BOOLEAN DEFAULT 0');
+      await addSqliteColumn('Admins', 'phone', 'VARCHAR(20)');
+      await addSqliteColumn('Admins', 'pushToken', 'VARCHAR(255)');
+      await addSqliteColumn('Notifications', 'recipientRole', "VARCHAR(50) DEFAULT 'customer'");
+      await addSqliteColumn('Notifications', 'dismissedFromBell', 'BOOLEAN DEFAULT 0');
+      await addSqliteColumn('Notifications', 'metadata', 'TEXT');
     }
   } catch (e) {
     console.warn('Bootstrap database note:', e.message);
@@ -180,8 +209,10 @@ const bootstrapDatabase = async () => {
 
 const initializeFleetAndDrivers = async () => {
   try {
+    const fixtureMode = process.env.NODE_ENV === 'test' ||
+      (process.env.NODE_ENV === 'development' && process.env.DEMO_SEED === 'true');
     const existingVehicles = await Vehicle.count();
-    if (existingVehicles === 0) {
+    if (existingVehicles === 0 && fixtureMode) {
       console.log('Initializing specific company fleet (8 tempos)...');
       const fleetData = [
         {
@@ -257,10 +288,10 @@ const initializeFleetAndDrivers = async () => {
     }
 
     const driverCount = await Driver.count();
-    if (driverCount < 4) {
-      console.log('Provisioning primary fleet drivers...');
+    if (fixtureMode && driverCount < 4 && process.env.SEED_PASSWORD) {
+      console.log('Provisioning primary fleet drivers (test fixture)...');
       const bcrypt = require('bcrypt');
-      const defaultPassword = await bcrypt.hash('password123', 10);
+      const fixturePassword = await bcrypt.hash(process.env.SEED_PASSWORD, 10);
       const defaultDrivers = [
         { name: 'Ramesh Patil', phone: '9822011001', licenseNumber: 'MH12-2020-001001', email: 'ramesh.driver@eminence.com', status: 'active', rating: 4.9, termsAccepted: true },
         { name: 'Suresh Shinde', phone: '9822011002', licenseNumber: 'MH12-2020-001002', email: 'suresh.driver@eminence.com', status: 'active', rating: 4.8, termsAccepted: true },
@@ -273,7 +304,7 @@ const initializeFleetAndDrivers = async () => {
       for (const d of defaultDrivers) {
         const existing = await Driver.findOne({ where: { phone: d.phone } });
         if (!existing) {
-          await Driver.create({ ...d, password: defaultPassword });
+          await Driver.create({ ...d, password: fixturePassword });
         }
       }
       console.log('Provisioned fleet drivers successfully.');
@@ -286,8 +317,8 @@ const initializeFleetAndDrivers = async () => {
 // Function to sync models
 const syncDatabase = async () => {
   try {
-    if (process.env.NODE_ENV === 'production') {
-      console.log('Production environment detected: Skipping automatic schema alteration. Controlled database migrations should be used.');
+    if (process.env.NODE_ENV === 'production' && process.env.DB_SYNC !== 'true') {
+      console.log('Production environment detected: Skipping automatic schema alteration. Set DB_SYNC=true or run "npm run db:init" during initial deployment if bootstrapping schema.');
       await sequelize.authenticate();
       return;
     }
@@ -300,11 +331,16 @@ const syncDatabase = async () => {
     // Ensure dedicated company fleet & qualified drivers exist
     await initializeFleetAndDrivers();
 
-    // Ensure single authoritative admin exists based on .env
-    if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test' || !process.env.NODE_ENV) {
+    // Ensure single authoritative admin exists based on environment configuration
+    const fixtureMode = process.env.NODE_ENV === 'test' ||
+      (process.env.NODE_ENV === 'development' && process.env.DEMO_SEED === 'true');
+    if (fixtureMode) {
       const bcrypt = require('bcrypt');
-      const seedEmail = process.env.SEED_EMAIL || 'admin@eminence.com';
-      const seedPassword = process.env.SEED_PASSWORD || 'password123';
+      const seedEmail = process.env.SEED_EMAIL;
+      const seedPassword = process.env.SEED_PASSWORD;
+      if (!seedEmail || !seedPassword) {
+        throw new Error('Test/demo fixture mode requires SEED_EMAIL and SEED_PASSWORD.');
+      }
       const hashedSeedPassword = await bcrypt.hash(seedPassword, 10);
 
       // Clean up legacy admin@example.com if present
@@ -327,6 +363,26 @@ const syncDatabase = async () => {
         admin.role = 'Superadmin';
         admin.isPrimary = true;
         await admin.save();
+      }
+    } else if (process.env.NODE_ENV === 'production') {
+      const adminCount = await Admin.count();
+      if (adminCount === 0) {
+        const adminEmail = process.env.ADMIN_EMAIL;
+        const adminPassword = process.env.ADMIN_PASSWORD;
+        if (adminEmail && adminPassword) {
+          const bcrypt = require('bcrypt');
+          const hashedAdminPassword = await bcrypt.hash(adminPassword, 10);
+          await Admin.create({
+            name: 'Root Administrator',
+            email: adminEmail,
+            password: hashedAdminPassword,
+            role: 'Superadmin',
+            isPrimary: true
+          });
+          console.log(`[BOOTSTRAP] Initialized root administrator account for: ${adminEmail}`);
+        } else {
+          console.warn('[SECURITY NOTICE] No Admin found in database. Configure ADMIN_EMAIL and ADMIN_PASSWORD in environment to provision the root administrator.');
+        }
       }
     }
 

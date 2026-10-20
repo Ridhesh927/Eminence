@@ -6,7 +6,7 @@ const getTelemetryProvider = () => {
 
 const isSimulatorEnabled = () => (
   getTelemetryProvider() === 'simulator' && (
-    process.env.NODE_ENV !== 'production' || process.env.TELEMETRY_SIMULATION_ENABLED === 'true'
+    process.env.NODE_ENV !== 'production'
   )
 );
 

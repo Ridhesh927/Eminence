@@ -107,10 +107,8 @@ const CompleteProfile = () => {
         referralCode: referralCode.trim() || undefined 
       });
       dispatch(updateProfileSuccess(res.data.user));
-      setMessage('Profile updated. Please verify email and phone if required.');
-      if (res.data.user.isProfileComplete) {
-        navigate('/');
-      }
+      setMessage('Profile updated successfully!');
+      navigate(`/${res.data.user?.role || user?.role || 'customer'}/dashboard`);
     } catch (err) {
       setError(err.response?.data?.message || 'Error updating profile');
     } finally {
@@ -159,9 +157,7 @@ const CompleteProfile = () => {
       setOtpType(null);
       setOtpCode('');
       setMessage(`${otpType} verified!`);
-      if (res.data.user.isProfileComplete) {
-        navigate('/');
-      }
+      navigate(`/${res.data.user?.role || user?.role || 'customer'}/dashboard`);
     } catch (err) {
       setError(err.response?.data?.message || 'Invalid OTP');
     } finally {
@@ -174,7 +170,17 @@ const CompleteProfile = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-md">
-        <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Complete Your Profile</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-bold text-gray-800">Complete Your Profile</h2>
+          <button 
+            type="button" 
+            onClick={() => navigate(`/${user?.role || 'customer'}/dashboard`)}
+            className="text-xs font-semibold text-copper-600 hover:text-copper-700 bg-copper-50 hover:bg-copper-100 px-3 py-1.5 rounded-full transition-colors"
+          >
+            Skip to Dashboard →
+          </button>
+        </div>
+        <p className="text-xs text-gray-500 mb-6">Optional: Add your location and details or continue straight to your dashboard.</p>
         
         {error && <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">{error}</div>}
         {message && <div className="mb-4 p-3 bg-green-100 text-green-700 rounded">{message}</div>}
@@ -191,18 +197,24 @@ const CompleteProfile = () => {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Phone</label>
-            <input
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/[^\d+ -]/g, ''))}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm p-2 border"
-              placeholder="e.g. 9876543210"
-              pattern="^[0-9+ -]{10,15}$"
-              title="Enter a valid 10-digit mobile number"
-              maxLength="15"
-              required
-            />
+            <label className="block text-sm font-medium text-gray-700">Indian Mobile Number (+91)</label>
+            <div className="relative flex mt-1">
+              <div className="flex items-center px-3 rounded-l-md bg-gray-100 border border-r-0 border-gray-300 text-gray-600 text-sm font-medium">
+                🇮🇳 +91
+              </div>
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value.replace(/\D/g, '').slice(0, 10))}
+                className="block w-full rounded-r-md border-gray-300 shadow-sm p-2 border"
+                placeholder="10-digit mobile (e.g. 9876543210)"
+                maxLength="10"
+                required
+              />
+            </div>
+            {phone && phone.length > 0 && !/^[6-9]/.test(phone) && (
+              <p className="text-xs text-amber-600 mt-1">Indian mobile numbers must start with 6, 7, 8, or 9</p>
+            )}
           </div>
 
           <div>
@@ -242,13 +254,22 @@ const CompleteProfile = () => {
             </div>
           )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700"
-          >
-            Update Details
-          </button>
+          <div className="flex gap-3">
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 py-2 px-4 border border-transparent rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 font-medium"
+            >
+              Update Details
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate(`/${user?.role || 'customer'}/dashboard`)}
+              className="py-2 px-4 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-100 font-medium text-sm"
+            >
+              Skip
+            </button>
+          </div>
         </form>
 
         <div className="mt-8 space-y-4 border-t pt-6">

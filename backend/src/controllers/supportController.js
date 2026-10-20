@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const { SupportTicket, Notification, Customer, Driver, Booking } = require('../models');
+const { createAndEmitNotification, sendAdminEmergencyPushNotification } = require('../services/notificationService');
 
 // Helper to sanitize strings
 const sanitizeString = (str) => {
@@ -35,7 +36,7 @@ exports.createTicket = async (req, res) => {
     const customerId = userRole === 'customer' ? user.id : null;
     const driverId = userRole === 'driver' ? user.id : null;
 
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const randomSuffix = crypto.randomInt(1000, 10000);
     const ticketNumber = `TKT-${randomSuffix}`;
 
     const initialMessage = {
@@ -74,18 +75,14 @@ exports.createTicket = async (req, res) => {
       io.to('admin_inbox').emit('chat_list_update', await getAllSupportItems());
     }
 
-    // Persist admin notification
-    try {
-      await Notification.create({
-        id: crypto.randomUUID(),
-        title: `New Support Ticket #${ticketNumber}`,
-        message: `${userName} raised ticket: "${subject}" [${category || 'General'}]`,
-        type: 'support',
-        isRead: false
-      });
-    } catch (notifErr) {
-      console.warn('Could not persist notification for ticket:', notifErr.message);
-    }
+    // Persist admin notification and broadcast in real-time
+    createAndEmitNotification({
+      recipientRole: 'admin',
+      title: `New Support Ticket #${ticketNumber}`,
+      message: `${userName} raised ticket: "${subject}" [${category || 'General'}]`,
+      type: 'support',
+      metadata: { ticketId: ticket.id, ticketNumber }
+    }).catch(notifErr => console.warn('Could not emit notification for ticket:', notifErr.message));
 
     res.status(201).json({
       success: true,
@@ -116,7 +113,7 @@ exports.triggerDriverSos = async (req, res) => {
       }
     }
 
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+    const randomSuffix = crypto.randomInt(1000, 10000);
     const ticketNumber = `SOS-${randomSuffix}`;
 
     const emergencyReason = sanitizeString(reason || 'Urgent Road Emergency');
@@ -185,18 +182,30 @@ exports.triggerDriverSos = async (req, res) => {
       io.to('admin_inbox').emit('chat_list_update', await getAllSupportItems());
     }
 
-    // Persist urgent Admin Notification
-    try {
-      await Notification.create({
-        id: crypto.randomUUID(),
-        title: `🚨 CRITICAL: Driver SOS Emergency #${ticketNumber}!`,
-        message: `${driverName} triggered SOS emergency: ${emergencyReason} at (${locationData.lat || 'GPS'}, ${locationData.lng || 'GPS'})`,
-        type: 'sos_emergency',
-        isRead: false
-      });
-    } catch (notifErr) {
-      console.warn('Could not persist emergency notification:', notifErr.message);
-    }
+    // Persist urgent Admin Notification and broadcast in real-time
+    createAndEmitNotification({
+      recipientRole: 'admin',
+      title: `🚨 DRIVER SOS: ${driverName}`,
+      message: `${emergencyReason} at ${locationData.address || `(${locationData.lat || 'GPS'}, ${locationData.lng || 'GPS'})`}. Ticket #${ticketNumber}`,
+      type: 'sos',
+      metadata: { ticketId: ticket.id, ticketNumber, driverId: resolvedDriverId, isSos: true, location: locationData }
+    }).catch(notifErr => console.warn('Could not emit emergency notification:', notifErr.message));
+
+    // Send High-Priority Mobile Push (with OS vibration/buzzing) & SMS Failover to offline Admin mobile
+    sendAdminEmergencyPushNotification({
+      title: `🚨 DRIVER SOS: ${driverName}`,
+      body: `CRITICAL ALERT: ${emergencyReason} at ${locationData.address || 'Live GPS'}. Tap to track driver immediately!`,
+      data: {
+        ticketId: ticket.id,
+        ticketNumber,
+        driverId: resolvedDriverId,
+        bookingId: bookingId || null,
+        lat: locationData.lat,
+        lng: locationData.lng,
+      },
+      location: locationData,
+      driverName,
+    }).catch(pushErr => console.warn('Could not emit emergency push notification:', pushErr.message));
 
     res.status(201).json({
       success: true,
@@ -316,6 +325,25 @@ exports.addTicketMessage = async (req, res) => {
       io.to('admin_inbox').emit('chat_list_update', await getAllSupportItems());
     }
 
+    if (sender !== 'admin') {
+      createAndEmitNotification({
+        recipientRole: 'admin',
+        title: `Support Message #${ticket.ticketNumber}`,
+        message: `${senderName}: ${newMessage.text}`,
+        type: 'support',
+        metadata: { ticketId: ticket.id, ticketNumber: ticket.ticketNumber }
+      }).catch(() => {});
+    } else if (ticket.customerId) {
+      createAndEmitNotification({
+        userId: ticket.customerId,
+        recipientRole: 'customer',
+        title: 'Support Team Replied',
+        message: `Eminence Support: ${newMessage.text}`,
+        type: 'support',
+        metadata: { ticketId: ticket.id, ticketNumber: ticket.ticketNumber }
+      }).catch(() => {});
+    }
+
     res.status(200).json({
       success: true,
       message: 'Message sent successfully',
@@ -354,6 +382,7 @@ exports.updateTicketStatus = async (req, res) => {
     const io = getSocketIo(req);
     if (io) {
       io.to(`ticket_${ticket.id}`).emit('ticket_status_updated', { id, status });
+      io.to('admin_inbox').emit('ticket_status_updated', { id, status });
       io.to('admin_inbox').emit('chat_list_update', await getAllSupportItems());
     }
 

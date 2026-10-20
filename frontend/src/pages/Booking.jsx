@@ -3,14 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Calendar, Clock, Box, ShieldCheck, Tag, Shield, Crown,
   Mic, MicOff, Sparkles, X, Leaf, Bookmark, MapPin, Wallet,
-  Plus, CheckCircle, AlertTriangle, RefreshCw, ExternalLink, Truck, Phone
+  Plus, CheckCircle, AlertTriangle, AlertCircle, RefreshCw, ExternalLink, Truck
 } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import api from '../services/api';
 import AutocompleteLocationInput from '../components/Customer/Booking/AutocompleteLocationInput';
 import RouteMapPreview from '../components/Customer/Booking/RouteMapPreview';
-import { bookingLocationsSchema, bookingDetailsSchema, bookingPaymentSchema, VEHICLE_CAPACITIES } from '../utils/formSchemas';
+import { bookingLocationsSchema, bookingDetailsSchema, VEHICLE_CAPACITIES } from '../utils/formSchemas';
 import AuthModal from '../components/Auth/AuthModal';
 import { geocodeAddress, fetchOsrmRoute } from '../utils/puneGeocoder';
 
@@ -439,7 +439,7 @@ const Booking = () => {
         isValid: false 
       };
     }
-    if (!/^[6-9]/.test(raw) && raw !== '1234567890') {
+    if (!/^[6-9]/.test(raw)) {
       return { 
         status: 'invalid', 
         message: 'Must begin with 6, 7, 8, or 9 (standard Indian mobile)', 
@@ -670,9 +670,15 @@ const Booking = () => {
 
       const res = await api.post('/api/wallet/create-order', { amount: amountNum });
       const { order, keyId } = res.data;
+      const razorpayKey = keyId || import.meta.env.VITE_RAZORPAY_KEY_ID;
+      if (!razorpayKey) {
+        setTopupError('Payment gateway is not configured. Please contact support.');
+        setIsProcessingTopup(false);
+        return;
+      }
 
       const options = {
-        key: keyId || import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_mock',
+        key: razorpayKey,
         amount: order.amount,
         currency: order.currency || 'INR',
         name: 'Eminence Logistics',
@@ -853,10 +859,16 @@ const Booking = () => {
         }
 
         const orderRes = await api.post('/api/integrations/payment/create-order', { bookingId });
-        const { order } = orderRes.data;
+        const { order, keyId } = orderRes.data;
+        const razorpayKey = keyId || import.meta.env.VITE_RAZORPAY_KEY_ID;
+        if (!razorpayKey) {
+          setError('Payment gateway is not configured. Please contact support.');
+          setIsSubmitting(false);
+          return;
+        }
 
         const options = {
-          key: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_test_mock',
+          key: razorpayKey,
           amount: order.amount,
           currency: order.currency,
           name: 'Eminence Logistics',
@@ -878,7 +890,7 @@ const Booking = () => {
           prefill: {
             name: user?.name || 'Customer',
             email: user?.email || 'customer@example.com',
-            contact: formData.phone || user?.phone || '9999999999',
+            contact: formData.phone || user?.phone || '',
           },
           theme: { color: '#b87333' },
           modal: { ondismiss: function () { setIsSubmitting(false); } }

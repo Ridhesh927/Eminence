@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
-import api from '../../services/api';
+import api, { API_BASE_URL } from '../../services/api';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { startBackgroundLocation, stopBackgroundLocation } from '../../services/LocationTracking';
 import * as Location from 'expo-location';
@@ -27,6 +27,7 @@ import { io } from 'socket.io-client';
 export default function DriverDashboard() {
   const router = useRouter();
   const { user, token, logout } = useAuth();
+  const allowTestFixtures = __DEV__ && process.env.EXPO_PUBLIC_ENABLE_TEST_AUTH === 'true';
 
   const [activeTab, setActiveTab] = useState<'assigned' | 'tools' | 'history'>('assigned');
   const [isOnline, setIsOnline] = useState(true);
@@ -101,14 +102,17 @@ export default function DriverDashboard() {
   };
 
   useEffect(() => {
-    const socketUrl = api.defaults.baseURL || 'http://localhost:3000';
+    const socketUrl = API_BASE_URL;
     const socket = io(socketUrl, {
       transports: ['websocket'],
       auth: { token },
     });
     socketRef.current = socket;
 
-    socket.emit('join_vehicle_telemetry', 'VEH-1234');
+    const vehicleId = (user as any)?.vehicleId || (user as any)?.vehicle?.id;
+    if (vehicleId) {
+      socket.emit('join_vehicle_telemetry', vehicleId);
+    }
 
     socket.on('telemetry_update', (packet: any) => {
       if (packet && packet.temperature !== undefined) {
@@ -233,10 +237,13 @@ export default function DriverDashboard() {
       setTripStep('assigned');
       setIncomingTrip(null);
     } catch (err) {
-      console.log('Accepting trip in simulation mode');
-      setActiveTrip({ ...incomingTrip });
-      setTripStep('assigned');
-      setIncomingTrip(null);
+      if (allowTestFixtures) {
+        setActiveTrip({ ...incomingTrip });
+        setTripStep('assigned');
+        setIncomingTrip(null);
+      } else {
+        Alert.alert('Trip unavailable', 'The booking service could not accept this trip.');
+      }
     } finally {
       setLoading(false);
     }
@@ -248,6 +255,7 @@ export default function DriverDashboard() {
 
   // Quick Demo Simulation (Mirroring Web Driver Dashboard Simulation)
   const startDemoSimulation = () => {
+    if (!allowTestFixtures) return;
     setActiveTrip({
       bookingId: 'DEMO-SIM-' + Math.random().toString(36).substring(2, 8).toUpperCase(),
       pickupAddress: 'Swargate Industrial Depot, Pune',
@@ -343,10 +351,14 @@ export default function DriverDashboard() {
       const payload = { photoUri, lat: currentLat, lng: currentLng };
       
       if (!netState.isConnected) {
+        if (!activeTrip?.bookingId && !allowTestFixtures) {
+          Alert.alert('Trip unavailable', 'A valid booking is required before completing delivery.');
+          return;
+        }
         if (activeTrip?.bookingId && activeTrip.bookingId.length > 20) {
           queueOfflineRequest(`/api/bookings/${activeTrip.bookingId}/complete`, 'POST', payload);
         }
-        setPodHash('OFFLINE_SYNC_PENDING_' + Math.random().toString(36).substring(7).toUpperCase());
+        setPodHash(allowTestFixtures ? 'OFFLINE_SYNC_PENDING_' + Math.random().toString(36).substring(7).toUpperCase() : null);
         setTripStep('completed');
         setPhotoUri(null);
         Alert.alert('Offline Mode', 'Delivery saved locally. It will auto-sync when connection is restored.');
@@ -356,15 +368,22 @@ export default function DriverDashboard() {
           if (res.data?.booking?.podHash) {
             setPodHash(res.data.booking.podHash);
           }
-        } else {
+        } else if (allowTestFixtures) {
           setPodHash('POD-' + Math.random().toString(36).substring(2, 10).toUpperCase());
+        } else {
+          Alert.alert('Trip unavailable', 'A valid booking is required before completing delivery.');
+          return;
         }
         setTripStep('completed');
         setPhotoUri(null);
       }
     } catch (err) {
-      setPodHash('POD-' + Math.random().toString(36).substring(2, 10).toUpperCase());
-      setTripStep('completed');
+      if (allowTestFixtures) {
+        setPodHash('POD-' + Math.random().toString(36).substring(2, 10).toUpperCase());
+        setTripStep('completed');
+      } else {
+        Alert.alert('Delivery unavailable', 'The booking service could not complete this delivery.');
+      }
     } finally {
       setLoading(false);
     }
@@ -788,12 +807,14 @@ export default function DriverDashboard() {
                     <Text style={styles.standbyRefreshBtnText}>🔄 Check Appointed Work</Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity
-                    style={styles.standbySimBtn}
-                    onPress={startDemoSimulation}
-                  >
-                    <Text style={styles.standbySimBtnText}>▶️ Launch Tempo Moving Simulation</Text>
-                  </TouchableOpacity>
+                  {allowTestFixtures && (
+                    <TouchableOpacity
+                      style={styles.standbySimBtn}
+                      onPress={startDemoSimulation}
+                    >
+                      <Text style={styles.standbySimBtnText}>▶️ Launch Tempo Moving Simulation</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
 
                 {/* Standby Readiness Status Badges */}
@@ -922,7 +943,7 @@ export default function DriverDashboard() {
             </View>
 
             {/* QA Sensor & Telemetry Simulator Panel */}
-            {__DEV__ && (
+            {allowTestFixtures && (
               <View style={styles.simPanel}>
                 <Text style={styles.simPanelTitle}>🧪 QA SENSOR & TELEMETRY SIMULATION</Text>
                 <Text style={styles.simPanelDesc}>Inject mock telemetry packets into WebSocket / device drivers</Text>
@@ -932,7 +953,7 @@ export default function DriverDashboard() {
                     onPress={() => {
                       handleThermalDegradation(110);
                       if (socketRef.current?.connected) {
-                        socketRef.current.emit('qa:inject_telemetry', { vehicleId: 'VEH-1234', temperature: 110 });
+                        socketRef.current.emit('qa:inject_telemetry', { vehicleId: process.env.EXPO_PUBLIC_TEST_VEHICLE_ID || 'VEH-TEST', temperature: 110 });
                       }
                     }}
                   >
@@ -943,7 +964,7 @@ export default function DriverDashboard() {
                     onPress={() => {
                       handleThermalDegradation(85);
                       if (socketRef.current?.connected) {
-                        socketRef.current.emit('qa:inject_telemetry', { vehicleId: 'VEH-1234', temperature: 85 });
+                        socketRef.current.emit('qa:inject_telemetry', { vehicleId: process.env.EXPO_PUBLIC_TEST_VEHICLE_ID || 'VEH-TEST', temperature: 85 });
                       }
                     }}
                   >

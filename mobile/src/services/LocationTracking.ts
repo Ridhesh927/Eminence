@@ -19,10 +19,16 @@ TaskManager.defineTask(LOCATION_TASK_NAME, async ({ data, error }) => {
       
       try {
         // Enforce driver check: verify that the authenticated mobile role is driver
-        const token = await SecureStore.getItemAsync('user_token');
+        const token = (await SecureStore.getItemAsync('userToken')) || (await SecureStore.getItemAsync('user_token'));
         if (!token) return;
 
-        const role = await SecureStore.getItemAsync('user_role');
+        let role = await SecureStore.getItemAsync('user_role');
+        if (!role) {
+          const storedUserData = await SecureStore.getItemAsync('userData');
+          if (storedUserData) {
+            try { role = JSON.parse(storedUserData)?.role; } catch {}
+          }
+        }
         if (role && role !== 'driver') {
           // Immediately unregister background location updates for non-driver roles
           await Location.stopLocationUpdatesAsync(LOCATION_TASK_NAME);

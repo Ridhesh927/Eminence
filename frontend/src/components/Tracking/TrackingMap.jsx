@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, Popup, Polyline, useMap, ZoomControl } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -62,21 +62,24 @@ const truckIcon = new L.Icon({
   className: 'rounded-full border-2 border-copper-500 shadow-2xl object-cover'
 });
 
-// FitBounds component to auto-frame all points smoothly
+// FitBounds component to auto-frame all points smoothly on initial load
 const FitBounds = ({ positions }) => {
   const map = useMap();
+  const hasFittedRef = useRef(false);
 
   useEffect(() => {
-    if (!positions || positions.length === 0) return;
+    if (!positions || positions.length === 0 || hasFittedRef.current) return;
     try {
       const valid = positions.filter(
         p => p && Array.isArray(p) && p.length === 2 && !isNaN(p[0]) && !isNaN(p[1])
       );
       if (valid.length === 1) {
         map.setView(valid[0], 14, { animate: true });
+        hasFittedRef.current = true;
       } else if (valid.length > 1) {
         const bounds = L.latLngBounds(valid);
         map.fitBounds(bounds, { padding: [60, 60], maxZoom: 15, animate: true });
+        hasFittedRef.current = true;
       }
     } catch (e) {
       console.warn('Map fit bounds notice:', e);
@@ -131,8 +134,8 @@ const MapViewButtons = ({ driverPosition, allPositions }) => {
 
 const TrackingMap = ({ 
   bookingId, 
-  initialLat = 18.5204, 
-  initialLng = 73.8567, 
+  initialLat = null,
+  initialLng = null,
   isReconnecting = false, 
   currentPosition = null,
   routeCoordinates = [],
@@ -146,7 +149,9 @@ const TrackingMap = ({
   speed = 0,
   status = 'in_transit'
 }) => {
-  const [driverPosition, setDriverPosition] = useState([initialLat, initialLng]);
+  const [driverPosition, setDriverPosition] = useState(
+    initialLat != null && initialLng != null ? [initialLat, initialLng] : null
+  );
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
@@ -158,7 +163,8 @@ const TrackingMap = ({
   useEffect(() => {
     // Initialize socket connection for real-time telemetry updates
     const token = getToken();
-    const socket = io(api.defaults.baseURL?.replace(/\/api\/?$/, '') || 'http://localhost:3000', {
+    const socketBaseUrl = api.defaults.baseURL?.replace(/\/api\/?$/, '') || window.location.origin;
+    const socket = io(socketBaseUrl, {
       withCredentials: true,
       auth: { token }
     });
@@ -196,11 +202,19 @@ const TrackingMap = ({
     if (dropPosition) list.push(dropPosition);
     if (stopsPositions && stopsPositions.length > 0) list.push(...stopsPositions);
     if (driverPosition && driverPosition[0]) list.push(driverPosition);
-    if (list.length === 0) list.push([initialLat, initialLng]);
     return list;
   }, [pickupPosition, dropPosition, stopsPositions, driverPosition, initialLat, initialLng]);
 
   const showOverlay = !isConnected || isReconnecting;
+  const mapCenter = driverPosition || pickupPosition || dropPosition;
+
+  if (!mapCenter) {
+    return (
+      <div className="relative w-full h-full min-h-[350px] overflow-hidden bg-loft-950 flex items-center justify-center">
+        <p className="text-sm text-loft-400">Waiting for route and GPS coordinates...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="relative w-full h-full min-h-[350px] overflow-hidden bg-loft-950">
@@ -235,7 +249,7 @@ const TrackingMap = ({
       </div>
 
       <MapContainer 
-        center={driverPosition} 
+        center={mapCenter}
         zoom={13} 
         scrollWheelZoom={true}
         zoomControl={false}
@@ -319,7 +333,7 @@ const TrackingMap = ({
         )}
 
         {/* Driver Live Location Vehicle Marker */}
-        <Marker position={driverPosition} icon={truckIcon}>
+        {driverPosition && <Marker position={driverPosition} icon={truckIcon}>
           <Popup>
             <div className="text-xs p-1 font-sans">
               <div className="font-bold text-gray-900 text-sm">{driverName || 'Eminence Fleet Driver'}</div>
@@ -332,7 +346,7 @@ const TrackingMap = ({
               </div>
             </div>
           </Popup>
-        </Marker>
+        </Marker>}
       </MapContainer>
       
       <style>{`

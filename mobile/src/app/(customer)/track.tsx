@@ -287,6 +287,8 @@ export default function TrackingScreen() {
         return 'Goods in Transit to Destination';
       case 'completed':
         return 'Delivered Successfully!';
+      case 'expired':
+        return 'Booking Expired (Untouched)';
       case 'cancelled':
         return booking?.cancellationReason?.toLowerCase().includes('expire')
           ? 'Booking Expired (Untouched)'
@@ -308,6 +310,7 @@ export default function TrackingScreen() {
         return '85%';
       case 'completed':
         return '100%';
+      case 'expired':
       case 'cancelled':
         return '0%';
       default:
@@ -363,13 +366,13 @@ export default function TrackingScreen() {
         </View>
 
         {/* Cancelled / Expired Banner */}
-        {status === 'cancelled' && (
-          <View style={styles.cancelledCard}>
-            <Text style={styles.cancelledTitle}>
-              {booking?.cancellationReason?.toLowerCase().includes('expire') ? '⚠️ Booking Expired' : '🚫 Booking Cancelled'}
+        {(status === 'cancelled' || status === 'expired') && (
+          <View style={[styles.cancelledCard, status === 'expired' && { borderColor: 'rgba(245, 158, 11, 0.4)', backgroundColor: 'rgba(245, 158, 11, 0.1)' }]}>
+            <Text style={[styles.cancelledTitle, status === 'expired' && { color: '#f59e0b' }]}>
+              {status === 'expired' || booking?.cancellationReason?.toLowerCase().includes('expire') ? '⚠️ Booking Expired' : '🚫 Booking Cancelled'}
             </Text>
             <Text style={styles.cancelledReason}>
-              {booking?.cancellationReason || 'This booking has been cancelled.'}
+              {booking?.cancellationReason || (status === 'expired' ? 'Booking expired because no driver was assigned within the validity window.' : 'This booking has been cancelled.')}
             </Text>
             <View style={styles.refundBox}>
               <Text style={styles.refundText}>
@@ -614,6 +617,55 @@ export default function TrackingScreen() {
             </View>
           </View>
         )}
+        {/* Dedicated Support & Helpline Footer Card */}
+        <View style={styles.trackSupportCard}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={{ fontSize: 16 }}>📞</Text>
+              <Text style={styles.trackSupportTitle}>
+                {booking?.driver?.phone ? 'Driver & Dispatch Contact' : 'Dedicated Helpline (7 AM – 7 PM)'}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.trackSupportSubtitle}>
+            {booking?.driver?.phone
+              ? `Call driver directly for pickup/drop updates. If driver is not responding, call admin dispatch:`
+              : `Need immediate help with this trip? Call dispatch or email us:`}
+          </Text>
+          <View style={styles.trackSupportActionRow}>
+            {booking?.driver?.phone ? (
+              <>
+                <TouchableOpacity
+                  style={[styles.trackCallBtn, { backgroundColor: '#10b981' }]}
+                  onPress={() => Linking.openURL(`tel:${booking.driver.phone}`)}
+                >
+                  <Text style={styles.trackCallBtnText}>Call Driver: +91 {booking.driver.phone}</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.trackMailBtn, { borderColor: '#e86331' }]}
+                  onPress={() => Linking.openURL('tel:9970734425')}
+                >
+                  <Text style={[styles.trackMailBtnText, { color: '#e86331' }]}>Admin Support</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <TouchableOpacity
+                  style={styles.trackCallBtn}
+                  onPress={() => Linking.openURL('tel:9970734425')}
+                >
+                  <Text style={styles.trackCallBtnText}>Call: +91 9970734425</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.trackMailBtn}
+                  onPress={() => Linking.openURL('mailto:eminence.support.helpline@gmail.com')}
+                >
+                  <Text style={styles.trackMailBtnText}>Email Support</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
       </ScrollView>
     </View>
   );
@@ -1151,5 +1203,59 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 13,
     fontWeight: '700',
+  },
+  trackSupportCard: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 14,
+    marginTop: 14,
+    marginBottom: 20,
+  },
+  trackSupportTitle: {
+    color: '#f9fafb',
+    fontSize: 14,
+    fontWeight: '700',
+  },
+  trackSupportSubtitle: {
+    color: '#9ca3af',
+    fontSize: 12,
+    lineHeight: 16,
+    marginBottom: 10,
+  },
+  trackSupportActionRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  trackCallBtn: {
+    flex: 1.2,
+    backgroundColor: 'rgba(249, 115, 22, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(249, 115, 22, 0.4)',
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  trackCallBtnText: {
+    color: '#fb923c',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  trackMailBtn: {
+    flex: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  trackMailBtnText: {
+    color: '#e5e7eb',
+    fontSize: 12,
+    fontWeight: '600',
   },
 });

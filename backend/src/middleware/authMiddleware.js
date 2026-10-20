@@ -26,7 +26,16 @@ const authMiddleware = (req, res, next) => {
     req.user = decoded; // Contains id and role
     next();
   } catch (error) {
-    console.error('JWT Verification Error:', error);
+    if (req.cookies && req.cookies.accessToken) {
+      res.clearCookie('accessToken', {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax'
+      });
+    }
+    if (process.env.NODE_ENV !== 'test') {
+      console.warn(`[AUTH] Rejected invalid/expired token: ${error.message}`);
+    }
     return res.status(401).json({ success: false, message: 'Invalid or expired token' });
   }
 };

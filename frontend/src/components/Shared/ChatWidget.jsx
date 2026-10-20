@@ -38,7 +38,7 @@ const ChatWidget = () => {
     }
 
     // Connect to Socket.io server
-    const rawSocketUrl = import.meta.env.VITE_API_URL || api.defaults.baseURL || 'http://localhost:3000';
+    const rawSocketUrl = import.meta.env.VITE_API_URL || api.defaults.baseURL || window.location.origin;
     const socket = io(rawSocketUrl.replace(/\/api\/?$/, ''), {
       withCredentials: true,
       auth: { token: token || user?.token || getToken() }

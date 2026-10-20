@@ -27,7 +27,7 @@ function LocationMarker({ position, setPosition }) {
 
 const MapPicker = ({ onLocationSelect }) => {
   const [position, setPosition] = useState(null);
-  const defaultCenter = [51.505, -0.09]; // Default to London, you can change this or use Geolocation API
+  const defaultCenter = [18.5204, 73.8567]; // Default to Pune, Maharashtra
 
   useEffect(() => {
     if (position && onLocationSelect) {

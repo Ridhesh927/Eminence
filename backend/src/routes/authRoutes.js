@@ -7,7 +7,7 @@ const { authLimiter, otpLimiter } = require('../middleware/rateLimiter');
 // Public Route (with rate limiting)
 router.get('/terms', authController.getTerms);
 router.post('/google-login', authLimiter, authController.googleLogin);
-router.post('/phone-login', authLimiter, authController.phoneLogin);
+router.post('/phone-login', otpLimiter, authController.phoneLogin);
 router.post('/phone-verify', authLimiter, authController.phoneVerify);
 router.post('/register', authLimiter, authController.register);
 router.post('/register-password', authLimiter, authController.register);
@@ -16,7 +16,7 @@ router.post('/login-password', authLimiter, authController.login);
 router.post('/forgot-password', otpLimiter, authController.forgotPassword);
 router.post('/reset-password', authLimiter, authController.resetPassword);
 
-// Protected Routes
+// Protected Routes (rate limiters placed before authMiddleware so authorization checks are rate-limited)
 router.get('/profile', authLimiter, authMiddleware, authController.getProfile);
 router.get('/me', authLimiter, authMiddleware, authController.getProfile);
 router.post('/accept-terms', authLimiter, authMiddleware, authController.acceptTerms);

@@ -4,6 +4,8 @@ import * as SecureStore from 'expo-secure-store';
 
 import Constants from 'expo-constants';
 
+const isDevelopment = __DEV__;
+
 // Helper to determine the best default backend URL based on platform
 const getDefaultBaseUrl = () => {
   // If running via Expo Go on LAN, dynamically get the computer's local IP!
@@ -21,7 +23,12 @@ const getDefaultBaseUrl = () => {
   return 'http://localhost:3000';
 };
 
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || getDefaultBaseUrl();
+const configuredApiUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
+if (!configuredApiUrl && !isDevelopment) {
+  throw new Error('EXPO_PUBLIC_API_URL is required outside development builds.');
+}
+
+export const API_BASE_URL = configuredApiUrl || getDefaultBaseUrl();
 
 const api = axios.create({
   baseURL: API_BASE_URL,

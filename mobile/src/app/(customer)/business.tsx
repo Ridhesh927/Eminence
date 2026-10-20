@@ -67,40 +67,10 @@ export default function MobileBusinessPortal() {
         if (contractsRes.data?.success && contractsRes.data?.contracts?.length > 0) {
           setContracts(contractsRes.data.contracts);
         } else {
-          // Default demo contracts
-          setContracts([
-            {
-              id: 'CNT-2026-001',
-              vehicleType: 'Tata Ace (Small)',
-              vehicleCount: 2,
-              startDate: '2026-09-01',
-              endDate: '2026-12-31',
-              status: 'active',
-              dailyRate: 1800,
-            },
-            {
-              id: 'CNT-2026-002',
-              vehicleType: 'Bolero Pickup (Medium)',
-              vehicleCount: 1,
-              startDate: '2026-08-15',
-              endDate: '2026-11-15',
-              status: 'active',
-              dailyRate: 2400,
-            },
-          ]);
+          setContracts([]);
         }
       } catch {
-        setContracts([
-          {
-            id: 'CNT-2026-001',
-            vehicleType: 'Tata Ace (Small)',
-            vehicleCount: 2,
-            startDate: '2026-09-01',
-            endDate: '2026-12-31',
-            status: 'active',
-            dailyRate: 1800,
-          },
-        ]);
+        setContracts([]);
       }
 
       // 2. Fetch Invoices
@@ -109,15 +79,10 @@ export default function MobileBusinessPortal() {
         if (invRes.data?.success && invRes.data?.invoices?.length > 0) {
           setInvoices(invRes.data.invoices);
         } else {
-          setInvoices([
-            { id: 'INV-B2B-2608', date: '2026-08-31', ref: 'Dedicated Fleet - Aug', amount: '₹1,08,000', status: 'Paid' },
-            { id: 'INV-B2B-2607', date: '2026-07-31', ref: 'Dedicated Fleet - Jul', amount: '₹1,08,000', status: 'Paid' },
-          ]);
+          setInvoices([]);
         }
       } catch {
-        setInvoices([
-          { id: 'INV-B2B-2608', date: '2026-08-31', ref: 'Dedicated Fleet - Aug', amount: '₹1,08,000', status: 'Paid' },
-        ]);
+        setInvoices([]);
       }
     } finally {
       setLoading(false);
