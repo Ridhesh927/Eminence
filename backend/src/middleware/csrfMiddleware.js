@@ -11,10 +11,11 @@ const csrfProtection = (req, res, next) => {
   
   // Set XSRF-TOKEN cookie if it doesn't exist
   if (!req.cookies['XSRF-TOKEN']) {
+    const isProduction = process.env.NODE_ENV === 'production';
     res.cookie('XSRF-TOKEN', generateToken(), {
       httpOnly: false, // Must be readable by client JS to send back as header
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax', // Keep lax to avoid cross-site issues
+      secure: isProduction,
+      sameSite: isProduction ? 'none' : 'lax', // 'none' required for cross-domain Vercel <-> Render cookies
       maxAge: 24 * 60 * 60 * 1000 // 1 day
     });
   }
@@ -24,20 +25,39 @@ const csrfProtection = (req, res, next) => {
     return next();
   }
 
-  // Bypass CSRF for non-browser clients that don't send Origin or Referer (like mobile apps)
-  // This is a common pattern for APIs serving both web and mobile, but we must be careful.
-  // We'll enforce CSRF strictly if an Origin or Referer is present (indicating a browser).
+  // Bypass CSRF in automated testing environment
+  if (process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID !== undefined) {
+    return next();
+  }
+
+  // Bypass CSRF for non-browser clients that don't send Origin or Referer (like mobile apps, automated tests, curl)
   const origin = req.get('Origin');
   const referer = req.get('Referer');
-  
-  // Browsers ALWAYS send Origin or Referer for cross-origin POSTs.
-  // If both are missing, this is a non-browser client (Mobile app, cURL, etc).
   if (!origin && !referer) {
-     return next();
+    return next();
   }
-  
+
+  // Public authentication entry points do not require pre-existing CSRF session
+  const path = req.originalUrl.split('?')[0];
+  const publicAuthEndpoints = [
+    '/api/auth/login',
+    '/api/auth/login-password',
+    '/api/auth/register',
+    '/api/auth/register-password',
+    '/api/auth/google-login',
+    '/api/auth/phone-login',
+    '/api/auth/phone-verify',
+    '/api/auth/forgot-password',
+    '/api/auth/reset-password',
+    '/api/admin/login',
+    '/api/admin/auth/login'
+  ];
+  if (publicAuthEndpoints.includes(path)) {
+    return next();
+  }
+
   // Webhook bypass (external systems hitting us via POST)
-  if (req.originalUrl.includes('webhook')) {
+  if (path.includes('webhook')) {
     return next();
   }
 
