@@ -7,11 +7,16 @@ const isTestEnv = process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID 
 
 let adminApp;
 
-if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
+if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON || process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
   try {
-    const path = require('path');
-    const serviceAccountPath = path.resolve(process.cwd(), process.env.FIREBASE_SERVICE_ACCOUNT_PATH);
-    const serviceAccount = require(serviceAccountPath);
+    let serviceAccount;
+    if (process.env.FIREBASE_SERVICE_ACCOUNT_JSON) {
+      serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_JSON);
+    } else {
+      const path = require('path');
+      const serviceAccountPath = path.resolve(process.cwd(), process.env.FIREBASE_SERVICE_ACCOUNT_PATH);
+      serviceAccount = require(serviceAccountPath);
+    }
 
     // Guard against placeholder / unconfigured service account templates
     const isPlaceholderKey = !serviceAccount.private_key || 
@@ -33,7 +38,7 @@ if (process.env.FIREBASE_SERVICE_ACCOUNT_PATH) {
     console.error("Failed to initialize Firebase Admin:", error.message || error);
   }
 } else if (!isTestEnv) {
-  console.warn("FIREBASE_SERVICE_ACCOUNT_PATH not found in environment. Firebase Admin not initialized.");
+  console.warn("FIREBASE_SERVICE_ACCOUNT_JSON or FIREBASE_SERVICE_ACCOUNT_PATH not found in environment. Firebase Admin not initialized.");
 }
 
 module.exports = adminApp;
