@@ -70,7 +70,14 @@ const csrfProtection = (req, res, next) => {
     return next();
   }
 
-  // Validate CSRF token for state-changing requests
+  // Requests using Authorization: Bearer <token> headers are immune to browser-driven CSRF attacks
+  // because browsers do not automatically attach custom Authorization headers on cross-site requests.
+  const authHeader = req.get('Authorization') || req.get('authorization');
+  if (authHeader && authHeader.startsWith('Bearer ') && authHeader.length > 20) {
+    return next();
+  }
+
+  // Validate CSRF token for state-changing requests using cookie authentication
   const cookieToken = req.cookies['XSRF-TOKEN'];
   const headerToken = req.get('x-xsrf-token') || req.get('x-csrf-token');
 

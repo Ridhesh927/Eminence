@@ -7,6 +7,12 @@ export const getToken = () => {
     }
     const stored = localStorage.getItem('token') || sessionStorage.getItem('token');
     if (stored) return stored;
+
+    const userRaw = localStorage.getItem('eminence_user');
+    if (userRaw) {
+      const parsed = JSON.parse(userRaw);
+      if (parsed?.token) return parsed.token;
+    }
   } catch (_e) {}
   return null;
 };
@@ -24,6 +30,7 @@ export const removeToken = () => {
     try {
       localStorage.removeItem('token');
       sessionStorage.removeItem('token');
+      localStorage.removeItem('eminence_user');
     } catch (_e) {}
   }
 };
