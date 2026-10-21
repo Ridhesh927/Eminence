@@ -86,16 +86,17 @@ const Register = () => {
       setIsLoading(false);
 
       if (data.success) {
+        try {
+          sessionStorage.removeItem('profile_modal_dismissed');
+          if (data.user?.id) {
+            sessionStorage.removeItem(`profile_modal_dismissed_${data.user.id}`);
+          }
+        } catch (_e) {}
+
         dispatch(loginSuccess({
-          id: data.user.id,
-          email: data.user.email,
-          name: data.user.name,
+          ...data.user,
           role: data.user.role || activeTab,
-          token: data.token,
-          isProfileComplete: data.user.isProfileComplete,
-          isEmailVerified: data.user.isEmailVerified,
-          isPhoneVerified: data.user.isPhoneVerified,
-          googleId: data.user.googleId
+          token: data.token
         }));
 
         const targetRoute = from || (data.user.role === 'admin'

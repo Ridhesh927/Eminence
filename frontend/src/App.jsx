@@ -51,9 +51,8 @@ const ProfileModalWrapper = () => {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
   const location = useLocation();
 
-  const customerRoutes = ['/customer/dashboard', '/book', '/booking', '/wallet'];
+  const customerRoutes = ['/customer', '/book', '/booking', '/wallet'];
   const isCustomerRoute = customerRoutes.some(path => location.pathname.startsWith(path));
-  
   
   if (isAuthenticated && user?.role === 'customer' && !user?.isProfileComplete && isCustomerRoute) {
     return <CompleteProfileModal />;

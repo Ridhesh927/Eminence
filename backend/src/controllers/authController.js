@@ -9,8 +9,19 @@ const CURRENT_TERMS_VERSION = 'v1.0';
 
 // Helper to check if profile is complete
 const checkAndSetProfileComplete = async (customer) => {
-  if (customer.name && (customer.email || customer.phone)) {
-    customer.isProfileComplete = true;
+  if (!customer) return customer;
+
+  const hasName = Boolean(customer.name && customer.name.trim());
+  const hasEmail = Boolean(customer.email && customer.email.trim());
+  const hasPhone = Boolean(customer.phone && customer.phone.trim());
+  const isPhoneVerified = Boolean(customer.isPhoneVerified);
+
+  // A profile is complete when the customer has provided their name, email, and a verified phone number.
+  // Google sign-up accounts or users without a verified phone are incomplete until finished.
+  const isComplete = Boolean(hasName && hasEmail && hasPhone && isPhoneVerified);
+
+  if (customer.isProfileComplete !== isComplete) {
+    customer.isProfileComplete = isComplete;
     await customer.save();
   }
   return customer;
@@ -98,7 +109,8 @@ const googleLogin = async (req, res) => {
         profilePicture: picture,
         // Assuming Google verified the email
         isEmailVerified: true,
-        referralCode: refCode
+        referralCode: refCode,
+        isProfileComplete: false
       });
       // Create wallet
       const { Wallet } = require('../models');
@@ -106,6 +118,28 @@ const googleLogin = async (req, res) => {
     } else if (!customer.referralCode) {
       customer.referralCode = `EMINENCE-${crypto.randomBytes(3).toString('hex').toUpperCase()}`;
       await customer.save();
+    }
+
+    if (req.body.acceptedTerms) {
+      customer.termsAccepted = true;
+      customer.termsAcceptedAt = new Date();
+      customer.termsVersion = CURRENT_TERMS_VERSION;
+      await customer.save();
+      try {
+        const ipAddress = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+        const userAgent = req.headers['user-agent'] || 'Unknown Client';
+        await UserConsent.create({
+          userId: customer.id,
+          userType: 'customer',
+          termsVersion: CURRENT_TERMS_VERSION,
+          accepted: true,
+          ipAddress: String(ipAddress),
+          userAgent: String(userAgent),
+          acceptedAt: new Date()
+        });
+      } catch (e) {
+        console.warn('Google auth consent log skipped:', e.message);
+      }
     }
 
     // Double check if profile is complete
@@ -351,6 +385,8 @@ const getProfile = async (req, res) => {
         await user.save().catch(() => {});
       }
       safeUser.totalTrips = resolvedTrips;
+      user = await checkAndSetProfileComplete(user);
+      safeUser.isProfileComplete = user.isProfileComplete;
     }
 
     if (userRole === 'driver' || userRole === 'admin') {
@@ -665,11 +701,7 @@ const phoneVerify = async (req, res) => {
           }
         }
         
-        // inline checkAndSetProfileComplete since we modify it
-        if (customer.name && (customer.email || customer.phone)) {
-          customer.isProfileComplete = true;
-          await customer.save();
-        }
+        customer = await checkAndSetProfileComplete(customer);
         
         token = jwt.sign(
           { id: customer.id, role: userRole, isProfileComplete: customer.isProfileComplete },
@@ -758,10 +790,7 @@ const phoneVerify = async (req, res) => {
       }
       await user.save();
       
-      if (user.name && (user.email || user.phone)) {
-          user.isProfileComplete = true;
-          await user.save();
-      }
+      user = await checkAndSetProfileComplete(user);
     } else {
       if (acceptedTerms) {
         user.termsAccepted = true;
@@ -1176,8 +1205,12 @@ const login = async (req, res) => {
       await user.save();
     }
 
+    if (role === 'customer') {
+      user = await checkAndSetProfileComplete(user);
+    }
+
     const token = jwt.sign(
-      { id: user.id, role, isProfileComplete: user.isProfileComplete !== false },
+      { id: user.id, role, isProfileComplete: role === 'driver' || role === 'admin' ? true : Boolean(user.isProfileComplete) },
       getJwtSecret(),
       { expiresIn: process.env.JWT_EXPIRE || '7d' }
     );

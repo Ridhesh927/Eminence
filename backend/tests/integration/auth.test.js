@@ -94,4 +94,47 @@ describe('Auth Integration Tests', () => {
       expect(res.body.success).toBe(false);
     });
   });
+
+  describe('Profile Completion State', () => {
+    const jwt = require('jsonwebtoken');
+
+    it('should return isProfileComplete: false for Google users missing phone number or verification', async () => {
+      const newCust = await Customer.create({
+        name: 'Google Customer',
+        email: 'googleuser@example.com',
+        googleId: 'g-uid-12345',
+        isEmailVerified: true,
+        isPhoneVerified: false,
+        phone: null,
+        isProfileComplete: true // simulated old bug where it was set true
+      });
+
+      const res = await request(app)
+        .get('/api/auth/profile')
+        .set('Authorization', `Bearer ${jwt.sign({ id: newCust.id, role: 'customer' }, process.env.JWT_SECRET || 'testsecret')}`);
+
+      expect(res.status).toBe(200);
+      // checkAndSetProfileComplete should correctly correct it to false
+      expect(res.body.user.isProfileComplete).toBe(false);
+    });
+
+    it('should mark isProfileComplete: true once phone is added and verified', async () => {
+      const cust = await Customer.create({
+        name: 'Verified Customer',
+        email: 'verified@example.com',
+        googleId: 'g-uid-67890',
+        isEmailVerified: true,
+        phone: '9988776655',
+        isPhoneVerified: true,
+        isProfileComplete: false
+      });
+
+      const res = await request(app)
+        .get('/api/auth/profile')
+        .set('Authorization', `Bearer ${jwt.sign({ id: cust.id, role: 'customer' }, process.env.JWT_SECRET || 'testsecret')}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.user.isProfileComplete).toBe(true);
+    });
+  });
 });

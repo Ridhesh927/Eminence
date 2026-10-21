@@ -119,7 +119,7 @@ const appJsonPath = path.resolve(__dirname, '../app.json');
 const appJson = JSON.parse(fs.readFileSync(appJsonPath, 'utf8'));
 
 assert(
-  appJson.expo && appJson.expo.scheme === 'mobile',
+  appJson.expo && (appJson.expo.scheme === 'eminence' || appJson.expo.scheme === 'mobile'),
   'RT-029: Expo URI Scheme Definition',
   `Scheme configured: "${appJson.expo?.scheme}"`
 );

@@ -204,6 +204,13 @@ const Login = () => {
       const data = response.data;
       setIsLoading(false);
       if (data.success) {
+        try {
+          sessionStorage.removeItem('profile_modal_dismissed');
+          if (data.user?.id) {
+            sessionStorage.removeItem(`profile_modal_dismissed_${data.user.id}`);
+          }
+        } catch (_e) {}
+
         dispatch(loginSuccess({
           ...data.user,
           token: data.token
