@@ -1,6 +1,7 @@
 {
   "cli": {
-    "version": ">= 12.0.0"
+    "version": ">= 12.0.0",
+    "appVersionSource": "local"
   },
   "build": {
     "development": {
@@ -14,7 +15,9 @@
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://eminence-backend-03d9.onrender.com",
-        "EXPO_PUBLIC_OSRM_BASE_URL": "https://router.project-osrm.org"
+        "EXPO_PUBLIC_OSRM_BASE_URL": "https://router.project-osrm.org",
+        "NPM_CONFIG_LEGACY_PEER_DEPS": "true",
+        "EAS_SKIP_AUTO_FINGERPRINT": "1"
       }
     },
     "production": {
@@ -23,7 +26,9 @@
       },
       "env": {
         "EXPO_PUBLIC_API_URL": "https://eminence-backend-03d9.onrender.com",
-        "EXPO_PUBLIC_OSRM_BASE_URL": "https://router.project-osrm.org"
+        "EXPO_PUBLIC_OSRM_BASE_URL": "https://router.project-osrm.org",
+        "NPM_CONFIG_LEGACY_PEER_DEPS": "true",
+        "EAS_SKIP_AUTO_FINGERPRINT": "1"
       }
     }
   },
