@@ -51,15 +51,15 @@ export const syncOfflineQueue = async () => {
     console.warn('[Offline Sync] Failed to run expiry cleanup:', err);
   }
 
-  const rows = db.getAllSync<{
+  const rows = (db.getAllSync(
+    `SELECT id, url, method, payload, retry_count FROM pending_requests WHERE status = 'pending' AND retry_count < ${MAX_OFFLINE_RETRIES} ORDER BY id ASC`
+  ) as Array<{
     id: number;
     url: string;
     method: string;
     payload: string;
     retry_count: number;
-  }>(
-    `SELECT id, url, method, payload, retry_count FROM pending_requests WHERE status = 'pending' AND retry_count < ${MAX_OFFLINE_RETRIES} ORDER BY id ASC`
-  );
+  }>);
   
   if (rows.length === 0) return;
 
