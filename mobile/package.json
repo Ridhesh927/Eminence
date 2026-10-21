@@ -50,8 +50,8 @@
   "scripts": {
     "start": "expo start",
     "build": "expo export -p web",
-    "build:android": "eas build -p android --profile preview",
-    "build:ios": "eas build -p ios",
+    "build:android": "npx --yes eas-cli build -p android --profile preview",
+    "build:ios": "npx --yes eas-cli build -p ios",
     "test": "node tests/run_all_tests.js",
     "typecheck": "tsc --noEmit",
     "android": "expo run:android",
